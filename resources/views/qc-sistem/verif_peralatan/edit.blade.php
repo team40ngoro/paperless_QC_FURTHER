@@ -69,12 +69,20 @@
 
                                 $areasForJs = $areas->map(fn($a) => ['id' => (string) $a->id, 'name' => $a->area])->values();
                                 $mesinsByArea = $mesins->groupBy('id_area');
+                                $isQcInspector = auth()->user()->isQcInspector();
+                                $isProduksi = auth()->user()->isProduksi();
                             @endphp
 
                             <form action="{{ route('verif-peralatan.update', $item->uuid) }}" method="POST" id="form_verif_edit">
                                 @csrf
                                 @method('PUT')
                                 <div class="card-body">
+                                    @if($isQcInspector)
+                                        <div class="alert alert-info py-2 mb-3">
+                                            <i class="fas fa-info-circle mr-1"></i> <strong>Mode QC Inspector:</strong> Anda hanya dapat mengisi dan memperbarui kolom <strong>Verifikasi Hasil</strong>. Kolom dan data lainnya bersifat <em>read-only</em>.
+                                        </div>
+                                    @endif
+
                                     @if($errors->any())
                                         <div class="alert alert-danger">
                                             <ul class="mb-0">
@@ -96,26 +104,34 @@
                                         @endif
 
                                         <div class="{{ auth()->user()->role === 'superadmin' ? 'col-md-4' : 'col-md-6' }}">
-                                            <div class="form-group">
-                                                <label for="id_shift">Shift <span class="text-danger">*</span></label>
-                                                <select name="id_shift" id="id_shift" class="form-control @error('id_shift') is-invalid @enderror" required>
-                                                    <option value="">Pilih Shift</option>
-                                                    @foreach($shifts as $shift)
-                                                        <option value="{{ $shift->id }}" {{ (old('id_shift', $item->id_shift) == $shift->id) ? 'selected' : '' }}>
-                                                            {{ $shift->shift }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_shift')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @if($isQcInspector)
+                                                <div class="form-group">
+                                                    <label for="id_shift">Shift</label>
+                                                    <input type="text" class="form-control" value="{{ optional($shifts->firstWhere('id', old('id_shift', $item->id_shift)))->shift ?? '-' }}" readonly>
+                                                    <input type="hidden" name="id_shift" value="{{ old('id_shift', $item->id_shift) }}">
+                                                </div>
+                                            @else
+                                                <div class="form-group">
+                                                    <label for="id_shift">Shift <span class="text-danger">*</span></label>
+                                                    <select name="id_shift" id="id_shift" class="form-control @error('id_shift') is-invalid @enderror" required>
+                                                        <option value="">Pilih Shift</option>
+                                                        @foreach($shifts as $shift)
+                                                            <option value="{{ $shift->id }}" {{ (old('id_shift', $item->id_shift) == $shift->id) ? 'selected' : '' }}>
+                                                                {{ $shift->shift }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('id_shift')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            @endif
                                         </div>
 
                                         <div class="{{ auth()->user()->role === 'superadmin' ? 'col-md-4' : 'col-md-6' }}">
                                             <div class="form-group">
                                                 <label for="tanggal">Tanggal <span class="text-danger">*</span></label>
-                                                <input type="date" name="tanggal" id="tanggal" class="form-control @error('tanggal') is-invalid @enderror" value="{{ old('tanggal', \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d')) }}" required>
+                                                <input type="date" name="tanggal" id="tanggal" class="form-control @error('tanggal') is-invalid @enderror" value="{{ old('tanggal', \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d')) }}" {{ $isQcInspector ? 'readonly' : 'required' }}>
                                                 @error('tanggal')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
@@ -123,15 +139,24 @@
                                         </div>
                                     </div>
 
-                                    {{-- Container pemilih area dinamis --}}
-                                    <div id="dynamic_area_selectors" class="mb-4"></div>
+                                    @if(!$isQcInspector)
+                                        {{-- Container pemilih area dinamis --}}
+                                        <div id="dynamic_area_selectors" class="mb-4"></div>
 
-                                    <div class="d-flex align-items-center mb-4">
-                                        <button type="button" id="btn_tambah_area_dynamic" class="btn btn-success">
-                                            <i class="fas fa-plus"></i> Tambah Area
-                                        </button>
-                                        <span id="input_vars_counter" class="badge badge-info ml-2 p-2" style="font-size: 0.85rem;">Total Variable Input: 0 / 1000</span>
-                                    </div>
+                                        <div class="d-flex align-items-center mb-4">
+                                            <button type="button" id="btn_tambah_area_dynamic" class="btn btn-success">
+                                                <i class="fas fa-plus"></i> Tambah Area
+                                            </button>
+                                            <span id="input_vars_counter" class="badge badge-info ml-2 p-2" style="font-size: 0.85rem;">Total Variable Input: 0 / 1000</span>
+                                        </div>
+                                    @else
+                                        {{-- Mode QC Inspector: tidak menambah atau menghapus area --}}
+                                        <div id="dynamic_area_selectors" class="d-none"></div>
+                                        <div class="d-none">
+                                            <button type="button" id="btn_tambah_area_dynamic"></button>
+                                            <span id="input_vars_counter"></span>
+                                        </div>
+                                    @endif
 
                                     {{-- Section tabel per area --}}
                                     @foreach($areas as $area)
@@ -145,15 +170,17 @@
                                                     <h3 class="card-title font-weight-bold m-0" style="font-size: 1.1rem; line-height: 1.8;">
                                                         <i class="fas fa-map-marker-alt text-primary mr-1"></i> Area: {{ $area->area }}
                                                     </h3>
-                                                    <div class="card-tools d-flex align-items-center">
-                                                        <div class="form-check form-check-inline mb-0 mr-2">
-                                                            <input class="form-check-input check-all-ok" type="checkbox" data-area-id="{{ $area->id }}" id="check_all_ok_{{ $area->id }}" disabled>
-                                                            <label class="form-check-label font-weight-bold text-success" for="check_all_ok_{{ $area->id }}">Check All Bersih</label>
+                                                    @if(!$isQcInspector)
+                                                        <div class="card-tools d-flex align-items-center">
+                                                            <div class="form-check form-check-inline mb-0 mr-2">
+                                                                <input class="form-check-input check-all-ok" type="checkbox" data-area-id="{{ $area->id }}" id="check_all_ok_{{ $area->id }}" disabled>
+                                                                <label class="form-check-label font-weight-bold text-success" for="check_all_ok_{{ $area->id }}">Check All Bersih</label>
+                                                            </div>
+                                                            <button type="button" class="btn btn-tool btn-close-section" data-area-id="{{ $area->id }}">
+                                                                <i class="fas fa-times text-danger" style="font-size: 1.1rem;"></i>
+                                                            </button>
                                                         </div>
-                                                        <button type="button" class="btn btn-tool btn-close-section" data-area-id="{{ $area->id }}">
-                                                            <i class="fas fa-times text-danger" style="font-size: 1.1rem;"></i>
-                                                        </button>
-                                                    </div>
+                                                    @endif
                                                 </div>{{-- /card-header --}}
 
                                                 <div class="card-body">
@@ -201,30 +228,48 @@
                                                                                     ? ($row && $row->verifikasi_hasil !== null ? (string) (int) (bool) $row->verifikasi_hasil : '')
                                                                                     : (string) $oldVerifHasil;
                                                                             @endphp
-                                                                            <td class="text-center">
-                                                                                <select name="details[{{ $mesin->id }}][verifikasi]" class="form-control form-control-sm verifikasi-select" data-area-id="{{ $area->id }}" disabled>
-                                                                                    <option value="" {{ $verifVal === '' ? 'selected' : '' }}>--</option>
-                                                                                    <option value="1" {{ $verifVal === '1' ? 'selected' : '' }}>Bersih</option>
-                                                                                    <option value="0" {{ $verifVal === '0' ? 'selected' : '' }}>Kotor</option>
-                                                                                </select>
-                                                                            </td>
-                                                                            <td>
-                                                                                <div class="verif-only-notok" data-mesin-id="{{ $mesin->id }}" style="display: none;">
-                                                                                    <select name="details[{{ $mesin->id }}][keterangan]" class="form-control form-control-sm keterangan-select" data-mesin-id="{{ $mesin->id }}" disabled>
-                                                                                        <option value="">-- Pilih --</option>
-                                                                                        @foreach($keteranganOptions as $opt)
-                                                                                            <option value="{{ $opt }}" {{ $ketVal === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                                                                        @endforeach
-                                                                                        <option value="__lainnya__" {{ $showManual ? 'selected' : '' }}>Lainnya (ketik manual)</option>
+                                                                            @if($isQcInspector)
+                                                                                <td class="text-center align-middle">
+                                                                                    @if($verifVal === '1')
+                                                                                        <span class="badge badge-success">Bersih</span>
+                                                                                    @elseif($verifVal === '0')
+                                                                                        <span class="badge badge-danger">Kotor</span>
+                                                                                    @else
+                                                                                        <span class="text-muted">-</span>
+                                                                                    @endif
+                                                                                </td>
+                                                                                <td class="align-middle">
+                                                                                    <span class="small font-weight-bold">{{ ($showManual ? old("details.{$mesin->id}.keterangan_manual", $isCustomKet ? $ketVal : '') : $ketVal) ?: '-' }}</span>
+                                                                                </td>
+                                                                                <td class="align-middle">
+                                                                                    <span class="small text-muted">{{ old("details.{$mesin->id}.tindakan_koreksi", $row?->tindakan_koreksi) ?: '-' }}</span>
+                                                                                </td>
+                                                                            @else
+                                                                                <td class="text-center">
+                                                                                    <select name="details[{{ $mesin->id }}][verifikasi]" class="form-control form-control-sm verifikasi-select" data-area-id="{{ $area->id }}" disabled>
+                                                                                        <option value="" {{ $verifVal === '' ? 'selected' : '' }}>--</option>
+                                                                                        <option value="1" {{ $verifVal === '1' ? 'selected' : '' }}>Bersih</option>
+                                                                                        <option value="0" {{ $verifVal === '0' ? 'selected' : '' }}>Kotor</option>
                                                                                     </select>
-                                                                                    <input type="text" name="details[{{ $mesin->id }}][keterangan_manual]" class="form-control form-control-sm mt-1 keterangan-manual-input" data-mesin-id="{{ $mesin->id }}" placeholder="Ketik manual..." style="{{ $showManual ? '' : 'display: none;' }}" value="{{ old("details.{$mesin->id}.keterangan_manual", $isCustomKet ? $ketVal : '') }}" disabled>
-                                                                                </div>
-                                                                            </td>
-                                                                            <td>
-                                                                                <div class="verif-only-notok" data-mesin-id="{{ $mesin->id }}" style="display: none;">
-                                                                                    <textarea name="details[{{ $mesin->id }}][tindakan_koreksi]" class="form-control" rows="2" disabled>{{ old("details.{$mesin->id}.tindakan_koreksi", $row?->tindakan_koreksi) }}</textarea>
-                                                                                </div>
-                                                                            </td>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <div class="verif-only-notok" data-mesin-id="{{ $mesin->id }}" style="display: none;">
+                                                                                        <select name="details[{{ $mesin->id }}][keterangan]" class="form-control form-control-sm keterangan-select" data-mesin-id="{{ $mesin->id }}" disabled>
+                                                                                            <option value="">-- Pilih --</option>
+                                                                                            @foreach($keteranganOptions as $opt)
+                                                                                                <option value="{{ $opt }}" {{ $ketVal === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                                                                            @endforeach
+                                                                                            <option value="__lainnya__" {{ $showManual ? 'selected' : '' }}>Lainnya (ketik manual)</option>
+                                                                                        </select>
+                                                                                        <input type="text" name="details[{{ $mesin->id }}][keterangan_manual]" class="form-control form-control-sm mt-1 keterangan-manual-input" data-mesin-id="{{ $mesin->id }}" placeholder="Ketik manual..." style="{{ $showManual ? '' : 'display: none;' }}" value="{{ old("details.{$mesin->id}.keterangan_manual", $isCustomKet ? $ketVal : '') }}" disabled>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <div class="verif-only-notok" data-mesin-id="{{ $mesin->id }}" style="display: none;">
+                                                                                        <textarea name="details[{{ $mesin->id }}][tindakan_koreksi]" class="form-control" rows="2" disabled>{{ old("details.{$mesin->id}.tindakan_koreksi", $row?->tindakan_koreksi) }}</textarea>
+                                                                                    </div>
+                                                                                </td>
+                                                                            @endif
                                                                             <td class="text-center align-middle">
                                                                                 @if(auth()->user()->isProduksi())
                                                                                     @if($verifHasilVal === '1')
@@ -235,7 +280,7 @@
                                                                                         <span class="text-muted">-</span>
                                                                                     @endif
                                                                                 @else
-                                                                                    <select name="details[{{ $mesin->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
+                                                                                    <select name="details[{{ $mesin->id }}][verifikasi_hasil]" class="form-control form-control-sm" {{ $isQcInspector ? '' : 'disabled' }}>
                                                                                         <option value="" {{ $verifHasilVal === '' ? 'selected' : '' }}>-</option>
                                                                                         <option value="1" {{ $verifHasilVal === '1' ? 'selected' : '' }}>OK</option>
                                                                                         <option value="0" {{ $verifHasilVal === '0' ? 'selected' : '' }}>Tidak OK</option>
@@ -286,30 +331,48 @@
                                                                                                 @endphp
                                                                                                 <tr>
                                                                                                     <td><strong>{{ $bagian->nama_bagian }}</strong></td>
-                                                                                                    <td class="text-center">
-                                                                                                        <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi]" class="form-control form-control-sm verifikasi-bagian-select" data-area-id="{{ $area->id }}" data-mesin-id="{{ $mesin->id }}" disabled>
-                                                                                                            <option value="" {{ $bagVerifVal === '' ? 'selected' : '' }}>--</option>
-                                                                                                            <option value="1" {{ $bagVerifVal === '1' ? 'selected' : '' }}>Bersih</option>
-                                                                                                            <option value="0" {{ $bagVerifVal === '0' ? 'selected' : '' }}>Kotor</option>
-                                                                                                        </select>
-                                                                                                    </td>
-                                                                                                    <td>
-                                                                                                        <div class="bagian-verif-only-notok" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" style="display: none;">
-                                                                                                            <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][keterangan]" class="form-control form-control-sm bagian-keterangan-select" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" disabled>
-                                                                                                                <option value="">-- Pilih --</option>
-                                                                                                                @foreach($keteranganOptions as $opt)
-                                                                                                                    <option value="{{ $opt }}" {{ $bagKetVal === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                                                                                                @endforeach
-                                                                                                                <option value="__lainnya__" {{ $bagShowManual ? 'selected' : '' }}>Lainnya (ketik manual)</option>
+                                                                                                    @if($isQcInspector)
+                                                                                                        <td class="text-center align-middle">
+                                                                                                            @if($bagVerifVal === '1')
+                                                                                                                <span class="badge badge-success">Bersih</span>
+                                                                                                            @elseif($bagVerifVal === '0')
+                                                                                                                <span class="badge badge-danger">Kotor</span>
+                                                                                                            @else
+                                                                                                                <span class="text-muted">-</span>
+                                                                                                            @endif
+                                                                                                        </td>
+                                                                                                        <td class="align-middle">
+                                                                                                            <span class="small font-weight-bold">{{ ($bagShowManual ? old("details.{$mesin->id}.bagian.{$bagian->id}.keterangan_manual", $bagIsCustomKet ? $bagKetVal : '') : $bagKetVal) ?: '-' }}</span>
+                                                                                                        </td>
+                                                                                                        <td class="align-middle">
+                                                                                                            <span class="small text-muted">{{ old("details.{$mesin->id}.bagian.{$bagian->id}.tindakan_koreksi", $bv?->tindakan_koreksi) ?: '-' }}</span>
+                                                                                                        </td>
+                                                                                                    @else
+                                                                                                        <td class="text-center">
+                                                                                                            <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi]" class="form-control form-control-sm verifikasi-bagian-select" data-area-id="{{ $area->id }}" data-mesin-id="{{ $mesin->id }}" disabled>
+                                                                                                                <option value="" {{ $bagVerifVal === '' ? 'selected' : '' }}>--</option>
+                                                                                                                <option value="1" {{ $bagVerifVal === '1' ? 'selected' : '' }}>Bersih</option>
+                                                                                                                <option value="0" {{ $bagVerifVal === '0' ? 'selected' : '' }}>Kotor</option>
                                                                                                             </select>
-                                                                                                            <input type="text" name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][keterangan_manual]" class="form-control form-control-sm mt-1 bagian-keterangan-manual-input" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" placeholder="Ketik manual..." style="{{ $bagShowManual ? '' : 'display: none;' }}" value="{{ old("details.{$mesin->id}.bagian.{$bagian->id}.keterangan_manual", $bagIsCustomKet ? $bagKetVal : '') }}" disabled>
-                                                                                                        </div>
-                                                                                                    </td>
-                                                                                                    <td>
-                                                                                                        <div class="bagian-verif-only-notok" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" style="display: none;">
-                                                                                                            <textarea name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][tindakan_koreksi]" class="form-control form-control-sm" rows="1" disabled>{{ old("details.{$mesin->id}.bagian.{$bagian->id}.tindakan_koreksi", $bv?->tindakan_koreksi) }}</textarea>
-                                                                                                        </div>
-                                                                                                    </td>
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            <div class="bagian-verif-only-notok" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" style="display: none;">
+                                                                                                                <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][keterangan]" class="form-control form-control-sm bagian-keterangan-select" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" disabled>
+                                                                                                                    <option value="">-- Pilih --</option>
+                                                                                                                    @foreach($keteranganOptions as $opt)
+                                                                                                                        <option value="{{ $opt }}" {{ $bagKetVal === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                                                                                                    @endforeach
+                                                                                                                    <option value="__lainnya__" {{ $bagShowManual ? 'selected' : '' }}>Lainnya (ketik manual)</option>
+                                                                                                                </select>
+                                                                                                                <input type="text" name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][keterangan_manual]" class="form-control form-control-sm mt-1 bagian-keterangan-manual-input" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" placeholder="Ketik manual..." style="{{ $bagShowManual ? '' : 'display: none;' }}" value="{{ old("details.{$mesin->id}.bagian.{$bagian->id}.keterangan_manual", $bagIsCustomKet ? $bagKetVal : '') }}" disabled>
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            <div class="bagian-verif-only-notok" data-mesin-id="{{ $mesin->id }}" data-bagian-id="{{ $bagian->id }}" style="display: none;">
+                                                                                                                <textarea name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][tindakan_koreksi]" class="form-control form-control-sm" rows="1" disabled>{{ old("details.{$mesin->id}.bagian.{$bagian->id}.tindakan_koreksi", $bv?->tindakan_koreksi) }}</textarea>
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                    @endif
                                                                                                     <td class="text-center align-middle">
                                                                                                         @if(auth()->user()->isProduksi())
                                                                                                             @if($bagHasilVal === '1')
@@ -320,7 +383,7 @@
                                                                                                                 <span class="text-muted">-</span>
                                                                                                             @endif
                                                                                                         @else
-                                                                                                            <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
+                                                                                                            <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi_hasil]" class="form-control form-control-sm" {{ $isQcInspector ? '' : 'disabled' }}>
                                                                                                                 <option value="" {{ $bagHasilVal === '' ? 'selected' : '' }}>-</option>
                                                                                                                 <option value="1" {{ $bagHasilVal === '1' ? 'selected' : '' }}>OK</option>
                                                                                                                 <option value="0" {{ $bagHasilVal === '0' ? 'selected' : '' }}>Tidak OK</option>
@@ -548,7 +611,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const inputs = section.querySelectorAll('select, input, textarea');
             if (selectedIds.includes(id)) {
                 section.classList.remove('d-none');
-                inputs.forEach(input => input.removeAttribute('disabled'));
+                @if(!$isQcInspector)
+                    inputs.forEach(input => input.removeAttribute('disabled'));
+                @endif
             } else {
                 section.classList.add('d-none');
                 inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
@@ -694,12 +759,14 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Pastikan semua field pada section aktif terkirim
-        activeSections.forEach(function (section) {
-            section.querySelectorAll('select, input, textarea').forEach(function (input) {
-                input.removeAttribute('disabled');
+        @if(!$isQcInspector)
+            // Pastikan semua field pada section aktif terkirim
+            activeSections.forEach(function (section) {
+                section.querySelectorAll('select, input, textarea').forEach(function (input) {
+                    input.removeAttribute('disabled');
+                });
             });
-        });
+        @endif
 
         this.submit();
     });

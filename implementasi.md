@@ -184,3 +184,26 @@ Setelah implementasi diterapkan, pengujian akan dilakukan berdasarkan skenario b
    - Pastikan area **Seasoning** tetap tersedia dan dapat dipilih secara normal.
    - Pastikan kolom **Verifikasi Hasil** tetap berupa dropdown interaktif (`OK` / `Tidak OK`) dan dapat disimpan secara normal.
 
+
+
+---
+
+## 6. Aturan Khusus Role QC Inspector pada Form Edit
+
+### A. Kebutuhan
+Role **QC Inspector** pada halaman Edit (`verif-peralatan/{uuid}/edit`) hanya memiliki kewenangan untuk mengisi dan memperbarui kolom **Verifikasi Hasil** (`verifikasi_hasil`). Seluruh data lainnya bersifat *read-only* untuk menjaga orisinalitas data yang diinput oleh pelapor/pembuat awal.
+
+### B. Perubahan yang Diterapkan
+1. **Helper Method**: Menambahkan `isQcInspector(): bool` pada [User.php](file:///c:/xampp/htdocs/magang/paperless_futher-main/app/Models/User.php).
+2. **Form Edit ([edit.blade.php](file:///c:/xampp/htdocs/magang/paperless_futher-main/resources/views/qc-sistem/verif_peralatan/edit.blade.php))**:
+   - Menampilkan alert info: *Mode QC Inspector*.
+   - `Shift`: Ditampilkan sebagai teks *read-only* (dengan input hidden `id_shift`).
+   - `Tanggal`: Input tanggal diatur menjadi `readonly`.
+   - Tombol **Tambah Area** & **Check All Bersih** & tombol hapus area disembunyikan.
+   - Kolom **Kondisi**: Ditampilkan dalam bentuk badge (*Bersih* / *Kotor* / *-*), bukan `<select>`.
+   - Kolom **Keterangan**: Ditampilkan dalam bentuk teks biasa, bukan `<select>`.
+   - Kolom **Tindakan Koreksi**: Ditampilkan dalam bentuk teks biasa, bukan `<textarea>`.
+   - Kolom **Verifikasi Hasil**: Menjadi **satu-satunya field interaktif** (`<select>`) dengan pilihan `-`, `OK`, dan `Tidak OK`.
+3. **Controller ([VerifPeralatanController.php](file:///c:/xampp/htdocs/magang/paperless_futher-main/app/Http/Controllers/VerifPeralatanController.php))**:
+   - Pada method `update()`, jika user adalah `QC Inspector`, sistem **hanya memperbarui nilai `verifikasi_hasil`** pada baris detail mesin dan sub-bagian mesin yang ada di database.
+   - Nilai header (`id_shift`, `tanggal`, `jam`) serta data detail (`verifikasi`, `keterangan`, `tindakan_koreksi`) tetap aman dipertahankan tanpa ditimpa atau dihapus.

@@ -116,6 +116,20 @@ class User extends Authenticatable
     }
 
     /**
+     * LOGIKA: Cek apakah user memiliki role QC Inspector
+     */
+    public function isQcInspector(): bool
+    {
+        $roleName = '';
+        if ($this->roleModel) {
+            $roleName = strtolower(trim($this->roleModel->role));
+        } else {
+            $roleName = strtolower(trim($this->attributes['role'] ?? ''));
+        }
+        return $roleName === 'qc inspector' || $roleName === 'qc_inspector';
+    }
+
+    /**
      * KEAMANAN: Verifikasi apakah Manager boleh akses plan tertentu
      */
     public function canAccessPlan(int $planId): bool

@@ -517,6 +517,41 @@ class VerifPeralatanController extends Controller
             abort(403);
         }
 
+        // Khusus role QC Inspector: hanya boleh mengedit verifikasi_hasil, selain itu read-only
+        if ($user->isQcInspector()) {
+            $detailsInput = $request->input('details', []);
+            if (is_array($detailsInput)) {
+                foreach ($item->details as $detailRow) {
+                    $mesinId = $detailRow->id_mesin;
+                    if (isset($detailsInput[$mesinId])) {
+                        $detailData = $detailsInput[$mesinId];
+                        if (array_key_exists('verifikasi_hasil', $detailData)) {
+                            $detailRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['verifikasi_hasil']);
+                            $detailRow->save();
+                        }
+
+                        if (isset($detailData['bagian']) && is_array($detailData['bagian'])) {
+                            foreach ($detailRow->bagianDetails as $bagianRow) {
+                                $bid = $bagianRow->id_bagian;
+                                if (isset($detailData['bagian'][$bid]) && array_key_exists('verifikasi_hasil', $detailData['bagian'][$bid])) {
+                                    $bagianRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['bagian'][$bid]['verifikasi_hasil']);
+                                    $bagianRow->save();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($user->id_role == 6 || $item->is_audit) {
+                return redirect()->route('verif-peralatan.audit')
+                    ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC Inspector.');
+            }
+
+            return redirect()->route('verif-peralatan.show', $item->uuid)
+                ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC Inspector.');
+        }
+
         $rules = [
             'id_shift' => 'required|exists:data_shift,id',
             'tanggal' => 'required|date',
