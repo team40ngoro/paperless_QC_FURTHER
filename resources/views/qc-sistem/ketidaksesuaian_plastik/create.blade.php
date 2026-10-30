@@ -1,0 +1,204 @@
+@extends('layouts.app')
+
+@section('container')
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Tambah Ketidaksesuaian Plastik</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('ketidaksesuaian-plastik.index') }}">Ketidaksesuaian Plastik</a></li>
+                        <li class="breadcrumb-item active">Tambah</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header p-2">
+                            <ul class="nav nav-pills">
+                                <li class="nav-item"><a class="nav-link active" href="#ketidaksesuaian" data-toggle="tab">Ketidaksesuaian Plastik</a></li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="active tab-pane" id="ketidaksesuaian">
+                                    <form action="{{ route('ketidaksesuaian-plastik.store') }}" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        @if ($errors->any())
+                                            <div class="alert alert-danger">
+                                                <ul class="mb-0">
+                                                    @foreach ($errors->all() as $error)
+                                                        <li>{{ $error }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label for="id_shift" class="font-weight-bold">Shift <span class="text-danger">*</span></label>
+                                                    <select name="id_shift" id="id_shift" class="form-control" required>
+                                                        <option value="">Pilih Shift</option>
+                                                        @foreach($shifts as $shift)
+                                                            <option value="{{ $shift->id }}" {{ old('id_shift') == $shift->id ? 'selected' : '' }}>
+                                                                {{ $shift->shift }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                 <div class="form-group mb-3">
+                                                    <label for="tanggal">Tanggal <span class="text-danger">*</span></label>
+                                                    <input type="date" name="tanggal" id="tanggal"
+                                                        class="form-control @error('tanggal') is-invalid @enderror"
+                                                        value="{{ old('tanggal', now()->format('Y-m-d')) }}" required>
+                                                    @error('tanggal')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="form-group mb-3">
+                                                    <label for="jam">Jam <span class="text-danger">*</span></label>
+                                                    <input type="time" name="jam" id="jam" 
+                                                        class="form-control @error('jam') is-invalid @enderror" 
+                                                        value="{{ old('jam', date('H:i')) }}" required>
+                                                    @error('jam')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="nama_plastik" class="font-weight-bold">Nama Plastik <span class="text-danger">*</span></label>
+                                            <input type="text" name="nama_plastik" id="nama_plastik" class="form-control" 
+                                                   value="{{ old('nama_plastik') }}" placeholder="Masukkan nama plastik" required>
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="jumlah_ketidaksesuaian" class="font-weight-bold">Jumlah Ketidaksesuaian (Kg)</label>
+                                            <input type="text" name="jumlah_ketidaksesuaian" id="jumlah_ketidaksesuaian" class="form-control" 
+                                                   value="{{ old('jumlah_ketidaksesuaian') }}" placeholder="Masukkan jumlah ketidaksesuaian">
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="alasan_hold" class="font-weight-bold">Alasan Hold <span class="text-danger">*</span></label>
+                                            <textarea name="alasan_hold" id="alasan_hold" class="form-control" rows="4" 
+                                                      placeholder="Masukkan alasan hold" required>{{ old('alasan_hold') }}</textarea>
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="hold_data" class="font-weight-bold">Hold Number <span class="text-danger">*</span></label>
+                                            <textarea name="hold_data" id="hold_data" class="form-control" rows="4" 
+                                                      placeholder="Masukkan hold data" required>{{ old('hold_data') }}</textarea>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label for="dokumentasi_tagging" class="font-weight-bold">Dokumentasi Tagging</label>
+                                                    <input type="file" name="dokumentasi_tagging" id="dokumentasi_tagging" 
+                                                           class="form-control-file" accept="image/*" capture="camera" onchange="compressImage(this, 1)">
+                                                    <small class="form-text text-muted">Format: JPG, JPEG, PNG, GIF. Akan dikompres otomatis jika > 1MB</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label for="dokumentasi_penyimpangan_plastik" class="font-weight-bold">Dokumentasi Penyimpangan Plastik</label>
+                                                    <input type="file" name="dokumentasi_penyimpangan_plastik" id="dokumentasi_penyimpangan_plastik" 
+                                                           class="form-control-file" accept="image/*" capture="camera" onchange="compressImage(this, 2)">
+                                                    <small class="form-text text-muted">Format: JPG, JPEG, PNG, GIF. Akan dikompres otomatis jika > 1MB</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group mt-4">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save"></i> Simpan
+                                            </button>
+                                            <a href="{{ route('ketidaksesuaian-plastik.index') }}" class="btn btn-secondary btn-md ml-2">
+                                                <i class="fas fa-arrow-left"></i> Kembali
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+function compressImage(input, index) {
+    var file = input.files[0];
+    if (!file) return;
+
+    var sizeMB = file.size / (1024 * 1024);
+    var quality;
+
+    if (sizeMB > 5) quality = 0.3;
+    else if (sizeMB > 4) quality = 0.4;
+    else if (sizeMB > 3) quality = 0.5;
+    else if (sizeMB > 2) quality = 0.6;
+    else if (sizeMB > 1) quality = 0.7;
+    else return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var maxW = 1920, maxH = 1080;
+            var w = img.width, h = img.height;
+            if (w > maxW) { h *= maxW / w; w = maxW; }
+            if (h > maxH) { w *= maxH / h; h = maxH; }
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+
+            canvas.toBlob(function(blob) {
+                var newFile = new File([blob], file.name, {type: 'image/jpeg'});
+                var dt = new DataTransfer();
+                dt.items.add(newFile);
+                input.files = dt.files;
+
+                var compressedMB = (blob.size / (1024 * 1024)).toFixed(2);
+                var info = input.parentElement.querySelector('.compress-info');
+                if (!info) {
+                    info = document.createElement('small');
+                    info.className = 'compress-info text-success';
+                    input.parentElement.appendChild(info);
+                }
+                info.textContent = ' Dikompres: ' + file.size.toLocaleString() + ' byte → ' + blob.size.toLocaleString() + ' byte (' + compressedMB + ' MB)';
+            }, 'image/jpeg', quality);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+@endpush
