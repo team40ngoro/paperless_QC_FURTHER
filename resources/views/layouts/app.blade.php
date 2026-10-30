@@ -9,8 +9,7 @@
     <meta name="base-url" content="{{ url('/') }}">
     <title>Paperless Further</title>
      @php
-       $isLocalhost = in_array(request()->getHost(), ['localhost', '127.0.0.1', '10.68.1.37']);
-        $assetPath = $isLocalhost ? 'public/' : '';
+       $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
     @endphp
     <link rel="stylesheet" href="{{ asset($assetPath . 'plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset($assetPath . 'plugins/overlayScrollbars/css/OverlayScrollbars.min.css')}}">

@@ -1,8 +1,7 @@
 @extends('layouts.app')
 
 @php
-    $isLocalhost = in_array(request()->getHost(), ['localhost', '127.0.0.1', '10.68.1.37']);
-    $assetPath = $isLocalhost ? 'public/' : '';
+    $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
 @endphp
 
 @section('container')

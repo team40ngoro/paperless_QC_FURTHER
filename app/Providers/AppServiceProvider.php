@@ -14,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // Gunakan migration personal_access_tokens milik aplikasi, bukan bawaan Sanctum
+        \Laravel\Sanctum\Sanctum::ignoreMigrations();
     }
 
     /**

@@ -1,7 +1,6 @@
 @extends('layouts.app')
 @php
-    $isLocalhost = in_array(request()->getHost(), ['localhost', '127.0.0.1', '10.68.1.37']);
-    $assetPath = $isLocalhost ? 'public/' : '';
+    $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
 @endphp
 @if ($errors->has('sso'))
 <div class="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium text-center">
