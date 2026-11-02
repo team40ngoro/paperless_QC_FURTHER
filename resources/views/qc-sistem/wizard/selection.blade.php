@@ -23,45 +23,11 @@
                     <div class="card-body">
                         @php
                             $superadmin = auth()->user()->role === 'superadmin';
+                            $userRole = (int) (auth()->user()->id_role ?? 0);
                         @endphp
 
                         <div class="row justify-content-center">
-                            <!-- PROSES BAHAN BETTER -->
-                            <!-- @if($superadmin || (auth()->user()->hasPermissionTo('view-wizard-proses3') ?? false)) -->
-                            <!-- <div class="col-md-6 col-lg-3 mb-4">
-                                <div class="process-card border-danger">
-
-                                    <div class="icon-wrap bg-primary-soft p-1">
-                                        <i class="fas fa-mortar-pestle text-danger"></i>
-                                    </div>
-
-                                    <h6 class="process-title">Persiapan Bahan Better</h6>
-                                    <p class="process-subtitle">Persiapan Bahan Better</p>
-
-                                    <ul class="process-list">
-                                    </ul>
-                                    <div class="btn-group-custom">
-                                        @if(auth()->user()->hasPermissionTo('create-persiapan-bahan-better'))
-                                            <a href="{{ route('persiapan-bahan-better.create') }}" class="btn btn-danger btn-sm btn-block">
-                                                Mulai
-                                            </a>
-                                        @endif
-                                        @if(auth()->user()->hasPermissionTo('view-persiapan-bahan-better'))
-                                        <a href="{{ url('/qc-sistem/persiapan-bahan-better') }}" class="btn btn-outline-danger btn-sm btn-block">
-                                            Riwayat
-                                        </a>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div> -->
-                            <!-- @endif -->
-                            <!-- Verif Berat Produk -->
-                            <!-- @if($superadmin || (auth()->user()->hasPermissionTo('view-wizard-proses3') ?? false)) -->
-                            
-                            <!-- @endif -->
-
-
-                            <!-- PROSES 2 (PROSES 1 di urutan UI) -->
+                            <!-- PROSES 1: [QF-09/00] Frying -> IQF -->
                             <div class="col-md-6 col-lg-3 mb-4">
                                 <div class="process-card border-primary">
                                     <div class="icon-wrap bg-primary-soft">
@@ -71,15 +37,15 @@
                                     </div>
                                     <h6 class="process-title">[QF-09/00] Frying → IQF</h6>
                                     <ul class="process-list">
-                                        <li>Frying</li>
+                                        <li>Pencetakan</li>
                                         <li>Predust</li>
                                         <li>Battering & Breader</li>
                                         <li>Fryer 1 - 5</li>
-                                        <li>IQF</li>
+                                        <li>Hasil Penggorengan</li>
                                     </ul>
 
                                     <div class="btn-group-custom">
-                                        @if($superadmin || auth()->user()->can('create-wizard-proses1'))
+                                        @if($userRole !== 3 && ($superadmin || in_array($userRole, [1, 2, 5], true) || auth()->user()->can('create-wizard-proses1')))
                                             @if($draftProses1)
                                                 <button type="button" class="btn btn-primary btn-sm btn-block" data-toggle="modal" data-target="#modalProses1">
                                                     Mulai
@@ -91,7 +57,7 @@
                                             @endif
                                         @endif
                                         <a href="{{ route('wizard.proses1.index') }}" class="btn btn-outline-primary btn-sm btn-block">
-                                            Riwayat
+                                            {{ $userRole === 3 ? 'Lihat Data & Input QC' : 'Riwayat' }}
                                         </a>
                                     </div>
                                 </div>
@@ -178,12 +144,6 @@
                                     </div>
 
                                     <h6 class="process-title">[QF-11/00] Verifikasi Berat Produk</h6>
-                                    <!-- <ul class="process-list">
-                                        <li>Bahan Baku</li>
-                                        <li>Bumbu & Seasoning</li>
-                                        <li>Emulsi</li>
-                                        <li>Better Mix</li>
-                                    </ul> -->
                                     <div class="btn-group-custom">
                                         @if($superadmin || auth()->user()->can('create-verifikasi-berat-produk'))
                                             <a href="{{ route('verifikasi-berat-produk.create') }}" class="btn btn-purple btn-sm btn-block">
@@ -224,26 +184,6 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <!-- <div class="modal-body text-center p-4">
-                                <p class="mb-4">
-                                    Ditemukan data proses <strong>{{ $d['title'] }}</strong> yang belum selesai pada tanggal 
-                                    <strong>{{ \Carbon\Carbon::parse($d['draft']->tanggal)->format('d/m/Y H:i') }}</strong> 
-                                    dengan produk <strong>{{ $d['draft']->produk->nama_produk ?? '-' }}</strong>.
-                                    Apa yang ingin Anda lakukan?
-                                </p>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <a href="{{ $d['create_url'] }}?continue_uuid={{ $d['draft']->uuid }}" class="btn btn-primary btn-block">
-                                            <i class="fas fa-play mr-1"></i> Lanjutkan
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="{{ $d['create_url'] }}" class="btn btn-outline-secondary btn-block" onclick="sessionStorage.removeItem('{{ $d['storage_key'] }}')">
-                                            <i class="fas fa-plus mr-1"></i> Data Baru
-                                        </a>
-                                    </div>
-                                </div>
-                            </div> -->
                         </div>
                     </div>
                 </div>

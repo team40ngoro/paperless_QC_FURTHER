@@ -1187,6 +1187,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [WizardProses1Controller::class, 'index'])->name('index');
             Route::get('/create', [WizardProses1Controller::class, 'create'])->name('create');
             Route::get('/show/{uuid}', [WizardProses1Controller::class, 'show'])->name('show');
+            Route::put('/show/{uuid}/qc-verification', [WizardProses1Controller::class, 'updateQcVerification'])->name('qc-verification');
             Route::get('/edit/{uuid}', [WizardProses1Controller::class, 'edit'])->name('edit');
             Route::put('/update/{uuid}', [WizardProses1Controller::class, 'update'])->name('update');
             Route::get('/pdf/{uuid}', [WizardProses1Controller::class, 'exportPdf'])->name('pdf');

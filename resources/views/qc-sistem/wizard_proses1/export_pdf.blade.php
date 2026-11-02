@@ -32,7 +32,7 @@
         .main-table th { background-color: #f0f0f0; font-weight: bold; }
         .section-title { font-weight: bold; font-size: 11px; margin-top: 15px; margin-bottom: 5px; color: #000; }
         .signature-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        .signature-table td { width: 33.33%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; }
+        .signature-table td { width: 50%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; }
         .signature-box { height: 60px; }
         .footer { position: fixed; bottom: -45px; left: -25px; right: -25px; padding: 0 25px; text-align: right; font-size: 8px; }
     </style>
@@ -84,7 +84,7 @@
             @endphp
 
             <div class="section-title" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
-                <strong>Data: {{ $pembekuan->hasilPenggorenganData->produk->nama_produk ?? '-' }} {{ $pembekuan->penggorenganData->berat_produk ? $pembekuan->penggorenganData->berat_produk . ' gram' : '' }} (Kode: {{ $pembekuan->penggorenganData->kode_produksi ?? '-' }})</strong>
+                <strong>Data: {{ $pembekuan->penggorenganData->produk->nama_produk ?? $pembekuan->hasilPenggorenganData->produk->nama_produk ?? '-' }} {{ optional($pembekuan->penggorenganData)->berat_produk ? $pembekuan->penggorenganData->berat_produk . ' gram' : '' }} (Kode: {{ $pembekuan->penggorenganData->kode_produksi ?? '-' }})</strong>
             </div>
             <div class="form-info">
                 <table>
@@ -114,7 +114,7 @@
                     <tr>
                         <td>{{ $pembekuan->penggorenganData->waktu_pemasakan ?? '-' }}</td>
                         <td>{{ $pembekuan->penggorenganData->no_of_strokes }}</td>
-                        <td>{{ $pembekuan->penggorenganData->hasil_pencetakan == '✔' ? 'OK' : ($pembekuan->penggorenganData->hasil_pencetakan == '✘' ? 'Tidak OK' : $pembekuan->penggorenganData->hasil_pencetakan) }}</td>
+                        <td>{{ $pembekuan->penggorenganData->hasil_pencetakan == '✔' ? 'OK' : ($pembekuan->penggorenganData->hasil_pencetakan == '✘' ? 'Tidak OK' : ($pembekuan->penggorenganData->hasil_pencetakan ?? '-')) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -135,7 +135,7 @@
                     <tr>
                         <td>{{ $pembekuan->predustData->jenisPredust->jenis_predust ?? '-' }}</td>
                         <td>{{ $pembekuan->predustData->kode_produksi ?? '-' }}</td>
-                        <td>{{ $pembekuan->predustData->kondisi_predust == '✔' ? 'OK' : ($pembekuan->predustData->kondisi_predust == '✘' ? 'Tidak OK' : $pembekuan->predustData->kondisi_predust) }}</td>
+                        <td>{{ $pembekuan->predustData->kondisi_predust == '✔' ? 'OK' : ($pembekuan->predustData->kondisi_predust == '✘' ? 'Tidak OK' : ($pembekuan->predustData->kondisi_predust ?? '-')) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -156,7 +156,7 @@
                     <tr>
                         <td style="text-align: left;">{!! $pembekuan->batteringData->better_names_with_codes_html !!}</td>
                         <td>{{ $pembekuan->batteringData->jenis_better_names ?? '-' }}</td>
-                        <td>{{ $pembekuan->batteringData->hasil_better == '✔' ? 'OK' : ($pembekuan->batteringData->hasil_better == '✘' ? 'Tidak OK' : $pembekuan->batteringData->hasil_better) }}</td>
+                        <td>{{ $pembekuan->batteringData->hasil_better == '✔' ? 'OK' : ($pembekuan->batteringData->hasil_better == '✘' ? 'Tidak OK' : ($pembekuan->batteringData->hasil_better ?? '-')) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -183,7 +183,7 @@
                                 N/A
                             @endif
                         </td>
-                        <td>{{ $pembekuan->breaderData->hasil_breader == '✔' ? 'OK' : ($pembekuan->breaderData->hasil_breader == '✘' ? 'Tidak OK' : $pembekuan->breaderData->hasil_breader) }}</td>
+                        <td>{{ $pembekuan->breaderData->hasil_breader == '✔' ? 'OK' : ($pembekuan->breaderData->hasil_breader == '✘' ? 'Tidak OK' : ($pembekuan->breaderData->hasil_breader ?? '-')) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -311,55 +311,33 @@
             </table>
             @endif
 
-            {{-- G. PEMBEKUAN IQF --}}
-            <div class="section-title">G. PEMBEKUAN IQF</div>
-            <table class="main-table">
-                <thead>
-                    <tr>
-                        <th>Suhu Ruang IQF</th>
-                        <th>Holding Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{{ $pembekuan->suhu_ruang_iqf }} °C</td>
-                        <td>{{ $pembekuan->holding_time }} menit</td>
-                    </tr>
-                </tbody>
-            </table>
             <div style="text-align: right; width: 100%; font-size: 8px; font-weight: bold; margin-bottom: 20px;">
                 {{ $kode_form }}
             </div>
-            {{-- SIGNATURES WITH QR CODE --}}
+            {{-- SIGNATURES WITH QR CODE (QC Inspector -> SPV QC) --}}
             @php
                 $approvalData = $pembekuan->_approvalData ?? [];
-                $qcApproverName      = $approvalData['qc_name']      ?? 'QC';
-                $spvQcApproverName   = $approvalData['spv_name']     ?? 'SUPERVISOR QC';
-                $spvProduksiApproverName = $approvalData['produksi_name'] ?? 'SPV PRODUKSI';
-                $base64QcSvg         = $approvalData['qc_qr']        ?? null;
-                $base64SpvQcSvg      = $approvalData['spv_qr']       ?? null;
-                $base64SpvProduksiSvg = $approvalData['produksi_qr'] ?? null;
+                $qcApproverName    = $approvalData['qc_name']  ?? 'QC INSPEKTOR';
+                $spvQcApproverName = $approvalData['spv_name'] ?? 'SUPERVISOR QC';
+                $base64QcSvg       = $approvalData['qc_qr']    ?? null;
+                $base64SpvQcSvg    = $approvalData['spv_qr']   ?? null;
             @endphp
 
             <table class="signature-table">
                 <tr>
                     <td class="signature-label">Dibuat Oleh: QC INSPEKTOR</td>
-                    <td class="signature-label">Diketahui Oleh: Produksi</td>
                     <td class="signature-label">Disetujui Oleh: Supervisor QC</td>
                 </tr>
                 <tr>
                     <td class="signature-qr-area">@if($base64QcSvg)<img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR QC">@endif</td>
-                    <td class="signature-qr-area">@if($base64SpvProduksiSvg)<img src="{{ $base64SpvProduksiSvg }}" class="qr-code-img" alt="QR Produksi">@endif</td>
                     <td class="signature-qr-area">@if($base64SpvQcSvg)<img src="{{ $base64SpvQcSvg }}" class="qr-code-img" alt="QR SPV">@endif</td>
                 </tr>
                 <tr>
                     <td><div class="signature-line"></div></td>
                     <td><div class="signature-line"></div></td>
-                    <td><div class="signature-line"></div></td>
                 </tr>
                 <tr>
                     <td class="signature-name">{{ $qcApproverName }}</td>
-                    <td class="signature-name">{{ $spvProduksiApproverName }}</td>
                     <td class="signature-name">{{ $spvQcApproverName }}</td>
                 </tr>
             </table>
