@@ -484,6 +484,8 @@ class ChillroomQcRoleRestrictionTest extends TestCase
 
         $response = $this->actingAs($this->qcUser)->post(route('chillroom.qc-verifications.store', $item->uuid), [
             'status' => 'OK',
+            'suhu_rm' => -18.5,
+            'sensori' => '✔',
             'note' => 'Data sudah sesuai standar.',
         ]);
 
@@ -491,6 +493,8 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $this->assertDatabaseHas('chillroom_qc_verifications', [
             'penerimaan_chillroom_id' => $item->id,
             'status' => 'OK',
+            'suhu_rm' => -18.5,
+            'sensori' => '✔',
             'note' => 'Data sudah sesuai standar.',
             'verified_by' => $this->qcUser->id,
         ]);
@@ -503,7 +507,33 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             ->get(route('chillroom.qc-verifications.index', $item->uuid))
             ->assertStatus(200)
             ->assertSee('Oke')
+            ->assertSee('-18.5 °C')
             ->assertSee('Data sudah sesuai standar.');
+    }
+
+    public function test_qc_role_without_create_chillroom_permission_can_still_store_qc_verification(): void
+    {
+        $item = $this->createChillroomRecord();
+
+        Role::find(3)->permissions()->detach(
+            Permission::whereIn('name', ['create-chillroom', 'edit-chillroom'])->pluck('id')->all()
+        );
+
+        $this->actingAs($this->qcUser)
+            ->post(route('chillroom.qc-verifications.store', $item->uuid), [
+                'status' => 'OK',
+                'suhu_rm' => -18.5,
+                'sensori' => '✔',
+                'note' => 'Verifikasi tanpa izin create chillroom.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('chillroom_qc_verifications', [
+            'penerimaan_chillroom_id' => $item->id,
+            'status' => 'OK',
+            'suhu_rm' => -18.5,
+            'sensori' => '✔',
+        ]);
     }
 
     public function test_non_qc_role_cannot_store_qc_verification(): void
@@ -530,12 +560,16 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             ->get(route('chillroom.show', $item->uuid))
             ->assertStatus(200)
             ->assertSee('id="qcStatusOk"', false)
+            ->assertSee('Input Suhu RM (°C)')
+            ->assertSee('Pilih Status Sensori')
             ->assertSee('Simpan Verifikasi QC');
 
         $this->actingAs($this->produksiUser)
             ->get(route('chillroom.show', $item->uuid))
             ->assertStatus(200)
             ->assertDontSee('id="qcStatusOk"', false)
+            ->assertDontSee('Input Suhu RM (°C)')
+            ->assertDontSee('Pilih Status Sensori')
             ->assertSee('Hanya role QC yang dapat mengubah verifikasi.');
     }
 

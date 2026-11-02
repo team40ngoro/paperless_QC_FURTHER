@@ -68,11 +68,13 @@
                                         <thead class="bg-light">
                                             <tr>
                                                 <th style="width: 5%;">No</th>
-                                                <th style="width: 18%;">Tanggal & Waktu</th>
-                                                <th style="width: 15%;">Status</th>
-                                                <th style="width: 27%;">Catatan</th>
-                                                <th style="width: 20%;">Diverifikasi Oleh</th>
-                                                <th style="width: 15%;">Role</th>
+                                                <th style="width: 14%;">Tanggal & Waktu</th>
+                                                <th style="width: 11%;">Status</th>
+                                                <th style="width: 11%;">Suhu RM (°C)</th>
+                                                <th style="width: 11%;">Sensori</th>
+                                                <th style="width: 21%;">Catatan</th>
+                                                <th style="width: 16%;">Diverifikasi Oleh</th>
+                                                <th style="width: 11%;">Role</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -90,6 +92,16 @@
                                                             <span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Oke</span>
                                                         @else
                                                             <span class="badge badge-danger"><i class="fas fa-times-circle mr-1"></i> Tidak Oke</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $verification->suhu_rm !== null ? $verification->suhu_rm . ' °C' : '-' }}</td>
+                                                    <td>
+                                                        @if(in_array($verification->sensori, ['✔', '✓', 'OK', 'ok']))
+                                                            <span class="badge badge-success">Oke</span>
+                                                        @elseif(in_array($verification->sensori, ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']))
+                                                            <span class="badge badge-danger">Tidak Oke</span>
+                                                        @else
+                                                            -
                                                         @endif
                                                     </td>
                                                     <td>{{ $verification->note ?: '-' }}</td>

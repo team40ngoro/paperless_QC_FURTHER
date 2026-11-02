@@ -217,8 +217,6 @@
                                                             <i class="fas fa-info-circle"></i> <strong>Mode Sampling Frozen:</strong> Detail fisik (suhu, kemasan, dll) disembunyikan karena data ini adalah sampling frozen.
                                                         </div>
                                                         <input type="hidden" name="berat" value="-">
-                                                        <input type="hidden" name="suhu" value="0">
-                                                        <input type="hidden" name="sensori" value="✔">
                                                         <input type="hidden" name="kemasan" value="✔">
                                                     @else
                                                         <div class="form-group row">
@@ -233,38 +231,6 @@
                                                                     </div>
                                                                 </div>
                                                                 @error('berat')
-                                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="form-group row">
-                                                            <label for="suhu" class="col-sm-3 col-form-label">Suhu (°C) <span class="text-danger">*</span></label>
-                                                            <div class="col-sm-9">
-                                                                <div class="input-group">
-                                                                    <input type="number" step="0.1" class="form-control @error('suhu') is-invalid @enderror" 
-                                                                           id="suhu" name="suhu" 
-                                                                           value="{{ old('suhu', $chillroom->suhu) }}" required>
-                                                                    <div class="input-group-append">
-                                                                        <span class="input-group-text">°C</span>
-                                                                    </div>
-                                                                </div>
-                                                                @error('suhu')
-                                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="form-group row">
-                                                            <label for="sensori" class="col-sm-3 col-form-label">Sensori <span class="text-danger">*</span></label>
-                                                            <div class="col-sm-9">
-                                                                <select class="form-control @error('sensori') is-invalid @enderror" 
-                                                                        id="sensori" name="sensori" required>
-                                                                    <option value="">Pilih Status Sensori</option>
-                                                                    <option value="✔" {{ in_array(old('sensori', $chillroom->sensori), ['✔', '✓', 'OK', 'ok']) ? 'selected' : '' }}>✓ Oke</option>
-                                                                    <option value="✘" {{ in_array(old('sensori', $chillroom->sensori), ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']) ? 'selected' : '' }}>✘ Tidak Oke</option>
-                                                                </select>
-                                                                @error('sensori')
                                                                     <span class="invalid-feedback d-block">{{ $message }}</span>
                                                                 @enderror
                                                             </div>

@@ -119,7 +119,6 @@ use App\Http\Controllers\GrafanaDashboardController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\SsoLoginController;
 use App\Http\Controllers\TraceabilityController;
-use App\Http\Controllers\ReceivingInspectionController;
 
 
 // Halaman utama
@@ -141,22 +140,6 @@ Route::post('/local-login', [LoginController::class, 'login'])->name('local-logi
 
 // Lindungi semua route penting dengan auth
 Route::middleware('auth')->group(function () {
-    Route::prefix('receiving-inspections')->name('receiving-inspections.')->group(function () {
-        Route::get('/', [ReceivingInspectionController::class, 'index'])->name('index');
-        Route::get('/create', [ReceivingInspectionController::class, 'create'])->name('create');
-        Route::post('/', [ReceivingInspectionController::class, 'store'])->name('store');
-        Route::get('/export', [ReceivingInspectionController::class, 'export'])->name('export');
-        Route::get('/{inspection}/audit', [ReceivingInspectionController::class, 'audit'])->name('audit');
-        Route::get('/{inspection}/print', [ReceivingInspectionController::class, 'print'])->name('print');
-        Route::patch('/{inspection}/production', [ReceivingInspectionController::class, 'updateProduction'])->name('production.update');
-        Route::patch('/{inspection}/qc', [ReceivingInspectionController::class, 'updateQc'])->name('qc.update');
-        Route::post('/{inspection}/production/submit', [ReceivingInspectionController::class, 'submitProduction'])->name('production.submit');
-        Route::post('/{inspection}/qc/submit', [ReceivingInspectionController::class, 'submitQc'])->name('qc.submit');
-        Route::post('/{inspection}/sections/{section}/reopen', [ReceivingInspectionController::class, 'reopen'])->name('reopen');
-        Route::delete('/{inspection}', [ReceivingInspectionController::class, 'destroy'])->name('destroy');
-        Route::get('/{inspection}', [ReceivingInspectionController::class, 'show'])->name('show');
-    });
-
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index']);
     Route::get('/grafana-dashboard', [\App\Http\Controllers\GrafanaDashboardController::class, 'index'])->name('grafana.dashboard');
     Route::get('/grafana-dashboard/export-excel', [\App\Http\Controllers\GrafanaDashboardController::class, 'exportExcelAll'])->name('grafana.export-excel');

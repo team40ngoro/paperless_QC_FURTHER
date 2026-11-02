@@ -37,6 +37,12 @@ class CheckQcPermission
             }
         }
 
+        // Verifikasi QC hanya untuk role QC; otorisasi dilakukan di controller,
+        // sehingga tidak boleh memakai permission create-chillroom.
+        if (str_contains($request->path(), 'qc-verifications')) {
+            return $next($request);
+        }
+
         // Allow AJAX requests bypassing the strict structure Check
         if ($request->segment(1) === 'ajax' || $module === 'ajax' || $request->ajax() || $module === 'get-emulsi-by-produk') {
             return $next($request);

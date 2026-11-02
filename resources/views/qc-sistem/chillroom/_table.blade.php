@@ -62,6 +62,9 @@
                             <i class="fas {{ $isApproved ? 'fa-check' : 'fa-clock' }} mr-1"></i> {{ $label }}
                         </span>
                     @endforeach
+                    @if($item->approved_by_spv)
+                        <small class="text-success font-weight-bold" style="font-size: 0.6rem;">Sudah disetujui oleh SPV QC</small>
+                    @endif
                 </div>
             </td>
             <td class="text-center align-middle">
