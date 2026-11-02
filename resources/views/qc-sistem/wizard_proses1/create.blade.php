@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('container')
+@php
+    $isProduksiRole = ((int) auth()->user()->id_role === 2);
+@endphp
 <div class="content-wrapper">
     <section class="content-header">
         <div class="container-fluid">
@@ -20,7 +23,7 @@
 
     <section class="content">
         <div class="container-fluid">
-            <!-- WIZARD STEPS INDICATOR (Consistent with Wizard 3 - Melayang) -->
+            <!-- WIZARD STEPS INDICATOR -->
             <div class="row mb-4 mt-2">
                 <div class="col-12">
                     <div class="wizard-steps-container d-flex justify-content-between position-relative">
@@ -31,10 +34,11 @@
                                 2 => ['icon' => 'fa-mortar-pestle', 'label' => 'Predust'],
                                 3 => ['icon' => 'fa-tint',          'label' => 'Battering'],
                                 4 => ['icon' => 'fa-bread-slice',   'label' => 'Breadering'],
-                                5 => ['icon' => 'fa-burn',          'label' => 'Fryer'],
-                                6 => ['icon' => 'fa-check-double',  'label' => 'Hasil Goreng'],
-                                7 => ['icon' => 'fa-snowflake',     'label' => 'IQF'],
                             ];
+                            if (!$isProduksiRole) {
+                                $steps[5] = ['icon' => 'fa-burn',         'label' => 'Fryer'];
+                                $steps[6] = ['icon' => 'fa-check-double', 'label' => 'Hasil Goreng'];
+                            }
                         @endphp
 
                         @foreach($steps as $num => $s)
@@ -117,14 +121,24 @@
                                 <label>Waktu Pemasakan <span class="text-danger">*</span></label>
                                 <input type="text" name="waktu_pemasakan" class="form-control" required placeholder="Contoh: 30">
                             </div>
-                            <div class="form-group">
-                                <label>Hasil Pencetakan</label>
-                                <select name="hasil_pencetakan" class="form-control">
-                                    <option value="">Pilih Hasil (Opsional)</option>
-                                    <option value="✔">✔ OK</option>
-                                    <option value="✘">✘ Tidak OK</option>
-                                </select>
-                            </div>
+                            @if($isProduksiRole)
+                                <input type="hidden" name="hasil_pencetakan" value="">
+                                <div class="form-group">
+                                    <label>Hasil Pencetakan <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
+                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
+                                        <i class="fas fa-lock mr-1"></i> Hasil Pencetakan (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
+                                    </div>
+                                </div>
+                            @else
+                                <div class="form-group">
+                                    <label>Hasil Pencetakan</label>
+                                    <select name="hasil_pencetakan" class="form-control">
+                                        <option value="">Pilih Hasil (Opsional)</option>
+                                        <option value="✔">✔ OK</option>
+                                        <option value="✘">✘ Tidak OK</option>
+                                    </select>
+                                </div>
+                            @endif
                         </form>
                     </div>
                     <div class="card-footer text-right">
@@ -173,14 +187,24 @@
                                 <label>Kode Produksi <span class="text-danger">*</span></label>
                                 <input type="text" name="kode_produksi" id="predust_kode_produksi" class="form-control" placeholder="Masukkan Kode Produksi" required>
                             </div>
-                            <div class="form-group">
-                                <label>Hasil Predust <span class="text-danger">*</span></label>
-                                <select name="hasil_predust" id="predust_hasil" class="form-control" required>
-                                    <option value="">-- Pilih Hasil --</option>
-                                    <option value="✔">✔ Baik</option>
-                                    <option value="✘">✘ Tidak Baik</option>
-                                </select>
-                            </div>
+                            @if($isProduksiRole)
+                                <input type="hidden" name="hasil_predust" id="predust_hasil" value="">
+                                <div class="form-group">
+                                    <label>Hasil Predust <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
+                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
+                                        <i class="fas fa-lock mr-1"></i> Hasil Predust (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
+                                    </div>
+                                </div>
+                            @else
+                                <div class="form-group">
+                                    <label>Hasil Predust <span class="text-danger">*</span></label>
+                                    <select name="hasil_predust" id="predust_hasil" class="form-control" required>
+                                        <option value="">-- Pilih Hasil --</option>
+                                        <option value="✔">✔ Baik</option>
+                                        <option value="✘">✘ Tidak Baik</option>
+                                    </select>
+                                </div>
+                            @endif
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
@@ -230,17 +254,26 @@
                                 <div id="kode_produksi_better_container">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>Hasil Better <span class="text-danger">*</span></label>
-                                <select name="hasil_better" class="form-control" required>
-                                    <option value="✔">✔ Baik</option>
-                                    <option value="✘">✘ Tidak Baik</option>
-                                </select>
-                            </div>
+                            @if($isProduksiRole)
+                                <input type="hidden" name="hasil_better" value="">
+                                <div class="form-group">
+                                    <label>Hasil Better <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
+                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
+                                        <i class="fas fa-lock mr-1"></i> Hasil Battering (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
+                                    </div>
+                                </div>
+                            @else
+                                <div class="form-group">
+                                    <label>Hasil Better <span class="text-danger">*</span></label>
+                                    <select name="hasil_better" class="form-control" required>
+                                        <option value="✔">✔ Baik</option>
+                                        <option value="✘">✘ Tidak Baik</option>
+                                    </select>
+                                </div>
+                            @endif
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="3"><i class="fas fa-arrow-left mr-1"></i> Kembali</button> -->
                         <button type="button" class="btn btn-primary next-step" data-step="3">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
                     </div>
                 </div>
@@ -286,22 +319,36 @@
                                 <div id="kode_produksi_breader_container">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>Hasil Breader <span class="text-danger">*</span></label>
-                                <select name="hasil_breader" class="form-control" required>
-                                    <option value="✔">✔ Baik</option>
-                                    <option value="✘">✘ Tidak Baik</option>
-                                </select>
-                            </div>
+                            @if($isProduksiRole)
+                                <input type="hidden" name="hasil_breader" value="">
+                                <div class="form-group">
+                                    <label>Hasil Breader <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
+                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
+                                        <i class="fas fa-lock mr-1"></i> Hasil Breading (OK / Tidak OK), Frying, dan Hasil Penggorengan akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
+                                    </div>
+                                </div>
+                            @else
+                                <div class="form-group">
+                                    <label>Hasil Breader <span class="text-danger">*</span></label>
+                                    <select name="hasil_breader" class="form-control" required>
+                                        <option value="✔">✔ Baik</option>
+                                        <option value="✘">✘ Tidak Baik</option>
+                                    </select>
+                                </div>
+                            @endif
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="4"><i class="fas fa-arrow-left mr-1"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="4">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
+                        @if($isProduksiRole)
+                            <button type="button" class="btn btn-success next-step" data-step="4"><i class="fas fa-check-circle mr-1"></i> Simpan Data Produksi & Selesai</button>
+                        @else
+                            <button type="button" class="btn btn-primary next-step" data-step="4">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
+                        @endif
                     </div>
                 </div>
             </div>
 
+            @if(!$isProduksiRole)
             <!-- STEP 5: FRAYER -->
             <div class="wizard-step" id="step-5" style="display:none;">
                 <div class="card card-danger card-outline">
@@ -506,7 +553,6 @@
                         @endforeach
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="4"><i class="fas fa-arrow-left mr-1"></i> Kembali</button> -->
                         <button type="button" class="btn btn-primary" id="btn-frayer-lanjut">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
                     </div>
                 </div>
@@ -551,17 +597,17 @@
                                         <input type="text" class="form-control" id="std_suhu_pusat_display" readonly placeholder="Loading...">
                                         <input type="hidden" name="id_std_suhu_pusat" id="id_std_suhu_pusat">
                                     </div>
-                                     <div class="form-group">
-                                         <label>Aktual Suhu Pusat (°C) <span class="text-danger">*</span></label>
-                                         <div id="aktual_suhu_pusat_container">
-                                             <div class="input-group mb-2">
-                                                 <input type="text" class="form-control input-aktual-suhu-pusat" name="aktual_suhu_pusat[]" placeholder="°C" required>
-                                                 <div class="input-group-append">
-                                                     <button class="btn btn-outline-success btn-add-suhu-pusat" type="button"><i class="fas fa-plus"></i></button>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                     </div>
+                                    <div class="form-group">
+                                        <label>Aktual Suhu Pusat (°C) <span class="text-danger">*</span></label>
+                                        <div id="aktual_suhu_pusat_container">
+                                            <div class="input-group mb-2">
+                                                <input type="text" class="form-control input-aktual-suhu-pusat" name="aktual_suhu_pusat[]" placeholder="°C" required>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-success btn-add-suhu-pusat" type="button"><i class="fas fa-plus"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="row">
                                         @foreach(['kematangan', 'kenampakan', 'warna', 'rasa', 'bau', 'tekstur'] as $sen)
                                         <div class="col-md-4 col-6">
@@ -583,73 +629,12 @@
                             </div>
                         </form>
                     </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="5"><i class="fas fa-arrow-left mr-1"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="5">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
+                    <div class="card-footer d-flex justify-content-end">
+                        <button type="button" class="btn btn-success next-step" data-step="5"><i class="fas fa-check-circle mr-1"></i> Simpan & Selesai</button>
                     </div>
                 </div>
             </div>
-
-            <!-- STEP 7: IQF -->
-            <div class="wizard-step" id="step-7" style="display:none;">
-                <div class="card card-dark card-outline">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-snowflake mr-1"></i> Pembekuan IQF (Langkah 7)</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <strong>Produk:</strong> <span id="p7_info_produk">-</span>
-                        </div>
-                        <div id="context-step-7" class="mb-3"></div>
-                        <form id="form-step-7" novalidate>
-                            <input type="hidden" name="hasil_penggorengan_uuid" id="p7_hasil_penggorengan_uuid">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Tanggal</label>
-                                        <input type="date" name="tanggal" class="form-control" value="{{ $displayValue }}" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Jam <span class="text-danger">*</span></label>
-                                        <input type="time" name="jam" class="form-control" value="{{ $now->format('H:i') }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Suhu Ruang IQF <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="suhu_ruang_iqf" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Holding Time <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="holding_time" required>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="6"><i class="fas fa-arrow-left mr-1"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-success next-step" data-step="6"><i class="fas fa-check-circle mr-1"></i> Simpan & Selesai</button>
-                    </div>
-                </div>
-            </div>
-
-            {{-- ===== STEP 7: SELESAI ===== --}}
-            <div class="wizard-panel d-none text-center" id="panel-7">
-                <div class="card card-outline card-success">
-                    <div class="card-body py-5">
-                        <i class="fas fa-check-circle text-success" style="font-size:5rem;"></i>
-                        <h2 class="mt-3 text-success">Proses 1 Selesai!</h2>
-                        <p class="text-muted">Semua data berhasil disimpan ke dalam sistem.</p>
-                        <a href="{{ route('pembekuan-iqf-penggorengan.index') }}" class="btn btn-success btn-lg mt-3">
-                            <i class="fas fa-list mr-1"></i> Lihat Data IQF
-                        </a>
-                        <a href="{{ route('wizard.proses1.create') }}" class="btn btn-primary btn-lg mt-3 ml-2">
-                            <i class="fas fa-plus mr-1"></i> Input Proses Baru
-                        </a>
-                    </div>
-                </div>
-            </div>
+            @endif
 
         </div>
     </section>
@@ -673,6 +658,9 @@
 (function() {
     'use strict';
 
+    const IS_PRODUKSI_ROLE = {{ $isProduksiRole ? 'true' : 'false' }};
+    const MAX_STEP = IS_PRODUKSI_ROLE ? 4 : 6;
+
     // ========== STATE ==========
     const state = {
         currentStep: 1,
@@ -694,12 +682,14 @@
         const saved = sessionStorage.getItem(STORAGE_KEY);
         if (saved) {
             const parsed = JSON.parse(saved);
-            // VALIDASI USER: Jika user_id di draf tidak sama dengan user sekarang, abaikan draf.
             if (parsed && typeof parsed === 'object') {
                 if (parsed.user_id && parsed.user_id !== state.user_id) {
                     sessionStorage.removeItem(STORAGE_KEY);
                 } else {
                     Object.assign(state, parsed);
+                    if (state.currentStep > MAX_STEP) {
+                        state.currentStep = MAX_STEP;
+                    }
                 }
             }
         }
@@ -719,6 +709,7 @@
                 hasil_penggorengan_uuid: state.hasil_penggorengan_uuid,
                 id_produk: state.id_produk,
                 id_produk_text: state.id_produk_text,
+                user_id: state.user_id,
             }));
         } catch (_) {}
     }
@@ -736,10 +727,7 @@
     }
     function showAlert(type, msg) {
         const el = document.getElementById('wizardAlert');
-        if (!el) {
-            console.error('wizardAlert element not found!');
-            return;
-        }
+        if (!el) return;
         const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
         el.className = `alert alert-${type} alert-dismissible shadow-sm border-0 fade show`;
         el.innerHTML = `<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
@@ -762,7 +750,7 @@
         state.currentStep = step;
     }
     function updateStepper(active) {
-        for (let i = 1; i <= 7; i++) {
+        for (let i = 1; i <= MAX_STEP; i++) {
             const el = document.getElementById(`step-indicator-${i}`);
             if (!el) continue;
             el.classList.remove('active', 'completed', 'locked');
@@ -770,7 +758,6 @@
             else if (i === active) el.classList.add('active');
             else el.classList.add('locked');
         }
-        // Update step lines if any (using wizard-line progress logic)
     }
     function ajaxPost(url, data) {
         return fetch(url, {
@@ -790,7 +777,6 @@
         else if (step === 3) sel = document.getElementById('id_produk_select_better');
         else if (step === 4) sel = document.getElementById('id_produk_breader');
         else if (step === 5) {
-            // Copy and trigger change for all Frayer product fields using jQuery for app.blade.php handlers
             if (window.jQuery) {
                 $('.p4-produk-select').val(idProduk).trigger('change');
             }
@@ -835,7 +821,7 @@
             waktu_pemasakan:  form1.querySelector('[name="waktu_pemasakan"]').value,
             jam:              form1.querySelector('[name="jam"]').value,
             tanggal:          form1.querySelector('[name="tanggal"]').value,
-            hasil_pencetakan: form1.querySelector('[name="hasil_pencetakan"]').value,
+            hasil_pencetakan: form1.querySelector('[name="hasil_pencetakan"]')?.value || null,
         };
 
         showLoading('Menyimpan data Penggorengan...');
@@ -864,10 +850,12 @@
             { id: 'id_produk_predust', name: 'Nama Produk' },
             { id: 'jenis_predust_select', name: 'Jenis Predust' },
             { id: 'predust_kode_produksi', name: 'Kode Produksi' },
-            { id: 'predust_hasil', name: 'Hasil Predust' },
             { id: 'predust_tanggal', name: 'Tanggal' },
             { id: 'predust_jam', name: 'Jam' },
         ];
+        if (!IS_PRODUKSI_ROLE) {
+            requiredFields.push({ id: 'predust_hasil', name: 'Hasil Predust' });
+        }
         requiredFields.forEach(f => {
             const el = document.getElementById(f.id);
             if (!el || !el.value) { el?.classList.add('is-invalid'); isValid = false; }
@@ -878,12 +866,12 @@
         }
 
         const data = {
-            id_produk:        document.getElementById('id_produk_predust').value,
-            id_jenis_predust: document.getElementById('jenis_predust_select').value,
-            kode_produksi:    document.getElementById('predust_kode_produksi').value,
-            hasil_predust:    document.getElementById('predust_hasil').value,
-            tanggal:          document.getElementById('predust_tanggal').value,
-            jam:              document.getElementById('predust_jam').value,
+            id_produk:         document.getElementById('id_produk_predust').value,
+            id_jenis_predust:  document.getElementById('jenis_predust_select').value,
+            kode_produksi:     document.getElementById('predust_kode_produksi').value,
+            hasil_predust:     document.getElementById('predust_hasil')?.value || null,
+            tanggal:           document.getElementById('predust_tanggal').value,
+            jam:               document.getElementById('predust_jam').value,
             penggorengan_uuid: state.penggorengan_uuid,
         };
 
@@ -921,21 +909,17 @@
         const selectedBetters = Array.from(betterSelect.selectedOptions).map(o => o.value);
         let isValid = true;
 
-        // Validasi produk
         const produkEl = document.getElementById('id_produk_select_better');
         if (!produkEl || !produkEl.value) { produkEl?.classList.add('is-invalid'); isValid = false; }
         else { produkEl?.classList.remove('is-invalid'); }
 
-        // Validasi jam
         const jamEl = formEl.querySelector('[name="jam"]');
         if (!jamEl || !jamEl.value) { jamEl?.classList.add('is-invalid'); isValid = false; }
         else { jamEl?.classList.remove('is-invalid'); }
 
-        // Validasi jenis better
         if (selectedBetters.length === 0) { betterSelect.classList.add('is-invalid'); isValid = false; }
         else { betterSelect.classList.remove('is-invalid'); }
 
-        // Kumpulkan kode produksi better (array)
         const kodeProduksiBetter = {};
         let kodeProduksiValid = true;
         formEl.querySelectorAll('input[name^="kode_produksi_better["]').forEach(inp => {
@@ -966,7 +950,7 @@
             id_produk:            produkEl.value,
             kode_produksi_better: kodeProduksiBetter,
             id_jenis_better:      selectedBetters,
-            hasil_better:         formEl.querySelector('[name="hasil_better"]').value,
+            hasil_better:         formEl.querySelector('[name="hasil_better"]')?.value || null,
             tanggal:              formEl.querySelector('[name="tanggal"]').value,
             jam:                  jamEl.value,
             penggorengan_uuid:    state.penggorengan_uuid,
@@ -996,21 +980,17 @@
         const form4 = document.getElementById('form-step-4');
         let isValid = true;
 
-        // Validasi produk
         const produkBreader = document.getElementById('id_produk_breader');
         if (!produkBreader || !produkBreader.value) { produkBreader?.classList.add('is-invalid'); isValid = false; }
         else { produkBreader?.classList.remove('is-invalid'); }
 
-        // Validasi jam
         const jamBreader = form4.querySelector('[name="jam"]');
         if (!jamBreader || !jamBreader.value) { jamBreader?.classList.add('is-invalid'); isValid = false; }
         else { jamBreader?.classList.remove('is-invalid'); }
 
-        // Validasi jenis breader
         if (selectedBreaders.length === 0) { breaderSelect.classList.add('is-invalid'); isValid = false; }
         else { breaderSelect.classList.remove('is-invalid'); }
 
-        // Kumpulkan kode produksi breader (array)
         const kodeProduksiBreader = {};
         let kodeProduksiValid = true;
         form4.querySelectorAll('input[name^="kode_produksi_breader["]').forEach(inp => {
@@ -1038,13 +1018,14 @@
         }
 
         const data = {
-            id_produk:            produkBreader.value,
-            id_jenis_breader:     selectedBreaders,
+            id_produk:             produkBreader.value,
+            id_jenis_breader:      selectedBreaders,
             kode_produksi_breader: kodeProduksiBreader,
-            hasil_breader:        form4.querySelector('[name="hasil_breader"]').value,
-            tanggal:              form4.querySelector('[name="tanggal"]').value,
-            jam:                  jamBreader.value,
-            battering_uuid:       state.battering_uuid,
+            hasil_breader:         form4.querySelector('[name="hasil_breader"]')?.value || null,
+            tanggal:               form4.querySelector('[name="tanggal"]').value,
+            jam:                   jamBreader.value,
+            battering_uuid:        state.battering_uuid,
+            finalize_produksi:     IS_PRODUKSI_ROLE ? 1 : 0,
         };
 
         showLoading('Menyimpan data Breader...');
@@ -1052,6 +1033,11 @@
             hideLoading();
             if (res.success) {
                 state.breader_uuid = res.uuid;
+                if (IS_PRODUKSI_ROLE) {
+                    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+                    window.location.href = res.redirect_url || '{{ route("wizard.proses1.index") }}';
+                    return;
+                }
                 persistState();
                 copyProdukToStep(5, state.id_produk, state.id_produk_text);
                 document.getElementById('p4_info_produk').textContent = state.id_produk_text;
@@ -1076,10 +1062,6 @@
             }
         });
     });
-
-    // Suhu → Waktu handlers ditangani secara global di layouts/app.blade.php melalui class f-suhu dan f-waktu
-
-    // Suhu → Waktu handlers menggunakan script global di layouts/app.blade.php
 
     // ========== SIMPAN PER FRAYER ==========
     document.querySelectorAll('.btn-save-frayer').forEach(btn => {
@@ -1106,18 +1088,18 @@
             const suhuId = suhuEl.value;
             const waktuId = waktuEl.value;
 
-                const data = {
-                    frayer_number:           fn,
-                    id_produk:               id_produk,
-                    tanggal:                 document.getElementById(`p4_f${fn}_tanggal`).value,
-                    jam:                     document.getElementById(`p4_f${fn}_jam`).value,
-                    aktual_penggorengan:     document.getElementById(`p4_f${fn}_aktual`).value,
-                    aktual_suhu_penggorengan: document.getElementById(`p4_f${fn}_aktual_suhu`).value,
-                    tpm_minyak:              document.getElementById(`p4_f${fn}_tpm`).value,
-                    keterangan:              document.getElementById(`p4_f${fn}_keterangan`).value,
-                    breader_uuid:            state.breader_uuid,
-                    prev_frayer_uuid:        state.last_frayer_uuid,
-                };
+            const data = {
+                frayer_number:            fn,
+                id_produk:                id_produk,
+                tanggal:                  document.getElementById(`p4_f${fn}_tanggal`).value,
+                jam:                      document.getElementById(`p4_f${fn}_jam`).value,
+                aktual_penggorengan:      document.getElementById(`p4_f${fn}_aktual`).value,
+                aktual_suhu_penggorengan: document.getElementById(`p4_f${fn}_aktual_suhu`).value,
+                tpm_minyak:               document.getElementById(`p4_f${fn}_tpm`).value,
+                keterangan:               document.getElementById(`p4_f${fn}_keterangan`).value,
+                breader_uuid:             state.breader_uuid,
+                prev_frayer_uuid:         state.last_frayer_uuid,
+            };
 
             if (fn === 1 || fn === 2) {
                 const ffaEl = document.getElementById(`p4_f${fn}_ffa`);
@@ -1125,15 +1107,15 @@
             }
 
             if (!data.breader_uuid) {
-                return showAlert('warning', 'Simpan data Breader (Langkah 3) terlebih dahulu sebelum menyimpan Frayer.');
+                return showAlert('warning', 'Simpan data Breader terlebih dahulu sebelum menyimpan Frayer.');
             }
 
             if (fn === 2) {
-                data.id_suhu_frayer_2         = suhuId;
-                data.id_waktu_penggorengan_2  = waktuId;
+                data.id_suhu_frayer_2        = suhuId;
+                data.id_waktu_penggorengan_2 = waktuId;
             } else {
-                data.id_suhu_frayer_1         = suhuId;
-                data.id_waktu_penggorengan    = waktuId;
+                data.id_suhu_frayer_1        = suhuId;
+                data.id_waktu_penggorengan   = waktuId;
             }
 
             if (!suhuId || !waktuId || !data.aktual_penggorengan || !data.tpm_minyak || !data.jam) {
@@ -1145,7 +1127,6 @@
                 return showAlert('warning', 'Tolong Lengkapi Pengisian Datanya.');
             }
 
-            // Cleanup
             [suhuEl, waktuEl, document.getElementById(`p4_f${fn}_aktual`), document.getElementById(`p4_f${fn}_tpm`), document.getElementById(`p4_f${fn}_jam`)].forEach(el => el?.classList.remove('is-invalid'));
             showLoading(`Menyimpan Fryer ${fn}...`);
             ajaxPost('{{ route("wizard.proses1.store-frayer") }}', data).then(res => {
@@ -1173,18 +1154,15 @@
         if (savedFrayers.length === 0) {
             return showAlert('warning', 'Pilih dan simpan minimal 1 Fryer sebelum melanjutkan.');
         }
-        // Cek semua frayer yang dicentang sudah disimpan
         const checkedFrayers = Array.from(document.querySelectorAll('.frayer-checkbox:checked')).map(c => parseInt(c.value));
         const unsaved = checkedFrayers.filter(fn => !state.frayer_uuids[fn]);
         if (unsaved.length > 0) {
             return showAlert('warning', `Fryer ${unsaved.join(', ')} belum disimpan. Harap simpan terlebih dahulu.`);
         }
-        // Ambil uuid frayer terakhir (nomor tertinggi)
         const lastFn = Math.max(...savedFrayers.map(Number));
         state.last_frayer_uuid = state.frayer_uuids[lastFn];
         state.last_frayer_number = lastFn;
 
-        // Load std suhu pusat untuk step 6
         loadStdSuhuPusat(state.id_produk, state.last_frayer_number);
         document.getElementById('p5_info_produk').textContent = state.id_produk_text;
         copyProdukToStep(6, state.id_produk, state.id_produk_text);
@@ -1196,14 +1174,10 @@
     function loadStdSuhuPusat(idProduk, fryerNumber) {
         const displayEl = document.getElementById('std_suhu_pusat_display');
         const hiddenEl = document.getElementById('id_std_suhu_pusat');
-        if (!displayEl || !hiddenEl) {
-            console.warn('⚠️ Element std suhu pusat tidak ditemukan');
-            return;
-        }
+        if (!displayEl || !hiddenEl) return;
         
         if (!fryerNumber || !idProduk) {
             displayEl.value = 'Fryer atau Produk tidak terdeteksi';
-            console.warn('⚠️ Fryer atau Produk tidak terdeteksi');
             return;
         }
         
@@ -1213,19 +1187,15 @@
         fetch(url, { headers: { 'Accept': 'application/json' } })
             .then(r => r.json())
             .then(data => {
-                console.log('✅ Response std suhu pusat:', data);
-                
                 if (data && data.length > 0) {
                     const stdSuhu = data[0];
                     const suhuArray = stdSuhu.std_suhu_pusat;
                     
                     if (suhuArray && Array.isArray(suhuArray) && suhuArray.length >= fryerNumber) {
                         const suhuValue = suhuArray[fryerNumber - 1];
-                        
                         if (suhuValue) {
                             displayEl.value = suhuValue + '°C';
                             hiddenEl.value = stdSuhu.id;
-                            console.log('✅ Std Suhu Pusat loaded: Fryer ' + fryerNumber + ' = ' + suhuValue + '°C');
                         } else {
                             displayEl.value = 'Data kosong untuk Fryer ' + fryerNumber;
                             hiddenEl.value = '';
@@ -1233,22 +1203,21 @@
                     } else {
                         displayEl.value = 'Data tidak tersedia untuk Fryer ' + fryerNumber;
                         hiddenEl.value = '';
-                        showAlert('warning', 'Perhatian', 'Standar suhu untuk Fryer ' + fryerNumber + ' belum diatur untuk produk ini!');
+                        showAlert('warning', 'Standar suhu untuk Fryer ' + fryerNumber + ' belum diatur untuk produk ini!');
                     }
                 } else {
                     displayEl.value = 'Data tidak ditemukan';
                     hiddenEl.value = '';
-                    showAlert('error', 'Error', 'Standar suhu pusat belum diatur untuk produk ini!');
+                    showAlert('danger', 'Standar suhu pusat belum diatur untuk produk ini!');
                 }
             })
-            .catch(error => {
+            .catch(() => {
                 displayEl.value = 'Error loading data';
                 hiddenEl.value = '';
-                console.error('❌ Error loading std suhu pusat:', error);
             });
     }
 
-    // Dynamic Suhu Pusat Add/Remove (Vanilla JS Event Delegation)
+    // Dynamic Suhu Pusat Add/Remove
     document.addEventListener('click', function(e) {
         const addBtn = e.target.closest('.btn-add-suhu-pusat');
         if (addBtn) {
@@ -1277,7 +1246,7 @@
         }
     });
 
-    // ========== STEP 6 SUBMIT: HASIL PENGGORENGAN ==========
+    // ========== STEP 6 SUBMIT: HASIL PENGGORENGAN (FINAL STEP) ==========
     document.querySelector('#step-6 .next-step')?.addEventListener('click', function() {
         const form6 = document.getElementById('form-step-6');
         const requiredFields = ['id_produk', 'id_std_suhu_pusat', 'jam', 'sensori_kematangan', 'sensori_kenampakan', 'sensori_warna', 'sensori_rasa', 'sensori_bau', 'sensori_tekstur'];
@@ -1294,7 +1263,6 @@
             }
         });
 
-        // Validasi Aktual Suhu Pusat (dynamic)
         const suhuPusatInputs = form6.querySelectorAll('.input-aktual-suhu-pusat');
         const aktualSuhuPusatArr = [];
         let suhuPusatValid = true;
@@ -1319,96 +1287,35 @@
         }
 
         const data = {
-            id_produk:         document.getElementById('id_produk_hasil').value,
-            id_std_suhu_pusat: document.getElementById('id_std_suhu_pusat').value,
-            aktual_suhu_pusat: aktualSuhuPusatArr,
-            keterangan:        form6.querySelector('[name="keterangan"]').value,
-            tanggal:           form6.querySelector('[name="tanggal"]').value,
-            jam:               form6.querySelector('[name="jam"]').value,
+            id_produk:          document.getElementById('id_produk_hasil').value,
+            id_std_suhu_pusat:  document.getElementById('id_std_suhu_pusat').value,
+            aktual_suhu_pusat:  aktualSuhuPusatArr,
+            keterangan:         form6.querySelector('[name="keterangan"]').value,
+            tanggal:            form6.querySelector('[name="tanggal"]').value,
+            jam:                form6.querySelector('[name="jam"]').value,
             sensori_kematangan: form6.querySelector('[name="sensori_kematangan"]').value || null,
             sensori_kenampakan: form6.querySelector('[name="sensori_kenampakan"]').value || null,
             sensori_warna:      form6.querySelector('[name="sensori_warna"]').value || null,
             sensori_rasa:       form6.querySelector('[name="sensori_rasa"]').value || null,
             sensori_bau:        form6.querySelector('[name="sensori_bau"]').value || null,
             sensori_tekstur:    form6.querySelector('[name="sensori_tekstur"]').value || null,
-            frayer_uuid:       state.frayer_uuids[1] || null,
-            frayer2_uuid:      state.frayer_uuids[2] || null,
-            frayer3_uuid:      state.frayer_uuids[3] || null,
-            frayer4_uuid:      state.frayer_uuids[4] || null,
-            frayer5_uuid:      state.frayer_uuids[5] || null,
-            breader_uuid:      state.breader_uuid,
-            battering_uuid:    state.battering_uuid,
-            predust_uuid:      state.predust_uuid,
-            penggorengan_uuid: state.penggorengan_uuid,
+            frayer_uuid:        state.frayer_uuids[1] || null,
+            frayer2_uuid:       state.frayer_uuids[2] || null,
+            frayer3_uuid:       state.frayer_uuids[3] || null,
+            frayer4_uuid:       state.frayer_uuids[4] || null,
+            frayer5_uuid:       state.frayer_uuids[5] || null,
+            breader_uuid:       state.breader_uuid,
+            battering_uuid:     state.battering_uuid,
+            predust_uuid:       state.predust_uuid,
+            penggorengan_uuid:  state.penggorengan_uuid,
         };
 
-        showLoading('Menyimpan data Hasil Penggorengan...');
+        showLoading('Menyimpan data Hasil Penggorengan & menyelesaikan proses...');
         ajaxPost('{{ route("wizard.proses1.store-hasil-penggorengan") }}', data).then(res => {
             hideLoading();
             if (res.success) {
-                state.hasil_penggorengan_uuid = res.uuid;
-                document.getElementById('p7_info_produk').textContent = state.id_produk_text;
-                goToStep(7);
-                showAlert('success', '<i class="fas fa-check mr-1"></i> Data Hasil Penggorengan berhasil disimpan.');
-            } else {
-                if (res.errors) showErrors(res.errors);
-                else showAlert('danger', res.message || 'Terjadi kesalahan.');
-            }
-        }).catch(e => { hideLoading(); showAlert('danger', 'Gagal: ' + e.message); });
-    });
-
-    // ========== STEP 7 FINISH: IQF ==========
-    const btnFinish = document.querySelector('#step-7 .next-step');
-    console.log('Step 7 Finish Button Found:', !!btnFinish);
-
-    btnFinish?.addEventListener('click', function() {
-        console.log('Step 7 Finish Button Clicked');
-        const form7 = document.getElementById('form-step-7');
-        const data = {
-            tanggal:                 form7.querySelector('[name="tanggal"]')?.value,
-            jam:                     form7.querySelector('[name="jam"]')?.value,
-            id_produk:               state.id_produk, // Gunakan state agar lebih aman
-            suhu_ruang_iqf:          form7.querySelector('[name="suhu_ruang_iqf"]')?.value,
-            holding_time:            form7.querySelector('[name="holding_time"]')?.value,
-            hasil_penggorengan_uuid: state.hasil_penggorengan_uuid,
-            frayer_uuid:             state.frayer_uuids[1] || null,
-            frayer2_uuid:            state.frayer_uuids[2] || null,
-            frayer3_uuid:            state.frayer_uuids[3] || null,
-            frayer4_uuid:            state.frayer_uuids[4] || null,
-            frayer5_uuid:            state.frayer_uuids[5] || null,
-            breader_uuid:            state.breader_uuid,
-            battering_uuid:          state.battering_uuid,
-            predust_uuid:            state.predust_uuid,
-            penggorengan_uuid:       state.penggorengan_uuid,
-        };
-        
-        console.log('Step 7 Data:', data);
-
-        if (!data.suhu_ruang_iqf || !data.holding_time || !data.jam) {
-            if (!data.suhu_ruang_iqf) form7.querySelector('[name="suhu_ruang_iqf"]').classList.add('is-invalid');
-            if (!data.holding_time) form7.querySelector('[name="holding_time"]').classList.add('is-invalid');
-            if (!data.jam) form7.querySelector('[name="jam"]').classList.add('is-invalid');
-            return showAlert('warning', 'Tolong Lengkapi Pengisian Datanya.');
-        }
-        // Cleanup
-        form7.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-
-        showLoading('Menyimpan dan menyelesaikan Proses 1...');
-        ajaxPost('{{ route("wizard.proses1.store-iqf") }}', data).then(res => {
-            console.log('Step 7 Response:', res);
-            hideLoading();
-            if (res.success) {
-                // Clear sessionStorage
-                try {
-                    sessionStorage.removeItem('wizard_proses1_state_v2');
-                } catch (_) {}
-                
-                // Redirect to index page
-                if (res.redirect_url) {
-                    window.location.href = res.redirect_url;
-                } else {
-                    window.location.href = '{{ route("wizard.proses1.index") }}';
-                }
+                try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+                window.location.href = res.redirect_url || '{{ route("wizard.proses1.index") }}';
             } else {
                 if (res.errors) showErrors(res.errors);
                 else showAlert('danger', res.message || 'Terjadi kesalahan.');
@@ -1417,24 +1324,14 @@
     });
 
     // ========== PREV/NEXT BUTTONS ==========
-    document.querySelectorAll('.prev-step').forEach(btn => {
+    document.querySelectorAll('.prev-step, .btn-prev').forEach(btn => {
         btn.addEventListener('click', function() {
             const step = parseInt(this.dataset.step);
             goToStep(step - 1);
         });
     });
 
-    // ========== BACK BUTTONS ==========
-    document.querySelectorAll('.btn-prev').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const step = parseInt(this.dataset.step);
-            goToStep(step - 1);
-        });
-    });
-
-    // Berat produk sekarang otomatis diisi melalui data-nilai-berat oleh app.blade.php
-
-    // ========== LOAD JENIS BREADER SAAT PRODUK BERUBAH (Step 3) ==========
+    // ========== LOAD JENIS BREADER SAAT PRODUK BERUBAH ==========
     document.getElementById('id_produk_breader')?.addEventListener('change', function() {
         const idProduk = this.value;
         const sel = document.getElementById('id_jenis_breader_breader');
@@ -1457,7 +1354,7 @@
             }).catch(() => { $sel.html('<option value="">Pilih breader</option>').trigger('change'); });
     });
 
-    // ========== LOAD JENIS PREDUST SAAT PRODUK BERUBAH (Step 2) ==========
+    // ========== LOAD JENIS PREDUST SAAT PRODUK BERUBAH ==========
     document.getElementById('id_produk_predust')?.addEventListener('change', function() {
         const idProduk = this.value;
         const sel = document.getElementById('jenis_predust_select');
@@ -1478,7 +1375,7 @@
             }).catch(() => { sel.innerHTML = '<option value="">-- Pilih Jenis Predust --</option>'; });
     });
 
-    // ========== LOAD JENIS BETTER SAAT PRODUK BERUBAH (Step 2) ==========
+    // ========== LOAD JENIS BETTER SAAT PRODUK BERUBAH ==========
     document.getElementById('id_produk_select_better')?.addEventListener('change', function() {
         const idProduk = this.value;
         const sel = document.getElementById('id_better_select_better');
@@ -1500,41 +1397,26 @@
                 $sel.trigger('change');
             }).catch(() => { $sel.html('<option value="">Pilih better</option>').trigger('change'); });
     });
-    // Kode produksi dynamic inputs sekarang ditangani di app.blade.php
-
-
-    // ========== AJAX FRAYER DROPDOWNS (Step 4) ==========
-    // AJAX handlers for Frayer are now in app.blade.php
-    // They will work for wizard page with the updated path check
 
     // Init Hidden Inputs from State
     if (state.penggorengan_uuid) { const el = document.getElementById('p3_penggorengan_uuid'); if (el) el.value = state.penggorengan_uuid; }
     if (state.battering_uuid) { const el = document.getElementById('p4_battering_uuid'); if (el) el.value = state.battering_uuid; }
     if (state.last_frayer_uuid) { const el = document.getElementById('p6_frayer_uuid'); if (el) el.value = state.last_frayer_uuid; }
-    if (state.hasil_penggorengan_uuid) { const el = document.getElementById('p7_hasil_penggorengan_uuid'); if (el) el.value = state.hasil_penggorengan_uuid; }
 
     // Init stepper
     if (state.currentStep > 1) {
-        // Gunakan setTimeout agar trigger('change') diproses setelah semua script layout (app.blade) ter-load sepenuhnya.
         setTimeout(() => {
-            // Tampilkan Step sesuai State
             goToStep(state.currentStep);
-            
-            // Pulihkan UI Info Produk jika tersedia
             if (state.id_produk) {
-                // Trigger change pada field produk utama di step 1 untuk memicu dropdown awal (seperti berat produk)
                 const mainProd = document.getElementById('id_produk_proses_penggorengan');
                 if (mainProd) {
                     mainProd.value = state.id_produk;
                     mainProd.dispatchEvent(new Event('change'));
                 }
-
                 for (let i = 2; i <= state.currentStep; i++) {
                     copyProdukToStep(i, state.id_produk, state.id_produk_text || '-');
                 }
             }
-            
-            // Beritahu user
             showAlert('info', '<i class="fas fa-history mr-1"></i> Sesi berhasil dipulihkan! Melanjutkan pengisian data yang belum selesai.');
         }, 150);
     } else {

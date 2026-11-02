@@ -65,7 +65,7 @@ class ActionButtons extends Component
         }
 
         // Auditor (id_role 6 or role 'auditor') or Audit page always has access to action buttons
-        if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor' || $this->isAuditPage) {
+        if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor' || $this->isAuditPage || ($this->permissionPrefix === 'wizard-proses1' && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 3, 4, 5], true))) {
             return true;
         }
 
@@ -108,6 +108,12 @@ class ActionButtons extends Component
     {
         if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor') {
             return false;
+        }
+        if ($this->permissionPrefix === 'wizard-proses1' && (int) (Auth::user()->id_role ?? 0) === 3) {
+            return false;
+        }
+        if ($this->permissionPrefix === 'wizard-proses1' && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 5], true)) {
+            return true;
         }
 
         return $this->checkPermission('edit-'.$this->permissionPrefix);

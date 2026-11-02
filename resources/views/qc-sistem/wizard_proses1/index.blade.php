@@ -3,6 +3,14 @@
 @section('title', 'Wizard Proses 1 - Penggorengan/Pemasakan')
 
 @section('container')
+@php
+    $userRole = (int) (auth()->user()->id_role ?? 0);
+    $canCreateProses1 = $userRole !== 3 && (in_array($userRole, [1, 2, 5], true) || auth()->user()->hasPermissionTo('create-wizard-proses1'));
+    $canApproveQc = in_array($userRole, [1, 3, 5], true);
+    $canApproveSPV = in_array($userRole, [1, 4, 5], true);
+    $showApprovalCheckbox = $canApproveQc || $canApproveSPV;
+    $tableColspan = $showApprovalCheckbox ? 11 : 10;
+@endphp
 <div class="content-wrapper">
     <section class="content-header">
         <div class="container-fluid">
@@ -47,41 +55,31 @@
                                     <a href="{{ route('wizard.proses1.audit') }}" class="btn btn-purple btn-sm shadow-sm" style="background-color:#6f42c1;color:#fff;" title="Riwayat Audit">
                                         <i class="fas fa-history"></i>
                                     </a>
-                                    @if(auth()->user()->hasPermissionTo('create-wizard-proses1'))
+                                    @if($canCreateProses1)
                                         <a href="{{ route('wizard.proses1.create') }}" class="btn btn-primary btn-sm shadow-sm">
-                                            <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru
+                                            <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru (Produksi)
                                         </a>
                                     @endif
                                 </div>
                             </div>
 
-                            <!-- Bar aksi bulk approve: hanya muncul saat ada baris yang dicentang -->
+                            @if($showApprovalCheckbox)
+                            <!-- Bar aksi bulk approve: hanya muncul saat ada baris yang dicentang (Alur: QC Inspector -> SPV QC) -->
                             <div class="approval-buttons-group d-none">
-                                @php
-                                    $userRole = auth()->user()->id_role;
-                                    $canApproveQc = in_array($userRole, [1, 3, 5]);
-                                    $canApproveProduksi = in_array($userRole, [1, 2, 5]);
-                                    $canApproveSPV = in_array($userRole, [1, 4, 5]);
-                                @endphp
-
                                 <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
 
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
-                                    </button>
-                                @endif
-                                @if($canApproveProduksi)
-                                    <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
+                                        <i class="fas fa-check mr-1"></i> Approve QC Inspector
                                     </button>
                                 @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
+                                        <i class="fas fa-check mr-1"></i> Approve SPV QC
                                     </button>
                                 @endif
                             </div>
+                            @endif
                         </div>
 
                         <div class="card-body">
@@ -95,6 +93,19 @@
                                 <div class="alert alert-danger alert-dismissible shadow-sm border-0">
                                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
                                     <i class="icon fas fa-exclamation-circle"></i> {{ session('error') }}
+                                </div>
+                            @endif
+                            @if(session('info'))
+                                <div class="alert alert-info alert-dismissible shadow-sm border-0">
+                                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                                    <i class="icon fas fa-info-circle"></i> {{ session('info') }}
+                                </div>
+                            @endif
+
+                            @if($userRole === 3)
+                                <div class="alert alert-info border-0 shadow-sm mb-3">
+                                    <i class="fas fa-eye mr-1"></i>
+                                    <strong>Petunjuk QC Inspector:</strong> Klik tombol <strong>Ikon Mata (<i class="fas fa-eye"></i>)</strong> pada kolom Aksi untuk membaca data yang telah diinput oleh Produksi terlebih dahulu dan mengisi verifikasi QC (Pencetakan, Predust, Battering, Breading, Frying, dan Hasil Penggorengan).
                                 </div>
                             @endif
 
@@ -144,11 +155,13 @@
                                 <table id="mainTable" class="table table-hover border-bottom mb-0" style="white-space: nowrap;">
                                     <thead class="bg-light text-uppercase small font-weight-bold border-top">
                                         <tr>
+                                            @if($showApprovalCheckbox)
                                             <th class="text-center py-3" style="width: 40px;">
                                                 <div class="d-flex align-items-center justify-content-center">
                                                     <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="Pilih semua">
                                                 </div>
                                             </th>
+                                            @endif
                                             <th class="text-center py-3" style="width: 50px;">No</th>
                                             <th class="py-3 text-center">Tanggal</th>
                                             <th class="py-3 text-center">Jam</th>
@@ -156,7 +169,8 @@
                                             <th class="py-3 text-left">Kode Produksi</th>
                                             <th class="py-3 text-left">Nama Produk</th>
                                             <th class="py-3 text-center">Dibuat Oleh</th>
-                                            <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
+                                            <th class="py-3 text-center">Status Verifikasi QC</th>
+                                            <th class="py-3 text-center" style="width: 110px;">Status Appr</th>
                                             <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                         </tr>
                                     </thead>
@@ -167,31 +181,57 @@
 
                                         @forelse($pembekuanData as $groupKey => $items)
                                             @forelse($items as $item)
+                                                @php
+                                                    $isQcVerified = !empty($item->hasil_penggorengan_uuid) && !empty(optional($item->penggorenganData)->hasil_pencetakan);
+                                                @endphp
                                                 <tr class="item-row">
+                                                    @if($showApprovalCheckbox)
                                                     <td class="text-center align-middle">
                                                         <input type="checkbox" class="row-checkbox" data-uuid="{{ $item->uuid }}">
                                                     </td>
+                                                    @endif
                                                     <td class="text-center align-middle">{{ $no }}</td>
                                                     <td class="text-center align-middle">{{ $item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('d-M-Y') : '-' }}</td>
                                                     <td class="text-center align-middle">{{ $item->jam ? \Carbon\Carbon::parse($item->jam)->format('H:i') : '-' }}</td>
                                                     <td class="text-center align-middle">{{ $item->penggorenganData->shift->shift ?? '-' }}</td>
                                                     <td class="text-left align-middle">{{ $item->penggorenganData->kode_produksi ?? '-' }}</td>
                                                     <td class="text-left align-middle">
-                                                        <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? '-' }}</div>
+                                                        <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? $item->hasilPenggorenganData->produk->nama_produk ?? '-' }}</div>
                                                     </td>
                                                     <td class="text-center align-middle">
                                                         <div style="font-size: 0.8rem;">{{ $item->user->name ?? '-' }}</div>
                                                     </td>
                                                     <td class="text-center align-middle">
-                                                        <div class="d-flex flex-column align-items-center" style="gap: 2px;">
+                                                        @if($isQcVerified)
+                                                            <span class="badge badge-success px-2 py-1" style="font-size: 0.72rem;">
+                                                                <i class="fas fa-check-circle mr-1"></i> Sudah Diisi QC
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-warning px-2 py-1" style="font-size: 0.72rem;">
+                                                                <i class="fas fa-clock mr-1"></i> Menunggu QC
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center align-middle">
+                                                        <div class="d-flex flex-column align-items-center" style="gap: 3px;">
                                                             @if($item->approved_by_qc)
                                                                 <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
+                                                            @elseif($canApproveQc)
+                                                                <button type="button" class="btn btn-xs btn-outline-success w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="qc" style="font-size: 0.65rem; padding: 1px 4px;" title="Approve sebagai QC Inspector">
+                                                                    <i class="fas fa-check"></i> Appr QC
+                                                                </button>
+                                                            @else
+                                                                <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">QC</span>
                                                             @endif
-                                                            @if($item->approved_by_produksi)
-                                                                <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> PRD</span>
-                                                            @endif
+
                                                             @if($item->approved_by_spv)
                                                                 <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>
+                                                            @elseif($item->approved_by_qc && $canApproveSPV)
+                                                                <button type="button" class="btn btn-xs btn-outline-dark w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="spv" style="font-size: 0.65rem; padding: 1px 4px;" title="Approve sebagai SPV QC">
+                                                                    <i class="fas fa-check"></i> Appr SPV
+                                                                </button>
+                                                            @else
+                                                                <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">SPV</span>
                                                             @endif
                                                         </div>
                                                     </td>
@@ -216,18 +256,17 @@
                                                         @if(!isset($isAuditPage) || !$isAuditPage)
                                                             <x-audit-dropdown :item="$item" route-prefix="wizard.proses1" permission-prefix="wizard-proses1" :uuid="$item->uuid" />
                                                         @endif
-                                                        <!-- <x-audit-dropdown :item="$item" route-prefix="wizard.proses1" permission-prefix="wizard-proses1" :uuid="$item->uuid" /> -->
                                                     </td>
                                                 </tr>
                                                 <tr id="rincian-{{ $item->uuid }}" class="rincian-row" style="display:none;">
-                                                    <td colspan="9" class="p-0">
+                                                    <td colspan="{{ $tableColspan }}" class="p-0">
                                                         <div class="p-3 bg-light border-bottom">
                                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                                 <h6 class="font-weight-bold text-info mb-0">
                                                                     <i class="fas fa-stream mr-1"></i> Rincian Langkah Proses
                                                                 </h6>
                                                                 <a href="{{ route('wizard.proses1.show', $item->uuid) }}" class="btn btn-sm btn-info">
-                                                                    <i class="fas fa-eye mr-1"></i> Lihat Rincian Lengkap
+                                                                    <i class="fas fa-eye mr-1"></i> {{ $userRole === 3 ? 'Buka & Input Verifikasi QC' : 'Lihat Rincian Lengkap' }}
                                                                 </a>
                                                             </div>
                                                             @php
@@ -266,7 +305,7 @@
                                                             <div class="row">
                                                                 <div class="col-lg-8 mb-3">
                                                                     <div class="card mb-0 h-100">
-                                                                        <div class="card-header py-2"><strong>Data Aktual Fryer</strong></div>
+                                                                        <div class="card-header py-2"><strong>Data Aktual Fryer (QC)</strong></div>
                                                                         <div class="table-responsive">
                                                                             <table class="table table-sm table-bordered mb-0">
                                                                                 <thead class="text-center">
@@ -287,7 +326,7 @@
                                                                                             <td>{{ $record->keterangan ?? '-' }}</td>
                                                                                         </tr>
                                                                                     @empty
-                                                                                        <tr><td colspan="8" class="text-center text-muted">Data fryer tidak tersedia</td></tr>
+                                                                                        <tr><td colspan="8" class="text-center text-muted">Data fryer belum diisi oleh QC Inspector</td></tr>
                                                                                     @endforelse
                                                                                 </tbody>
                                                                             </table>
@@ -296,7 +335,7 @@
                                                                 </div>
                                                                 <div class="col-lg-4 mb-3">
                                                                     <div class="card mb-0 h-100">
-                                                                        <div class="card-header py-2"><strong>Suhu Pusat</strong></div>
+                                                                        <div class="card-header py-2"><strong>Suhu Pusat (QC)</strong></div>
                                                                         <div class="card-body">
                                                                             <div class="mb-3">
                                                                                 <div class="small text-muted">STD Suhu Pusat</div>
@@ -322,7 +361,7 @@
                                             @endforelse
                                         @empty
                                             <tr>
-                                                <td colspan="9" class="text-center py-5 text-muted">
+                                                <td colspan="{{ $tableColspan }}" class="text-center py-5 text-muted">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i>
                                                     <p>Tidak ada data</p>
                                                 </td>
@@ -345,7 +384,6 @@
     </section>
 </div>
 
-<!-- Modal Filter Cetak PDF / Excel -->
 <!-- Modal Filter Cetak PDF / Excel -->
 <div class="modal fade" id="exportPdfModal" tabindex="-1" role="dialog" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -538,18 +576,56 @@ $(document).ready(function() {
         updateSelectedCount();
     });
 
+    // Single Row Approval Handler
+    $(document).on('click', '.single-approve-btn', function(e) {
+        e.preventDefault();
+        const btn = $(this);
+        const uuid = btn.data('uuid');
+        const type = btn.data('type');
+        const label = type === 'spv' ? 'SPV QC' : 'QC Inspector';
+
+        if (!confirm('Apakah Anda yakin ingin menyetujui data ini sebagai ' + label + '?')) {
+            return;
+        }
+
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: "{{ url('qc-sistem/wizard/proses1') }}/" + uuid + "/approve",
+            type: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                type: type
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert(response.message || 'Gagal menyetujui data.');
+                    btn.prop('disabled', false).html('<i class="fas fa-check"></i> Appr ' + type.toUpperCase());
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Kesalahan sistem';
+                alert('Error: ' + errorMsg);
+                btn.prop('disabled', false).html('<i class="fas fa-check"></i> Appr ' + type.toUpperCase());
+            }
+        });
+    });
+
     // Bulk Approval Handler for Selected Rows
     $(document).on('click', '.approve-selected-btn', function(e) {
         e.preventDefault();
         const btn = $(this);
         const type = btn.data('type');
+        const label = type === 'spv' ? 'SPV QC' : 'QC Inspector';
 
         if (selectedUuids.length === 0) {
             alert('Silakan pilih minimal 1 data untuk disetujui.');
             return;
         }
 
-        if (!confirm('Apakah Anda yakin ingin menyetujui ' + selectedUuids.length + ' data sebagai ' + type.toUpperCase() + '?')) {
+        if (!confirm('Apakah Anda yakin ingin menyetujui ' + selectedUuids.length + ' data sebagai ' + label + '?')) {
             return;
         }
 
@@ -591,7 +667,7 @@ $(document).ready(function() {
                     } else {
                         alert('Gagal: ' + response.message);
                     }
-                    btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Approve ' + type.charAt(0).toUpperCase() + type.slice(1));
+                    btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Approve ' + label);
                 }
             },
             error: function(xhr) {
@@ -605,7 +681,7 @@ $(document).ready(function() {
                 } else {
                     alert('Error: ' + errorMsg);
                 }
-                btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Approve ' + type.charAt(0).toUpperCase() + type.slice(1));
+                btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Approve ' + label);
             }
         });
     });
