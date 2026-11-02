@@ -328,7 +328,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Data Area from PHP for JS use
     const areasList = [
         @foreach($areas as $area)
-            { id: "{{ $area->id }}", name: "{{ $area->area }}" },
+            @php
+                $areaMesins = $mesinsByArea->get($area->id, collect());
+            @endphp
+            @if($areaMesins->count() > 0)
+                { id: "{{ $area->id }}", name: "{{ $area->area }}" },
+            @endif
         @endforeach
     ];
 

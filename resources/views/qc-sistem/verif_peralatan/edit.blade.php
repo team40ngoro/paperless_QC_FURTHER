@@ -67,8 +67,10 @@
                                     ? $oldAreaJam
                                     : $existingAreaJamsMap->toArray();
 
-                                $areasForJs = $areas->map(fn($a) => ['id' => (string) $a->id, 'name' => $a->area])->values();
                                 $mesinsByArea = $mesins->groupBy('id_area');
+                                $areasForJs = $areas->filter(fn($a) => $mesinsByArea->has($a->id) && $mesinsByArea->get($a->id)->count() > 0)
+                                    ->map(fn($a) => ['id' => (string) $a->id, 'name' => $a->area])
+                                    ->values();
                                 $isQcInspector = auth()->user()->isQcInspector();
                                 $isProduksi = auth()->user()->isProduksi();
                             @endphp

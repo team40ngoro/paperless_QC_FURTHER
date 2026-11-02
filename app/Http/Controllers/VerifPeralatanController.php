@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Traits\HasAuditController;
+use App\Http\Controllers\Traits\HasNoDataHtmlResponse;
 use App\Models\BagianMesin;
 use App\Models\DataShift;
 use App\Models\InputArea;
@@ -10,13 +12,11 @@ use App\Models\Plan;
 use App\Models\VerifPeralatan;
 use App\Models\VerifPeralatanBagian;
 use App\Models\VerifPeralatanDetail;
+use App\Services\BulkExport\VerifPeralatanBulkExportService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
-use App\Http\Controllers\Traits\HasAuditController;
-use App\Http\Controllers\Traits\HasNoDataHtmlResponse;
-use App\Services\BulkExport\VerifPeralatanBulkExportService;
 
 class VerifPeralatanController extends Controller
 {
@@ -90,7 +90,7 @@ class VerifPeralatanController extends Controller
         }
 
         $perPage = (int) $request->input('per_page', 5);
-        if (!in_array($perPage, [5, 10, 25, 50])) {
+        if (! in_array($perPage, [5, 10, 25, 50])) {
             $perPage = 5;
         }
 
@@ -102,7 +102,7 @@ class VerifPeralatanController extends Controller
         }
 
         if ($search = $request->input('search')) {
-            $query->where('tanggal', 'LIKE', '%' . $search . '%');
+            $query->where('tanggal', 'LIKE', '%'.$search.'%');
         }
 
         $this->applyDateRangeFilter(request(), $query);
@@ -132,7 +132,7 @@ class VerifPeralatanController extends Controller
             $selectedPlanId = $request->get('plan_id') ?: old('id_plan') ?: ($plans->first()->id ?? null);
         }
 
-        if (!$selectedPlanId) {
+        if (! $selectedPlanId) {
             abort(404);
         }
 
@@ -144,12 +144,12 @@ class VerifPeralatanController extends Controller
         $areasQuery = InputArea::with(['subarea'])
             ->where('id_plan', $selectedPlanId);
 
-        if ($user->isProduksi()) {
-            $areasQuery->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
-            $mesinsQuery->whereHas('area', function ($q) {
-                $q->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
-            });
-        }
+        // if ($user->isProduksi()) {
+        //     $areasQuery->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
+        //     $mesinsQuery->whereHas('area', function ($q) {
+        //         $q->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
+        //     });
+        // }
 
         $mesins = $mesinsQuery->orderBy('nama_mesin')->get();
         $areas = $areasQuery->orderBy('area')->get();
@@ -169,8 +169,8 @@ class VerifPeralatanController extends Controller
 
         $rules = [
             'id_shift' => 'required|exists:data_shift,id',
-            'tanggal'  => 'required|date',
-            'jam'      => 'nullable|date_format:H:i',
+            'tanggal' => 'required|date',
+            'jam' => 'nullable|date_format:H:i',
         ];
 
         if ($user->role === 'superadmin') {
@@ -182,12 +182,12 @@ class VerifPeralatanController extends Controller
         $planId = $user->role === 'superadmin' ? (int) $data['id_plan'] : (int) $user->id_plan;
 
         $shift = DataShift::where('id', $data['id_shift'])->where('id_plan', $planId)->first();
-        if (!$shift) {
+        if (! $shift) {
             return back()->withErrors(['id_shift' => 'Shift tidak valid untuk plan Anda.'])->withInput();
         }
 
         $detailsInput = $request->input('details', []);
-        if (!is_array($detailsInput) || empty($detailsInput)) {
+        if (! is_array($detailsInput) || empty($detailsInput)) {
             return back()->withErrors(['error' => 'Silakan pilih minimal 1 Area terlebih dahulu sebelum menyimpan data.'])->withInput();
         }
 
@@ -208,7 +208,7 @@ class VerifPeralatanController extends Controller
             }
         }
 
-        if (!$hasAnyVerifikasi) {
+        if (! $hasAnyVerifikasi) {
             return back()
                 ->withErrors(['error' => 'Silakan isi minimal 1 kondisi (Bersih/Kotor) pada area yang dipilih sebelum menyimpan data.'])
                 ->withInput();
@@ -223,18 +223,18 @@ class VerifPeralatanController extends Controller
 
             // ─── Buat header verifikasi ──────────────────────────────────────────
             $header = VerifPeralatan::create([
-                'id_plan'  => $planId,
-                'user_id'  => $user->id,
+                'id_plan' => $planId,
+                'user_id' => $user->id,
                 'id_shift' => (int) $data['id_shift'],
-                'tanggal'  => $data['tanggal'],
-                'jam'      => $firstJam,
+                'tanggal' => $data['tanggal'],
+                'jam' => $firstJam,
             ]);
 
-            if (!is_array($detailsInput) || empty($detailsInput)) {
+            if (! is_array($detailsInput) || empty($detailsInput)) {
                 return $header;
             }
 
-            $now      = now();
+            $now = now();
             $mesinIds = array_keys($detailsInput);
 
             // ─── 1. Pre-fetch semua mesin valid dalam 1 query (hindari N+1) ─────
@@ -248,12 +248,14 @@ class VerifPeralatanController extends Controller
 
             foreach ($detailsInput as $mesinId => $detail) {
                 $mesin = $mesins->get($mesinId);
-                if (!$mesin) continue;
-
-                // Proteksi role produksi: tolak/skip mesin dari area seasoning
-                if ($user->isProduksi() && $mesin->area && str_contains(strtolower($mesin->area->area), 'seasoning')) {
+                if (! $mesin) {
                     continue;
                 }
+
+                // Proteksi role produksi: tolak/skip mesin dari area seasoning
+                // if ($user->isProduksi() && $mesin->area && str_contains(strtolower($mesin->area->area), 'seasoning')) {
+                //     continue;
+                // }
 
                 $keterangan = $detail['keterangan'] ?? null;
                 if ($keterangan === '__lainnya__') {
@@ -278,13 +280,13 @@ class VerifPeralatanController extends Controller
                                 break;
                             }
                         }
-                        $verifikasi = !$hasKotor;
+                        $verifikasi = ! $hasKotor;
                     } else {
                         $verifikasi = true;
                     }
                 }
 
-                if (!$user->isProduksi() && $verifHasil === null) {
+                if (! $user->isProduksi() && $verifHasil === null) {
                     if (isset($detail['bagian']) && is_array($detail['bagian']) && count($detail['bagian']) > 0) {
                         $hasNotOk = false;
                         foreach ($detail['bagian'] as $bData) {
@@ -293,7 +295,7 @@ class VerifPeralatanController extends Controller
                                 break;
                             }
                         }
-                        $verifHasil = !$hasNotOk;
+                        $verifHasil = ! $hasNotOk;
                     } else {
                         $verifHasil = true;
                     }
@@ -303,15 +305,15 @@ class VerifPeralatanController extends Controller
 
                 $detailRows[$mesinId] = [
                     'verif_peralatan_id' => $header->id,
-                    'id_mesin'           => (int) $mesin->id,
-                    'id_area'            => (int) $mesin->id_area,
-                    'jam'                => $detailJam,
-                    'verifikasi'         => $verifikasi,
-                    'keterangan'         => $keterangan,
-                    'tindakan_koreksi'   => $detail['tindakan_koreksi'] ?? null,
-                    'verifikasi_hasil'   => $verifHasil,
-                    'created_at'         => $now,
-                    'updated_at'         => $now,
+                    'id_mesin' => (int) $mesin->id,
+                    'id_area' => (int) $mesin->id_area,
+                    'jam' => $detailJam,
+                    'verifikasi' => $verifikasi,
+                    'keterangan' => $keterangan,
+                    'tindakan_koreksi' => $detail['tindakan_koreksi'] ?? null,
+                    'verifikasi_hasil' => $verifHasil,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ];
             }
 
@@ -336,7 +338,7 @@ class VerifPeralatanController extends Controller
             }
 
             $bagianMesins = collect();
-            if (!empty($allBagianIds)) {
+            if (! empty($allBagianIds)) {
                 $bagianMesins = BagianMesin::whereIn('id', array_unique($allBagianIds))
                     ->get()
                     ->keyBy('id');
@@ -347,15 +349,21 @@ class VerifPeralatanController extends Controller
 
             foreach ($detailsInput as $mesinId => $detail) {
                 $savedDetail = $savedDetails->get($mesinId);
-                if (!$savedDetail) continue;
+                if (! $savedDetail) {
+                    continue;
+                }
 
                 $bagianInput = $detail['bagian'] ?? [];
-                if (!is_array($bagianInput)) continue;
+                if (! is_array($bagianInput)) {
+                    continue;
+                }
 
                 foreach ($bagianInput as $bagianId => $bagianData) {
                     $bagianMesin = $bagianMesins->get($bagianId);
                     // Validasi: bagian harus milik mesin yang benar
-                    if (!$bagianMesin || (int) $bagianMesin->id_mesin !== (int) $mesinId) continue;
+                    if (! $bagianMesin || (int) $bagianMesin->id_mesin !== (int) $mesinId) {
+                        continue;
+                    }
 
                     $bagianKet = $bagianData['keterangan'] ?? null;
                     if ($bagianKet === '__lainnya__') {
@@ -365,25 +373,27 @@ class VerifPeralatanController extends Controller
                     $bagianVerifikasi = $this->normalizeVerifikasi($bagianData['verifikasi'] ?? null);
 
                     // Skip bagian yang kondisinya tidak diisi (-- / kosong)
-                    if ($bagianVerifikasi === null) continue;
+                    if ($bagianVerifikasi === null) {
+                        continue;
+                    }
 
                     $bagianHasil = $user->isProduksi() ? null : ($this->normalizeVerifikasi($bagianData['verifikasi_hasil'] ?? null) ?? true);
 
                     $bagianRows[] = [
                         'verif_peralatan_detail_id' => $savedDetail->id,
-                        'id_bagian'                 => (int) $bagianMesin->id,
-                        'verifikasi'                => $bagianVerifikasi,
-                        'keterangan'                => $bagianKet,
-                        'tindakan_koreksi'          => $bagianData['tindakan_koreksi'] ?? null,
-                        'verifikasi_hasil'          => $bagianHasil,
-                        'created_at'                => $now,
-                        'updated_at'                => $now,
+                        'id_bagian' => (int) $bagianMesin->id,
+                        'verifikasi' => $bagianVerifikasi,
+                        'keterangan' => $bagianKet,
+                        'tindakan_koreksi' => $bagianData['tindakan_koreksi'] ?? null,
+                        'verifikasi_hasil' => $bagianHasil,
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
             }
 
             // ─── 7. Bulk insert bagian dalam chunks @100 baris ──────────────────
-            if (!empty($bagianRows)) {
+            if (! empty($bagianRows)) {
                 $bagianTable = (new VerifPeralatanBagian)->getTable();
                 foreach (array_chunk($bagianRows, 100) as $chunk) {
                     DB::table($bagianTable)->insert($chunk);
@@ -421,7 +431,8 @@ class VerifPeralatanController extends Controller
             ->sortBy(function ($d) {
                 $area = $d->mesin->area->area ?? '';
                 $mesin = $d->mesin->nama_mesin ?? '';
-                return $area . '|' . $mesin;
+
+                return $area.'|'.$mesin;
             })
             ->groupBy('id_area');
 
@@ -435,7 +446,7 @@ class VerifPeralatanController extends Controller
         $item = VerifPeralatan::with([
             'details.bagianDetails',
             'details.mesin.area',
-            'details.mesin.bagian'
+            'details.mesin.bagian',
         ])->where('uuid', $uuid)->firstOrFail();
 
         if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
@@ -446,7 +457,7 @@ class VerifPeralatanController extends Controller
         $queryParameters = request()->query();
         $hasAuditFlag = array_key_exists('is_audit', $queryParameters);
 
-        if (($isAuditMode && request()->query('is_audit') !== '1') || (!$isAuditMode && $hasAuditFlag)) {
+        if (($isAuditMode && request()->query('is_audit') !== '1') || (! $isAuditMode && $hasAuditFlag)) {
             unset($queryParameters['is_audit'], $queryParameters['uuid']);
             if ($isAuditMode) {
                 $queryParameters['is_audit'] = '1';
@@ -472,12 +483,12 @@ class VerifPeralatanController extends Controller
 
         $areasQuery = InputArea::where('id_plan', $selectedPlanId);
 
-        if ($user->isProduksi()) {
-            $areasQuery->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
-            $mesinsQuery->whereHas('area', function ($q) {
-                $q->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
-            });
-        }
+        // if ($user->isProduksi()) {
+        //     $areasQuery->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
+        //     $mesinsQuery->whereHas('area', function ($q) {
+        //         $q->whereRaw('LOWER(area) NOT LIKE ?', ['%seasoning%']);
+        //     });
+        // }
 
         $mesins = $mesinsQuery->orderBy('nama_mesin')->get();
         $areas = $areasQuery->orderBy('area')->get();
@@ -563,7 +574,7 @@ class VerifPeralatanController extends Controller
         $planId = (int) $item->id_plan;
 
         $shift = DataShift::where('id', $data['id_shift'])->where('id_plan', $planId)->first();
-        if (!$shift) {
+        if (! $shift) {
             return back()->withErrors(['id_shift' => 'Shift tidak valid untuk plan data ini.'])->withInput();
         }
 
@@ -572,8 +583,8 @@ class VerifPeralatanController extends Controller
 
         $updateData = [
             'id_shift' => (int) $data['id_shift'],
-            'tanggal'  => $data['tanggal'],
-            'jam'      => $firstJam,
+            'tanggal' => $data['tanggal'],
+            'jam' => $firstJam,
         ];
 
         $item->update($updateData);
@@ -607,8 +618,10 @@ class VerifPeralatanController extends Controller
         if (is_array($detailsInput)) {
             foreach ($detailsInput as $mesinId => $detail) {
                 $mesin = InputMesinPeralatan::with('area')->where('id', $mesinId)->where('id_plan', $planId)->first();
-                
-                if (!$mesin) continue;
+
+                if (! $mesin) {
+                    continue;
+                }
 
                 // Proteksi untuk role produksi: jangan proses mesin dari area seasoning
                 if ($isProduksi && $mesin->area && str_contains(strtolower($mesin->area->area), 'seasoning')) {
@@ -640,13 +653,13 @@ class VerifPeralatanController extends Controller
                                 break;
                             }
                         }
-                        $verifikasi = !$hasKotor;
+                        $verifikasi = ! $hasKotor;
                     } else {
                         $verifikasi = true;
                     }
                 }
 
-                if (!$isProduksi && $verifHasil === null) {
+                if (! $isProduksi && $verifHasil === null) {
                     if (isset($detail['bagian']) && is_array($detail['bagian']) && count($detail['bagian']) > 0) {
                         $hasNotOk = false;
                         foreach ($detail['bagian'] as $bData) {
@@ -655,7 +668,7 @@ class VerifPeralatanController extends Controller
                                 break;
                             }
                         }
-                        $verifHasil = !$hasNotOk;
+                        $verifHasil = ! $hasNotOk;
                     } else {
                         $verifHasil = true;
                     }
@@ -665,20 +678,22 @@ class VerifPeralatanController extends Controller
 
                 $detailRow = VerifPeralatanDetail::create([
                     'verif_peralatan_id' => $item->id,
-                    'id_mesin'           => (int) $mesin->id,
-                    'id_area'            => (int) $mesin->id_area,
-                    'jam'                => $detailJam,
-                    'verifikasi'         => $verifikasi,
-                    'keterangan'         => $keterangan,
-                    'tindakan_koreksi'   => $tindakan,
-                    'verifikasi_hasil'   => $verifHasil,
+                    'id_mesin' => (int) $mesin->id,
+                    'id_area' => (int) $mesin->id_area,
+                    'jam' => $detailJam,
+                    'verifikasi' => $verifikasi,
+                    'keterangan' => $keterangan,
+                    'tindakan_koreksi' => $tindakan,
+                    'verifikasi_hasil' => $verifHasil,
                 ]);
 
                 $bagianInput = $detail['bagian'] ?? [];
                 if (is_array($bagianInput)) {
                     foreach ($bagianInput as $bagianId => $bagianDetail) {
                         $bagianMesin = BagianMesin::where('id', $bagianId)->where('id_mesin', $mesinId)->first();
-                        if (!$bagianMesin) continue;
+                        if (! $bagianMesin) {
+                            continue;
+                        }
 
                         $bagianVerifRaw = $bagianDetail['verifikasi'] ?? null;
                         $bagianVerif = $this->normalizeVerifikasi($bagianVerifRaw) ?? true;
@@ -747,20 +762,20 @@ class VerifPeralatanController extends Controller
             $user = Auth::user();
 
             $query = VerifPeralatan::with(['plan', 'user', 'shift', 'details.mesin.area', 'details.mesin.bagian', 'details.bagianDetails.bagian']);
-            
+
             if ($request->has('is_audit') && $request->is_audit == 1) {
                 $query->where('is_audit', true);
             } else {
                 $query->operasional();
             }
-                
+
             $query->when($user->role !== 'superadmin', function ($q) use ($user) {
-                    $q->where('id_plan', $user->id_plan);
-                });
+                $q->where('id_plan', $user->id_plan);
+            });
 
             if ($request->tanggal_awal && $request->tanggal_akhir) {
-                $tanggalAwal = \Carbon\Carbon::parse($request->tanggal_awal)->startOfDay();
-                $tanggalAkhir = \Carbon\Carbon::parse($request->tanggal_akhir)->endOfDay();
+                $tanggalAwal = Carbon::parse($request->tanggal_awal)->startOfDay();
+                $tanggalAkhir = Carbon::parse($request->tanggal_akhir)->endOfDay();
                 $query->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir]);
             } elseif ($request->tanggal_awal) {
                 $query->whereDate('tanggal', $request->tanggal_awal);
@@ -781,13 +796,13 @@ class VerifPeralatanController extends Controller
                 $filterInfo = [];
 
                 if ($request->tanggal_awal && $request->tanggal_akhir) {
-                    $filterInfo[] = 'Tanggal: ' . \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y') . ' s/d ' . \Carbon\Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
+                    $filterInfo[] = 'Tanggal: '.Carbon::parse($request->tanggal_awal)->format('d-m-Y').' s/d '.Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
                 } elseif ($request->tanggal_awal) {
-                    $filterInfo[] = 'Tanggal: ' . \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y');
+                    $filterInfo[] = 'Tanggal: '.Carbon::parse($request->tanggal_awal)->format('d-m-Y');
                 }
                 if ($request->id_shift) {
                     $shift = DataShift::find($request->id_shift);
-                    $filterInfo[] = 'Shift: ' . ($shift ? $shift->shift : 'Unknown');
+                    $filterInfo[] = 'Shift: '.($shift ? $shift->shift : 'Unknown');
                 }
 
                 $html = '
@@ -813,15 +828,15 @@ class VerifPeralatanController extends Controller
                     <div class="container">
                         <div class="icon">⚠️</div>
                         <h1>Data Tidak Ditemukan</h1>
-                        <p class="message">' . $errorMessage . '</p>';
+                        <p class="message">'.$errorMessage.'</p>';
 
-                if (!empty($filterInfo)) {
+                if (! empty($filterInfo)) {
                     $html .= '
                         <div class="filter-info">
                             <h4>Filter yang digunakan:</h4>
                             <ul>';
                     foreach ($filterInfo as $info) {
-                        $html .= '<li>' . $info . '</li>';
+                        $html .= '<li>'.$info.'</li>';
                     }
                     $html .= '
                             </ul>
@@ -841,30 +856,31 @@ class VerifPeralatanController extends Controller
             }
 
             $kode_form = $request->kode_form;
-            
+
             // Prepare filters for PDF view
             $tanggalFilter = 'Semua Tanggal';
             if ($request->tanggal_awal && $request->tanggal_akhir) {
-                $tanggalFilter = \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y') . ' s/d ' . \Carbon\Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
+                $tanggalFilter = Carbon::parse($request->tanggal_awal)->format('d-m-Y').' s/d '.Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
             } elseif ($request->tanggal_awal) {
-                $tanggalFilter = \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y');
+                $tanggalFilter = Carbon::parse($request->tanggal_awal)->format('d-m-Y');
             }
 
             $filters = [
                 'tanggal' => $tanggalFilter,
                 'shift_id' => $request->id_shift,
-                'kode_form' => $request->kode_form
+                'kode_form' => $request->kode_form,
             ];
-            
+
             $pdf = \PDF::loadView('qc-sistem.verif_peralatan.export_pdf', compact('data', 'kode_form', 'filters'));
             $pdf->setPaper('A4', 'landscape');
 
-            $filename = 'verif_peralatan_' . date('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'verif_peralatan_'.date('Y-m-d_H-i-s').'.pdf';
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengekspor PDF: ' . $e->getMessage(),
+                'message' => 'Gagal mengekspor PDF: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -876,7 +892,7 @@ class VerifPeralatanController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        if ($user->role !== 'superadmin' && (int)$item->id_plan !== (int)$user->id_plan) {
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
             abort(403);
         }
 
@@ -886,8 +902,8 @@ class VerifPeralatanController extends Controller
         $pdf = \PDF::loadView('qc-sistem.verif_peralatan.export_pdf', compact('data', 'kode_form'));
         $pdf->setPaper('A4', 'landscape');
 
-        $filename = 'verif_peralatan_' . ($item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') : 'data') . '_' . substr($uuid, 0, 8) . '.pdf';
-        
+        $filename = 'verif_peralatan_'.($item->tanggal ? Carbon::parse($item->tanggal)->format('Y-m-d') : 'data').'_'.substr($uuid, 0, 8).'.pdf';
+
         return $pdf->stream($filename);
     }
 
@@ -912,7 +928,7 @@ class VerifPeralatanController extends Controller
             $type = $request->type;
             switch ($type) {
                 case 'qc':
-                    if (!in_array($userRole, [1, 3, 5])) {
+                    if (! in_array($userRole, [1, 3, 5])) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Anda tidak memiliki wewenang untuk menyetujui sebagai QC',
@@ -926,7 +942,7 @@ class VerifPeralatanController extends Controller
                             'message' => 'Anda tidak memiliki wewenang untuk menyetujui sebagai Produksi',
                         ], 403);
                     }
-                    if (!$item->approved_by_qc) {
+                    if (! $item->approved_by_qc) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Data harus disetujui oleh QC terlebih dahulu',
@@ -940,7 +956,7 @@ class VerifPeralatanController extends Controller
                             'message' => 'Anda tidak memiliki wewenang untuk menyetujui sebagai SPV',
                         ], 403);
                     }
-                    if (!$item->approved_by_produksi) {
+                    if (! $item->approved_by_produksi) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Data harus disetujui oleh Produksi terlebih dahulu',
@@ -973,17 +989,18 @@ class VerifPeralatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'message' => 'Terjadi kesalahan: '.$e->getMessage(),
             ], 500);
         }
     }
+
     public function bulkApprove(Request $request)
     {
         try {
             $request->validate([
                 'tanggal' => 'required|date',
                 'shift_id' => 'required|exists:data_shift,id',
-                'type' => 'required|in:qc,produksi,spv'
+                'type' => 'required|in:qc,produksi,spv',
             ]);
 
             $user = Auth::user();
@@ -1008,11 +1025,15 @@ class VerifPeralatanController extends Controller
 
             foreach ($items as $item) {
                 // Sequential validation
-                if ($type === 'produksi' && !$item->approved_by_qc) continue;
-                if ($type === 'spv' && !$item->approved_by_produksi) continue;
+                if ($type === 'produksi' && ! $item->approved_by_qc) {
+                    continue;
+                }
+                if ($type === 'spv' && ! $item->approved_by_produksi) {
+                    continue;
+                }
 
                 $approvalField = "approved_by_{$type}";
-                if (!$item->$approvalField) {
+                if (! $item->$approvalField) {
                     $item->update([
                         $approvalField => true,
                         "approved_by_{$type}_at" => now(),
@@ -1033,7 +1054,7 @@ class VerifPeralatanController extends Controller
             $request->validate([
                 'type' => 'required|in:qc,produksi,spv',
                 'uuids' => 'required|array|min:1',
-                'uuids.*' => 'required|uuid'
+                'uuids.*' => 'required|uuid',
             ]);
 
             $user = Auth::user();
@@ -1044,20 +1065,20 @@ class VerifPeralatanController extends Controller
             $allowedRoles = [
                 'qc' => [1, 3, 5],
                 'produksi' => [1, 2, 5],
-                'spv' => [1, 4, 5]
+                'spv' => [1, 4, 5],
             ];
 
-            if (!in_array($user->id_role, $allowedRoles[$type] ?? [])) {
+            if (! in_array($user->id_role, $allowedRoles[$type] ?? [])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'
+                    'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.',
                 ], 403);
             }
 
             // Find records - ONLY unapproved ones (smart auto-skip)
             $query = VerifPeralatan::whereIn('uuid', $uuids)
                 ->where("approved_by_{$type}", false)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 });
 
@@ -1067,7 +1088,7 @@ class VerifPeralatanController extends Controller
             if ($count === 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Semua data sudah diverifikasi sebelumnya.'
+                    'message' => 'Semua data sudah diverifikasi sebelumnya.',
                 ]);
             }
 
@@ -1080,7 +1101,7 @@ class VerifPeralatanController extends Controller
 
             VerifPeralatan::whereIn('uuid', $uuids)
                 ->where("approved_by_{$type}", false)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 })
                 ->update($updateData);
@@ -1091,19 +1112,19 @@ class VerifPeralatanController extends Controller
             // Update audit copies with same approval data
             VerifPeralatan::where('is_audit', true)
                 ->whereIn('source_uuid', $updatedSourceUuids)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 })
                 ->update($updateData);
 
             return response()->json([
                 'success' => true,
-                'message' => "Berhasil verifikasi {$count} data " . strtoupper($type)
+                'message' => "Berhasil verifikasi {$count} data ".strtoupper($type),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
