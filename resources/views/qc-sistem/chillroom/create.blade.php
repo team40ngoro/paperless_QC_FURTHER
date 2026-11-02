@@ -38,6 +38,9 @@
                                 </div>
                             @endif
 
+                        @php
+                            $isQc = auth()->check() && auth()->user()->isQc();
+                        @endphp
                         <div class="card-body">
                             <form action="{{ route('chillroom.store') }}" method="POST" id="main-chillroom-form">
                                 @csrf
@@ -159,24 +162,6 @@
                                                             </div>
                                                         </div>
                                                         <div class="form-group">
-                                                            <label>Suhu (°C) <span class="text-danger">*</span></label>
-                                                            <div class="input-group">
-                                                                <input type="number" step="0.1" class="form-control entry-field" name="entries[0][suhu]" 
-                                                                    placeholder="Masukkan suhu" required>
-                                                                <div class="input-group-append">
-                                                                    <span class="input-group-text">°C</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label>Sensori <span class="text-danger">*</span></label>
-                                                            <select class="form-control entry-field" name="entries[0][sensori]" required>
-                                                                <option value="">Pilih Status Sensori</option>
-                                                                <option value="✔">✓ Oke</option>
-                                                                <option value="✘">✘ Tidak Oke</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="form-group">
                                                             <label>Kemasan <span class="text-danger">*</span></label>
                                                             <select class="form-control entry-field" name="entries[0][kemasan]" required>
                                                                 <option value="">Pilih Status Kemasan</option>
@@ -191,13 +176,24 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="col-md-6">
-                                                        <h5 class="text-primary mb-3"><i class="fas fa-clipboard-check"></i> Sampling Berat RM Daging SPO</h5>
+                                                    <div class="col-md-6 sampling-spo-card-section {{ $isQc ? 'sampling-spo-muted' : '' }}">
+                                                        <h5 class="{{ $isQc ? 'text-secondary' : 'text-primary' }} mb-3">
+                                                            <i class="fas fa-clipboard-check"></i> Sampling Berat RM Daging SPO
+                                                            @if($isQc)
+                                                                <span class="badge badge-secondary ml-1" title="Card ini readonly untuk Role QC"><i class="fas fa-lock"></i> Readonly (Role QC)</span>
+                                                            @endif
+                                                        </h5>
+                                                        @if($isQc)
+                                                            <div class="alert alert-light border small text-muted mb-3 py-1 px-2">
+                                                                <i class="fas fa-info-circle mr-1"></i> Card sampling berat daging SPO dalam mode <strong>readonly</strong> untuk Role QC.
+                                                            </div>
+                                                        @endif
                                                         <div class="form-group">
                                                             <label>Standar Berat Per PCS (g)</label>
                                                             <div class="input-group">
                                                                 <input type="text" class="form-control entry-field" name="entries[0][standar_berat]" 
-                                                                    placeholder="Masukkan standar berat">
+                                                                    placeholder="{{ $isQc ? 'Readonly untuk Role QC' : 'Masukkan standar berat' }}"
+                                                                    {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                 <div class="input-group-append">
                                                                     <span class="input-group-text">gr</span>
                                                                 </div>
@@ -216,16 +212,19 @@
                                                                         <label>Berat Sample 1 (gr)</label>
                                                                         <div class="input-group">
                                                                             <input type="number" step="0.01" class="form-control entry-field" name="entries[0][jumlah_rm_value][]" 
-                                                                                placeholder="Masukkan berat sample" min="0">
+                                                                                placeholder="{{ $isQc ? '-' : 'Masukkan berat sample' }}" min="0"
+                                                                                {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
+                                                                            @if(!$isQc)
                                                                             <div class="input-group-append">
                                                                                 <button type="button" class="btn btn-success btn-sm add-berat-btn" data-target="berat-container-0">
                                                                                     <i class="fas fa-plus"></i>
                                                                                 </button>
                                                                             </div>
+                                                                            @endif
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <small class="form-text text-muted">Tambahkan sample berat sesuai kebutuhan</small>
+                                                                <small class="form-text text-muted">{{ $isQc ? 'Sampling berat dikelola oleh tim terkait' : 'Tambahkan sample berat sesuai kebutuhan' }}</small>
                                                             </div>
                                                         </div>
                                                         
@@ -241,21 +240,24 @@
                                                                         <div class="form-group">
                                                                             <label>Di Atas Standar (pcs)</label>
                                                                             <input type="number" class="form-control entry-field" name="entries[0][berat_atas]" 
-                                                                                placeholder="Masukkan jumlah pcs" min="0">
+                                                                                placeholder="{{ $isQc ? '-' : 'Masukkan jumlah pcs' }}" min="0"
+                                                                                {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                         </div>
                                                                     </div>
                                                                     <div class="col-md-4">
                                                                         <div class="form-group">
                                                                             <label>Sesuai Standar (pcs)</label>
                                                                             <input type="number" class="form-control entry-field" name="entries[0][berat_std]" 
-                                                                                placeholder="Masukkan jumlah pcs" min="0">
+                                                                                placeholder="{{ $isQc ? '-' : 'Masukkan jumlah pcs' }}" min="0"
+                                                                                {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                         </div>
                                                                     </div>
                                                                     <div class="col-md-4">
                                                                         <div class="form-group">
                                                                             <label>Bawah Standar (pcs)</label>
                                                                             <input type="number" class="form-control entry-field" name="entries[0][berat_bawah]" 
-                                                                                placeholder="Masukkan jumlah pcs" min="0">
+                                                                                placeholder="{{ $isQc ? '-' : 'Masukkan jumlah pcs' }}" min="0"
+                                                                                {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -264,16 +266,23 @@
                                                         
                                                         <div class="form-group">
                                                             <label>Status</label>
-                                                            <select class="form-control entry-field" name="entries[0][status_rm]">
-                                                                <option value="">Pilih Status</option>
-                                                                <option value="diterima">Diterima</option>
-                                                                <option value="diretur">Diretur</option>
-                                                            </select>
+                                                            @if($isQc)
+                                                                <select class="form-control entry-field" disabled tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;">
+                                                                    <option value="">-</option>
+                                                                </select>
+                                                            @else
+                                                                <select class="form-control entry-field" name="entries[0][status_rm]">
+                                                                    <option value="">Pilih Status</option>
+                                                                    <option value="diterima">Diterima</option>
+                                                                    <option value="diretur">Diretur</option>
+                                                                </select>
+                                                            @endif
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Catatan</label>
                                                             <textarea class="form-control entry-field" name="entries[0][catatan_rm]" 
-                                                                    rows="3" placeholder="Masukkan catatan tambahan"></textarea>
+                                                                    rows="3" placeholder="{{ $isQc ? 'Readonly untuk Role QC' : 'Masukkan catatan tambahan' }}"
+                                                                    {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}></textarea>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -289,9 +298,11 @@
                                     <button type="button" class="btn btn-success ml-2" id="add-entry-btn">
                                         <i class="fas fa-plus"></i> Tambah Entry
                                     </button>
+                                    @if(!$isQc)
                                     <button type="button" class="btn btn-warning ml-2" id="add-sampling-frozen-btn">
                                         <i class="fas fa-snowflake"></i> Tambah Sampling Berat (Frozen)
                                     </button>
+                                    @endif
                                     <a href="{{ route('chillroom.index') }}" class="btn btn-secondary ml-2">
                                         <i class="fas fa-arrow-left"></i> Kembali
                                     </a>
@@ -313,6 +324,24 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 36px;
     }
+    .sampling-spo-muted {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 12px;
+        opacity: 0.85;
+        border: 1px dashed #ced4da;
+    }
+    .sampling-spo-muted input, 
+    .sampling-spo-muted select, 
+    .sampling-spo-muted textarea {
+        background-color: #e9ecef !important;
+        cursor: not-allowed !important;
+        color: #6c757d !important;
+    }
+    .sampling-spo-muted .add-berat-btn,
+    .sampling-spo-muted .remove-berat-btn {
+        display: none !important;
+    }
 </style>
 @endpush
 
@@ -320,6 +349,9 @@
 <script>
 $(document).ready(function() {
     let entryCounter = 0;
+    const isUserQc = {{ $isQc ? 'true' : 'false' }};
+    const qcLockBadge = @json($isQc ? '<span class="badge badge-secondary ml-1" title="Card ini readonly untuk Role QC"><i class="fas fa-lock"></i> Readonly (Role QC)</span>' : '');
+    const qcNoticeHtml = @json($isQc ? '<div class="alert alert-light border small text-muted mb-3 py-1 px-2"><i class="fas fa-info-circle mr-1"></i> Card sampling berat daging SPO dalam mode <strong>readonly</strong> untuk Role QC.</div>' : '');
     
     // Function to update summary
     function updateSummary() {
@@ -454,24 +486,6 @@ $(document).ready(function() {
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Suhu (°C) <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" step="0.1" class="form-control entry-field" name="entries[${newEntryNum}][suhu]" 
-                                           placeholder="Masukkan suhu" required>
-                                    <div class="input-group-append">
-                                        <span class="input-group-text">°C</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Sensori <span class="text-danger">*</span></label>
-                                <select class="form-control entry-field" name="entries[${newEntryNum}][sensori]" required>
-                                    <option value="">Pilih Status Sensori</option>
-                                    <option value="✔">✓ Oke</option>
-                                    <option value="✘">✘ Tidak Oke</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label>Kemasan <span class="text-danger">*</span></label>
                                 <select class="form-control entry-field" name="entries[${newEntryNum}][kemasan]" required>
                                     <option value="">Pilih Status Kemasan</option>
@@ -485,13 +499,18 @@ $(document).ready(function() {
                                           rows="2" placeholder="Masukkan keterangan tambahan"></textarea>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="text-primary mb-3"><i class="fas fa-clipboard-check"></i> Sampling Berat RM Daging SPO</h5>
+                        <div class="col-md-6 sampling-spo-card-section ${isUserQc ? 'sampling-spo-muted' : ''}">
+                            <h5 class="${isUserQc ? 'text-secondary' : 'text-primary'} mb-3">
+                                <i class="fas fa-clipboard-check"></i> Sampling Berat RM Daging SPO
+                                ${qcLockBadge}
+                            </h5>
+                            ${qcNoticeHtml}
                             <div class="form-group">
                                 <label>Standar Berat Per PCS (g)</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][standar_berat]" 
-                                           placeholder="Masukkan standar berat">
+                                           placeholder="${isUserQc ? 'Readonly untuk Role QC' : 'Masukkan standar berat'}"
+                                           ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}>
                                     <div class="input-group-append">
                                         <span class="input-group-text">gr</span>
                                     </div>
@@ -510,16 +529,18 @@ $(document).ready(function() {
                                             <label>Berat Sample 1 (gr)</label>
                                             <div class="input-group">
                                                 <input type="number" step="0.01" class="form-control entry-field" name="entries[${newEntryNum}][jumlah_rm_value][]" 
-                                                       placeholder="Masukkan berat sample" min="0">
+                                                       placeholder="${isUserQc ? '-' : 'Masukkan berat sample'}" min="0"
+                                                       ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}>
+                                                ${!isUserQc ? `
                                                 <div class="input-group-append">
                                                     <button type="button" class="btn btn-success btn-sm add-berat-btn" data-target="berat-container-${newEntryNum}">
                                                         <i class="fas fa-plus"></i>
                                                     </button>
-                                                </div>
+                                                </div>` : ''}
                                             </div>
                                         </div>
                                     </div>
-                                    <small class="form-text text-muted">Tambahkan sample berat sesuai kebutuhan</small>
+                                    <small class="form-text text-muted">${isUserQc ? 'Sampling berat dikelola oleh tim terkait' : 'Tambahkan sample berat sesuai kebutuhan'}</small>
                                 </div>
                             </div>
                             
@@ -535,21 +556,24 @@ $(document).ready(function() {
                                             <div class="form-group">
                                                 <label>Di Atas Standar (pcs)</label>
                                                 <input type="number" class="form-control entry-field" name="entries[${newEntryNum}][berat_atas]" 
-                                                       placeholder="Masukkan jumlah pcs" min="0">
+                                                       placeholder="${isUserQc ? '-' : 'Masukkan jumlah pcs'}" min="0"
+                                                       ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Sesuai Standar (pcs)</label>
                                                 <input type="number" class="form-control entry-field" name="entries[${newEntryNum}][berat_std]" 
-                                                       placeholder="Masukkan jumlah pcs" min="0">
+                                                       placeholder="${isUserQc ? '-' : 'Masukkan jumlah pcs'}" min="0"
+                                                       ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Bawah Standar (pcs)</label>
                                                 <input type="number" class="form-control entry-field" name="entries[${newEntryNum}][berat_bawah]" 
-                                                       placeholder="Masukkan jumlah pcs" min="0">
+                                                       placeholder="${isUserQc ? '-' : 'Masukkan jumlah pcs'}" min="0"
+                                                       ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}>
                                             </div>
                                         </div>
                                     </div>
@@ -558,16 +582,21 @@ $(document).ready(function() {
                           
                             <div class="form-group">
                                 <label>Status</label>
+                                ${isUserQc ? `
+                                <select class="form-control entry-field" disabled tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;">
+                                    <option value="">-</option>
+                                </select>` : `
                                 <select class="form-control entry-field" name="entries[${newEntryNum}][status_rm]">
                                     <option value="">Pilih Status</option>
                                     <option value="diterima">Diterima</option>
                                     <option value="diretur">Diretur</option>
-                                </select>
+                                </select>`}
                             </div>
                             <div class="form-group">
                                 <label>Catatan</label>
                                 <textarea class="form-control entry-field" name="entries[${newEntryNum}][catatan_rm]" 
-                                          rows="3" placeholder="Masukkan catatan tambahan"></textarea>
+                                          rows="3" placeholder="${isUserQc ? 'Readonly untuk Role QC' : 'Masukkan catatan tambahan'}"
+                                          ${isUserQc ? 'readonly tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;"' : ''}></textarea>
                             </div>
                         </div>
                     </div>
@@ -608,6 +637,7 @@ $(document).ready(function() {
 
     // Add new sampling frozen entry
     $('#add-sampling-frozen-btn').click(function() {
+        if (isUserQc) return;
         // Smart check: jika hanya ada 1 entry dan masih kosong, hapus dulu form standard defaultnya
         if ($('.entry-card').length === 1) {
             const firstCard = $('.entry-card').first();
@@ -647,8 +677,6 @@ $(document).ready(function() {
                             
                             <!-- Hidden inputs to satisfy standard validation -->
                             <input type="hidden" name="entries[${newEntryNum}][berat]" value="-">
-                            <input type="hidden" name="entries[${newEntryNum}][suhu]" value="0">
-                            <input type="hidden" name="entries[${newEntryNum}][sensori]" value="✔">
                             <input type="hidden" name="entries[${newEntryNum}][kemasan]" value="✔">
                             
                             <div class="form-group">
@@ -915,6 +943,7 @@ $(document).ready(function() {
     
     // Add new berat sample
     $(document).on('click', '.add-berat-btn', function() {
+        if (isUserQc) return;
         const targetContainer = $(this).data('target');
         const container = $('#' + targetContainer);
         
@@ -950,6 +979,7 @@ $(document).ready(function() {
     
     // Remove berat sample
     $(document).on('click', '.remove-berat-btn', function() {
+        if (isUserQc) return;
         const container = $(this).closest('.form-group').parent();
         const targetContainer = container.attr('id');
         

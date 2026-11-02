@@ -25,7 +25,7 @@ class ChillroomLog extends Model
         'nilai_baru',
         'ip_address',
         'user_agent',
-        'keterangan'
+        'keterangan',
     ];
 
     protected $casts = [
@@ -37,7 +37,7 @@ class ChillroomLog extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->uuid)) {
                 $model->uuid = Str::uuid();
@@ -80,46 +80,47 @@ class ChillroomLog extends Model
             'status_rm' => 'Status RM',
             'nilai_jumlah_rm' => 'Nilai Jumlah RM',
             'catatan_rm' => 'Catatan RM',
+            'qc_verification_status' => 'Status Verifikasi QC',
             'id_plan' => 'Plan',
-            'user_id' => 'User'
+            'user_id' => 'User',
         ];
     }
 
     // Method untuk mendapatkan nama field yang readable
     public function getNamaFieldAttribute()
     {
-        if (!$this->field_yang_diubah) {
+        if (! $this->field_yang_diubah) {
             return 'N/A';
         }
-        
+
         $fieldNames = self::getFieldNames();
         $namaField = [];
-        
+
         foreach ($this->field_yang_diubah as $field) {
             $namaField[] = $fieldNames[$field] ?? $field;
         }
-        
+
         return implode(', ', $namaField);
     }
 
     // Method untuk mendapatkan deskripsi perubahan
     public function getDeskripsiPerubahanAttribute()
     {
-        if (!$this->field_yang_diubah || !$this->nilai_lama || !$this->nilai_baru) {
+        if (! $this->field_yang_diubah || ! $this->nilai_lama || ! $this->nilai_baru) {
             return 'N/A';
         }
-        
+
         $fieldNames = self::getFieldNames();
         $deskripsi = [];
-        
+
         foreach ($this->field_yang_diubah as $field) {
             $namaField = $fieldNames[$field] ?? $field;
             $nilaiLama = $this->nilai_lama[$field] ?? 'N/A';
             $nilaiBaru = $this->nilai_baru[$field] ?? 'N/A';
-            
+
             $deskripsi[] = "{$namaField}: '{$nilaiLama}' → '{$nilaiBaru}'";
         }
-        
+
         return implode('; ', $deskripsi);
     }
 }

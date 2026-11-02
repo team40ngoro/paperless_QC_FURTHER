@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@php
+    $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
+@endphp
 @section('container')
 <div class="main-panel">
     <div class="content-wrapper">

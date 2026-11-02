@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use App\Models\User;
 
 class SsoLoginController extends Controller
 {
@@ -16,7 +16,7 @@ class SsoLoginController extends Controller
         // Verifikasi tiket ke Employee API (komunikasi server-ke-server)
         $response = Http::withToken(config('services.employee_api.sso_secret'))
             ->timeout(10)
-            ->post(config('services.employee_api.url') . '/sso/verify', [
+            ->post(config('services.employee_api.url').'/sso/verify', [
                 'ticket' => $request->ticket,
                 'project_uuid' => config('services.employee_api.this_project_uuid'),
             ]);
@@ -81,8 +81,8 @@ class SsoLoginController extends Controller
             try {
                 Http::withToken(config('services.employee_api.sso_secret'))
                     ->timeout(5)
-                    ->post(config('services.employee_api.url') . '/sso/report-logout', [
-                        'user_uuid'    => $user->uuid,
+                    ->post(config('services.employee_api.url').'/sso/report-logout', [
+                        'user_uuid' => $user->uuid,
                         'project_uuid' => config('services.employee_api.this_project_uuid'),
                     ]);
             } catch (\Throwable $e) {
@@ -90,6 +90,6 @@ class SsoLoginController extends Controller
             }
         }
 
-        return redirect(config('services.employee_api.portal_url'));
+        return redirect()->route('login');
     }
 }

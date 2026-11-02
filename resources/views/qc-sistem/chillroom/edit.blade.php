@@ -3,6 +3,7 @@
 
 @section('container')
 @php
+    $isQc = auth()->check() && auth()->user()->isQc();
     // PERBAIKAN TOTAL: Safe JSON decode dengan proper error handling
     
     // 1. Decode jumlah_rm (agregasi data)
@@ -216,8 +217,6 @@
                                                             <i class="fas fa-info-circle"></i> <strong>Mode Sampling Frozen:</strong> Detail fisik (suhu, kemasan, dll) disembunyikan karena data ini adalah sampling frozen.
                                                         </div>
                                                         <input type="hidden" name="berat" value="-">
-                                                        <input type="hidden" name="suhu" value="0">
-                                                        <input type="hidden" name="sensori" value="✔">
                                                         <input type="hidden" name="kemasan" value="✔">
                                                     @else
                                                         <div class="form-group row">
@@ -232,38 +231,6 @@
                                                                     </div>
                                                                 </div>
                                                                 @error('berat')
-                                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="form-group row">
-                                                            <label for="suhu" class="col-sm-3 col-form-label">Suhu (°C) <span class="text-danger">*</span></label>
-                                                            <div class="col-sm-9">
-                                                                <div class="input-group">
-                                                                    <input type="number" step="0.1" class="form-control @error('suhu') is-invalid @enderror" 
-                                                                           id="suhu" name="suhu" 
-                                                                           value="{{ old('suhu', $chillroom->suhu) }}" required>
-                                                                    <div class="input-group-append">
-                                                                        <span class="input-group-text">°C</span>
-                                                                    </div>
-                                                                </div>
-                                                                @error('suhu')
-                                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="form-group row">
-                                                            <label for="sensori" class="col-sm-3 col-form-label">Sensori <span class="text-danger">*</span></label>
-                                                            <div class="col-sm-9">
-                                                                <select class="form-control @error('sensori') is-invalid @enderror" 
-                                                                        id="sensori" name="sensori" required>
-                                                                    <option value="">Pilih Status Sensori</option>
-                                                                    <option value="✔" {{ in_array(old('sensori', $chillroom->sensori), ['✔', '✓', 'OK', 'ok']) ? 'selected' : '' }}>✓ Oke</option>
-                                                                    <option value="✘" {{ in_array(old('sensori', $chillroom->sensori), ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']) ? 'selected' : '' }}>✘ Tidak Oke</option>
-                                                                </select>
-                                                                @error('sensori')
                                                                     <span class="invalid-feedback d-block">{{ $message }}</span>
                                                                 @enderror
                                                             </div>
@@ -302,11 +269,22 @@
 
                                         <div class="col-md-6">
                                             <!-- Pemeriksaan RM Daging SPO Card -->
-                                            <div class="card card-primary card-outline">
+                                            <div class="card {{ $isQc ? 'card-secondary' : 'card-primary' }} card-outline">
                                                 <div class="card-header">
-                                                    <h3 class="card-title">Sampling Berat RM Daging SPO</h3>
+                                                    <h3 class="card-title {{ $isQc ? 'text-muted' : '' }}">
+                                                        <i class="fas fa-clipboard-check"></i> Sampling Berat RM Daging SPO
+                                                        @if($isQc)
+                                                            <span class="badge badge-secondary ml-2"><i class="fas fa-lock"></i> Readonly (Role QC)</span>
+                                                        @endif
+                                                    </h3>
                                                 </div>
-                                                <div class="card-body">
+                                                <div class="card-body {{ $isQc ? 'sampling-spo-muted' : '' }}">
+                                                    @if($isQc)
+                                                        <div class="alert alert-light border small text-muted mb-3 py-1 px-2">
+                                                            <i class="fas fa-info-circle mr-1"></i> Card sampling berat daging SPO dalam mode <strong>readonly</strong> untuk Role QC.
+                                                        </div>
+                                                    @endif
+
                                                     <div class="form-group row">
                                                         <label for="standar_berat" class="col-sm-4 col-form-label">Standar Berat Per PCS</label>
                                                         <div class="col-sm-8">
@@ -314,7 +292,8 @@
                                                                 <input type="text" class="form-control @error('standar_berat') is-invalid @enderror" 
                                                                        id="standar_berat" name="standar_berat" 
                                                                        value="{{ old('standar_berat', $chillroom->standar_berat) }}" 
-                                                                       placeholder="Masukkan standar berat">
+                                                                       placeholder="{{ $isQc ? 'Readonly untuk Role QC' : 'Masukkan standar berat' }}"
+                                                                       {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                 <div class="input-group-append">
                                                                     <span class="input-group-text">gr</span>
                                                                 </div>
@@ -341,7 +320,9 @@
                                                                                 <input type="number" step="0.01" class="form-control" 
                                                                                        name="berat_samples[]" 
                                                                                        value="{{ $sampleValue }}" 
-                                                                                       placeholder="Masukkan berat sample" min="0">
+                                                                                       placeholder="Masukkan berat sample" min="0"
+                                                                                       {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
+                                                                                @if(!$isQc)
                                                                                 <div class="input-group-append">
                                                                                     @if($idx === 0)
                                                                                         <button type="button" class="btn btn-success btn-sm add-berat-btn">
@@ -353,6 +334,7 @@
                                                                                         </button>
                                                                                     @endif
                                                                                 </div>
+                                                                                @endif
                                                                             </div>
                                                                         </div>
                                                                     @endforeach
@@ -362,17 +344,20 @@
                                                                         <div class="input-group">
                                                                             <input type="number" step="0.01" class="form-control" 
                                                                                    name="berat_samples[]" 
-                                                                                   placeholder="Masukkan berat sample" min="0">
+                                                                                   placeholder="{{ $isQc ? '-' : 'Masukkan berat sample' }}" min="0"
+                                                                                   {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
+                                                                            @if(!$isQc)
                                                                             <div class="input-group-append">
                                                                                 <button type="button" class="btn btn-success btn-sm add-berat-btn">
                                                                                     <i class="fas fa-plus"></i>
                                                                                 </button>
                                                                             </div>
+                                                                            @endif
                                                                         </div>
                                                                     </div>
                                                                 @endif
                                                             </div>
-                                                            <small class="form-text text-muted">Tambahkan sample berat sesuai kebutuhan</small>
+                                                            <small class="form-text text-muted">{{ $isQc ? 'Sampling berat dikelola oleh tim terkait' : 'Tambahkan sample berat sesuai kebutuhan' }}</small>
                                                         </div>
                                                     </div>
 
@@ -389,7 +374,8 @@
                                                                     <input type="number" class="form-control @error('berat_atas') is-invalid @enderror" 
                                                                            id="berat_atas" name="berat_atas" 
                                                                            value="{{ old('berat_atas', $entryData['berat_atas']) }}" 
-                                                                           placeholder="Jumlah pcs" min="0">
+                                                                           placeholder="Jumlah pcs" min="0"
+                                                                           {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                     @error('berat_atas')
                                                                         <span class="invalid-feedback d-block">{{ $message }}</span>
                                                                     @enderror
@@ -402,7 +388,8 @@
                                                                     <input type="number" class="form-control @error('berat_std') is-invalid @enderror" 
                                                                            id="berat_std" name="berat_std" 
                                                                            value="{{ old('berat_std', $entryData['berat_std']) }}" 
-                                                                           placeholder="Jumlah pcs" min="0">
+                                                                           placeholder="Jumlah pcs" min="0"
+                                                                           {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                     @error('berat_std')
                                                                         <span class="invalid-feedback d-block">{{ $message }}</span>
                                                                     @enderror
@@ -415,7 +402,8 @@
                                                                     <input type="number" class="form-control @error('berat_bawah') is-invalid @enderror" 
                                                                            id="berat_bawah" name="berat_bawah" 
                                                                            value="{{ old('berat_bawah', $entryData['berat_bawah']) }}" 
-                                                                           placeholder="Jumlah pcs" min="0">
+                                                                           placeholder="Jumlah pcs" min="0"
+                                                                           {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>
                                                                     @error('berat_bawah')
                                                                         <span class="invalid-feedback d-block">{{ $message }}</span>
                                                                     @enderror
@@ -427,15 +415,22 @@
                                                     <div class="form-group row mt-3">
                                                         <label for="status_rm" class="col-sm-3 col-form-label">Status</label>
                                                         <div class="col-sm-9">
-                                                            <select class="form-control @error('status_rm') is-invalid @enderror" 
-                                                                    id="status_rm" name="status_rm">
-                                                                <option value="">Pilih Status</option>
-                                                                <option value="diterima" {{ old('status_rm', $chillroom->status_rm) == 'diterima' ? 'selected' : '' }}>Diterima</option>
-                                                                <option value="diretur" {{ old('status_rm', $chillroom->status_rm) == 'diretur' ? 'selected' : '' }}>Diretur</option>
-                                                            </select>
-                                                            @error('status_rm')
-                                                                <span class="invalid-feedback d-block">{{ $message }}</span>
-                                                            @enderror
+                                                            @if($isQc)
+                                                                <select class="form-control" id="status_rm" disabled tabindex="-1" style="background-color:#e9ecef;cursor:not-allowed;">
+                                                                    <option value="">{{ $chillroom->status_rm ?: '-' }}</option>
+                                                                </select>
+                                                                <input type="hidden" name="status_rm" value="{{ old('status_rm', $chillroom->status_rm) }}">
+                                                            @else
+                                                                <select class="form-control @error('status_rm') is-invalid @enderror" 
+                                                                        id="status_rm" name="status_rm">
+                                                                    <option value="">Pilih Status</option>
+                                                                    <option value="diterima" {{ old('status_rm', $chillroom->status_rm) == 'diterima' ? 'selected' : '' }}>Diterima</option>
+                                                                    <option value="diretur" {{ old('status_rm', $chillroom->status_rm) == 'diretur' ? 'selected' : '' }}>Diretur</option>
+                                                                </select>
+                                                                @error('status_rm')
+                                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                                                @enderror
+                                                            @endif
                                                         </div>
                                                     </div>
 
@@ -444,7 +439,8 @@
                                                         <div class="col-sm-9">
                                                             <textarea class="form-control @error('catatan_rm') is-invalid @enderror" 
                                                                       id="catatan_rm" name="catatan_rm" 
-                                                                      rows="3" placeholder="Masukkan catatan tambahan">{{ old('catatan_rm', $chillroom->catatan_rm) }}</textarea>
+                                                                      rows="3" placeholder="{{ $isQc ? 'Readonly untuk Role QC' : 'Masukkan catatan tambahan' }}"
+                                                                      {{ $isQc ? 'readonly tabindex=-1 style=background-color:#e9ecef;cursor:not-allowed;' : '' }}>{{ old('catatan_rm', $chillroom->catatan_rm) }}</textarea>
                                                             @error('catatan_rm')
                                                                 <span class="invalid-feedback d-block">{{ $message }}</span>
                                                             @enderror
@@ -473,10 +469,32 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+    .sampling-spo-muted {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        opacity: 0.85;
+    }
+    .sampling-spo-muted input, 
+    .sampling-spo-muted select, 
+    .sampling-spo-muted textarea {
+        background-color: #e9ecef !important;
+        cursor: not-allowed !important;
+        color: #6c757d !important;
+    }
+    .sampling-spo-muted .add-berat-btn,
+    .sampling-spo-muted .remove-berat-btn {
+        display: none !important;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 $(document).ready(function() {
     let sampleCounter = $('#berat-container-edit .form-group').length;
+    const isUserQc = {{ $isQc ? 'true' : 'false' }};
     
     // Initialize Select2
     if ($.fn.select2) {
@@ -487,6 +505,7 @@ $(document).ready(function() {
     
     // Add new berat sample
     $(document).on('click', '.add-berat-btn', function() {
+        if (isUserQc) return;
         sampleCounter++;
         
         const newSampleHtml = `
@@ -509,6 +528,7 @@ $(document).ready(function() {
     
     // Remove berat sample
     $(document).on('click', '.remove-berat-btn', function() {
+        if (isUserQc) return;
         const totalSamples = $('#berat-container-edit .form-group').length;
         
         if (totalSamples > 1) {

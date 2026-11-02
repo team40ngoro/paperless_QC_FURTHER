@@ -8,12 +8,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="base-url" content="{{ url('/') }}">
     <title>Paperless Further</title>
-    @php
-        $isCliServer = php_sapi_name() === 'cli-server';
-        $docRoot = str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: '');
-        $isDocRootPublic = str_ends_with($docRoot, '/public') || basename($docRoot) === 'public';
-        $hasSubfolder = !empty(request()->getBaseUrl());
-        $assetPath = ($isCliServer || $isDocRootPublic || !$hasSubfolder) ? '' : 'public/';
+     @php
+       $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
     @endphp
     <link rel="stylesheet" href="{{ asset($assetPath . 'plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset($assetPath . 'plugins/overlayScrollbars/css/OverlayScrollbars.min.css')}}">
@@ -6890,9 +6886,8 @@ window.loadBetterByPlanProduk = function(planSelectId, produkSelectId, betterSel
     });
 </script>
 
-@auth
 <!-- Modal Session Timeout -->
-<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" role="dialog" aria-labelledby="sessionTimeoutModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false" style="display: none;">
+<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" role="dialog" aria-labelledby="sessionTimeoutModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header bg-warning text-white" style="border-radius: 12px 12px 0 0;">
@@ -6918,6 +6913,5 @@ window.loadBetterByPlanProduk = function(planSelectId, produkSelectId, betterSel
         </div>
     </div>
 </div>
-@endauth
 
 </body>

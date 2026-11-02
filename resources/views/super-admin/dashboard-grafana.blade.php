@@ -771,7 +771,7 @@
     // 1. Inject Custom Loader + Staggered Loading
     //    (Load iframe satu per satu agar tidak berat)
     // -----------------------------------------------
-    var logoUrl = '{{ asset(($assetPath ?? "") . "dist/img/cpi-logo.png") }}';
+    var logoUrl = '{{ asset((isset($assetPath) ? $assetPath : "public/") . "dist/img/cpi-logo.png") }}';
     var $allIframes = $('iframe[id^="grafana-panel-"]');
 
     // -----------------------------------------------

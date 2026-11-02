@@ -528,15 +528,6 @@
                 }
             }
 
-            $produksiApprover = null;
-            $produksiApproverName = 'FM/FL PRODUKSI';
-            foreach($data as $item) {
-                if($item->approved_by_produksi && $item->produksi_approved_by) {
-                    $produksiApprover = \App\Models\User::find($item->produksi_approved_by);
-                    if($produksiApprover) { $produksiApproverName = $produksiApprover->name; break; }
-                }
-            }
-
             // Generate QR codes jika ada approver
             $base64QcSvg = null;
             if($qcApprover) {
@@ -562,24 +553,12 @@
                 $base64SpvSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($spvQrData));
             }
 
-            $base64ProduksiSvg = null;
-            if($produksiApprover) {
-                $produksiApprovalDate = '';
-                foreach($data as $item) {
-                    if($item->approved_by_produksi && $item->produksi_approved_at) {
-                        $produksiApprovalDate = $item->produksi_approved_at->format('Y-m-d'); break;
-                    }
-                }
-                $produksiQrData = "Dokumen ini telah diverifikasi secara sistem oleh {$produksiApprover->name} (FM/FL PRODUKSI) pada {$produksiApprovalDate}";
-                $base64ProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($produksiQrData));
-            }
         @endphp
 
         <table class="signature-table">
             {{-- Baris 1: Label --}}
             <tr>
                 <td class="signature-label">Dibuat Oleh: QC INSPEKTOR</td>
-                <td class="signature-label">Diketahui Oleh: Produksi</td>
                 <td class="signature-label">Disetujui Oleh: Supervisor QC</td>
             </tr>
             {{-- Baris 2: Area QR / ruang tanda tangan --}}
@@ -587,11 +566,6 @@
                 <td class="signature-qr-area">
                     @if($base64QcSvg)
                         <img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR Code QC">
-                    @endif
-                </td>
-                <td class="signature-qr-area">
-                    @if($base64ProduksiSvg)
-                        <img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR Code Produksi">
                     @endif
                 </td>
                 <td class="signature-qr-area">
@@ -604,12 +578,10 @@
             <tr>
                 <td><div class="signature-line"></div></td>
                 <td><div class="signature-line"></div></td>
-                <td><div class="signature-line"></div></td>
             </tr>
             {{-- Baris 4: Nama --}}
             <tr>
                 <td class="signature-name">{{ $qcApproverName }}</td>
-                <td class="signature-name">{{ $produksiApproverName }}</td>
                 <td class="signature-name">{{ $spvApproverName }}</td>
             </tr>
         </table>

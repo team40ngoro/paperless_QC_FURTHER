@@ -72,7 +72,6 @@
                                 @php
                                     $userRole = auth()->user()->id_role;
                                     $canApproveQc = in_array($userRole, [1, 3, 5]);
-                                    $canApproveProduksi = in_array($userRole, [1, 2, 5]);
                                     $canApproveSPV = in_array($userRole, [1, 4, 5]);
                                 @endphp
 
@@ -81,11 +80,6 @@
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
                                         <i class="fas fa-check mr-1"></i> Approve QC
-                                    </button>
-                                @endif
-                                @if($canApproveProduksi)
-                                    <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSPV)
@@ -151,15 +145,21 @@
 
                             @include('partials.date-range-filter')
 
+                            @php
+                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+                            @endphp
+
                             <div class="table-responsive">
                                 <table id="mainTable" class="table table-hover border-bottom mb-0" style="white-space: nowrap;">
                                     <thead class="bg-light text-uppercase small font-weight-bold border-top">
                                         <tr>
-                                            <th class="text-center py-3" style="width: 40px;">
-                                                <div class="d-flex align-items-center justify-content-center">
-                                                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="Pilih semua">
-                                                </div>
-                                            </th>
+                                            @if($showApprovalCheckbox)
+                                                <th class="text-center py-3" style="width: 40px;">
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="Pilih semua">
+                                                    </div>
+                                                </th>
+                                            @endif
                                             <th class="text-center py-3" style="width: 50px;">No</th>
                                             <th class="py-3 text-center">Shift</th>
                                             <th class="py-3 text-center">Tanggal</th>

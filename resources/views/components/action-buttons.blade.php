@@ -7,6 +7,14 @@
                 <i class="fas fa-eye"></i>
             </a>
         @endif
+
+        @if($showQcVerificationLog && $hasRoute($routePrefix . '.qc-verifications.index'))
+            <a href="{{ route($routePrefix . '.qc-verifications.index', $item->uuid) }}"
+               {{ $attributes->merge(['class' => 'btn btn-success btn-sm']) }}
+               data-toggle="tooltip" title="Log Verifikasi QC">
+                <i class="fas fa-clipboard-check"></i>
+            </a>
+        @endif
         
         @if($hasRoute($routePrefix . '.edit') && $hasEditPermission())
             @php
@@ -117,6 +125,11 @@
             <a href="{{ route($routePrefix . '.show', $item->uuid) }}" class="btn btn-info btn-sm" title="Lihat Detail">
                 <i class="fas fa-eye"></i> Lihat
             </a>
+            @if($showQcVerificationLog && $hasRoute($routePrefix . '.qc-verifications.index'))
+                <a href="{{ route($routePrefix . '.qc-verifications.index', $item->uuid) }}" class="btn btn-success btn-sm" title="Log Verifikasi QC">
+                    <i class="fas fa-clipboard-check"></i>
+                </a>
+            @endif
         @elseif($shouldShowHistory() && $hasRoute($routePrefix . '.logs'))
             <a href="{{ route($routePrefix . '.logs', $item->uuid) }}" class="btn btn-secondary btn-sm" title="Lihat History">
                 <i class="fas fa-history"></i> History
