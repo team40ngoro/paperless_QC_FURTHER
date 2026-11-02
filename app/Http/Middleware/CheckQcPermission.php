@@ -39,7 +39,13 @@ class CheckQcPermission
 
         // Verifikasi QC hanya untuk role QC; otorisasi dilakukan di controller,
         // sehingga tidak boleh memakai permission create-chillroom.
-        if (str_contains($request->path(), 'qc-verifications')) {
+        if (
+            str_contains($request->path(), 'qc-verification') ||
+            str_ends_with($request->path(), 'bulk-export-excel') ||
+            str_ends_with($request->path(), '/approve') ||
+            str_ends_with($request->path(), '/bulk-approve') ||
+            str_ends_with($request->path(), '/bulk-approve-selected')
+        ) {
             return $next($request);
         }
 
@@ -80,7 +86,7 @@ class CheckQcPermission
 
             // If it's a 'view' action, allow it (will be filtered later by Blade or controller)
             // Also allow audit pages of wizard without strict permission check
-            if ($action === 'view' || ($segment4 === 'audit-data') || ($segment4 === 'audit')) {
+            if ($action === 'view' || ($segment4 === 'audit-data') || ($segment4 === 'audit') || ($segment3 === 'proses-1' && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true))) {
                 \Illuminate\Support\Facades\Log::info('CheckQcPermission: Allowing wizard view/audit', ['action' => $action, 'segment4' => $segment4]);
                 return $next($request);
             }
