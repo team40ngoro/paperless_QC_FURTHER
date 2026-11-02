@@ -23,19 +23,6 @@ class LoginController extends Controller
             return view('auth.login');
         }
 
-        // 1. Utamakan URL login portal khusus dari config/env
-        $portalLoginUrl = config('services.employee_api.portal_login_url');
-        if (!empty($portalLoginUrl)) {
-            return redirect($portalLoginUrl);
-        }
-
-        // 2. Fallback jika hanya portal_url yang terisi (di-trim untuk cegah //login)
-        $portalUrl = config('services.employee_api.portal_url');
-        if (!empty($portalUrl)) {
-            return redirect(rtrim($portalUrl, '/') . '/login');
-        }
-
-        // 3. Fallback akhir: tampilkan form login lokal
         return view('auth.login');
     }
 
