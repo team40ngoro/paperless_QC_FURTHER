@@ -1,6 +1,6 @@
 @php
     $rowNumber = 0;
-    $showApprovalCheckbox = $showApprovalCheckbox ?? in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+    $showApprovalCheckbox = $showApprovalCheckbox ?? in_array((int) auth()->user()->id_role, [1, 4, 5], true);
 @endphp
 @forelse($records as $groupItems)
     @foreach($groupItems as $item)

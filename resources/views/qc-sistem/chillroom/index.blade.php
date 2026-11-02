@@ -71,17 +71,11 @@
                             <div class="approval-buttons-group d-none">
                                 @php
                                     $userRole = auth()->user()->id_role;
-                                    $canApproveQc = in_array($userRole, [1, 3, 5]);
                                     $canApproveSPV = in_array($userRole, [1, 4, 5]);
                                 @endphp
 
                                 <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
 
-                                @if($canApproveQc)
-                                    <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
-                                    </button>
-                                @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
                                         <i class="fas fa-check mr-1"></i> Approve SPV
@@ -146,7 +140,7 @@
                             @include('partials.date-range-filter')
 
                             @php
-                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 4, 5], true);
                             @endphp
 
                             <div class="table-responsive">

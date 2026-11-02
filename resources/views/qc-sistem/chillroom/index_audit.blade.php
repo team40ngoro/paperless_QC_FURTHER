@@ -99,14 +99,13 @@
                             @include('partials.bulk-approval-selected-toolbar', [
                                 'bulkApproveRoute' => 'chillroom.bulk-approve-selected',
                                 'bulkApprovalRoleMap' => [
-                                    'qc' => [1, 3, 5],
                                     'spv' => [1, 4, 5],
                                 ],
                             ])
                             @include('partials.date-range-filter')
 
                             @php
-                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 4, 5], true);
                             @endphp
 
                             <div class="table-responsive">

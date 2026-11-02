@@ -602,6 +602,12 @@ class ChillroomController extends Controller
             'verified_at' => now(),
         ]);
 
+        $item->update([
+            'approved_by_qc' => true,
+            'qc_approved_by' => $user->id,
+            'qc_approved_at' => now(),
+        ]);
+
         ChillroomLog::create([
             'penerimaan_chillroom_id' => $item->id,
             'penerimaan_chillroom_uuid' => $item->uuid,
@@ -889,7 +895,7 @@ class ChillroomController extends Controller
     {
         try {
             $request->validate([
-                'type' => 'required|in:qc,spv'
+                'type' => 'required|in:spv'
             ]);
 
             $user = auth()->user();
@@ -898,7 +904,6 @@ class ChillroomController extends Controller
 
             // Validasi role dan type yang diizinkan
             $allowedRoles = [
-                'qc' => [1, 3, 5], // Role 1, 3, dan 5 bisa approve QC
                 'spv' => [4] // Role 4 bisa approve SPV
             ];
 
@@ -1123,14 +1128,13 @@ class ChillroomController extends Controller
     {
         try {
             $user = auth()->user();
-            $type = $request->input('type'); // qc, spv
+            $type = $request->input('type'); // spv
             $tanggal = $request->input('tanggal');
             $shift_id = $request->input('shift_id');
 
-            // Role check
+            // Role check - verifikasi QC hanya melalui form verifikasi QC
             $userRole = $user->id_role;
             $allowedRoles = [
-                'qc' => [1, 3, 5],
                 'spv' => [1, 4, 5]
             ];
 
@@ -1202,12 +1206,12 @@ class ChillroomController extends Controller
     {
         try {
             $user = auth()->user();
-            $type = $request->input('type'); // qc, spv
+            $type = $request->input('type'); // spv
             $uuids = $request->input('uuids', []); // array of selected UUIDs
 
-            // Validate
+            // Validate - verifikasi QC hanya melalui form verifikasi QC
             $request->validate([
-                'type' => 'required|in:qc,spv',
+                'type' => 'required|in:spv',
                 'uuids' => 'required|array|min:1',
                 'uuids.*' => 'required|uuid'
             ]);
@@ -1215,7 +1219,6 @@ class ChillroomController extends Controller
             // Role check
             $userRole = $user->id_role;
             $allowedRoles = [
-                'qc' => [1, 3, 5],
                 'spv' => [1, 4, 5]
             ];
 
