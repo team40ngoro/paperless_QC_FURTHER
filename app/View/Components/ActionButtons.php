@@ -1,22 +1,33 @@
 <?php
+
 namespace App\View\Components;
 
-use Illuminate\View\Component;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Component;
 
 class ActionButtons extends Component
 {
     public $item;
+
     public $routePrefix;
+
     public $permissionPrefix;
+
     public $showHistory;
+
     public $showView;
+
     public $showPrint;
+
     public $layout;
+
     public $isAuditPage;
-    
-    public function __construct($item, $routePrefix, $permissionPrefix = null, $showHistory = true, $showView = true, $showPrint = false, $layout = 'horizontal', $isAuditPage = null)
+
+    public $showQcVerificationLog;
+
+    public function __construct($item, $routePrefix, $permissionPrefix = null, $showHistory = true, $showView = true, $showPrint = false, $layout = 'horizontal', $isAuditPage = null, $showQcVerificationLog = false)
     {
         $this->item = $item;
         $this->routePrefix = $routePrefix;
@@ -25,6 +36,7 @@ class ActionButtons extends Component
         $this->showView = $showView;
         $this->showPrint = $showPrint;
         $this->layout = $layout;
+        $this->showQcVerificationLog = $showQcVerificationLog;
 
         // Otomatis deteksi halaman audit dari URL jika prop tidak diisi secara manual
         $this->isAuditPage = $isAuditPage ?? (
@@ -36,7 +48,7 @@ class ActionButtons extends Component
 
     protected function checkPermission($permission)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return false;
         }
         try {
@@ -48,7 +60,7 @@ class ActionButtons extends Component
 
     public function canAccess()
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return false;
         }
 
@@ -58,14 +70,14 @@ class ActionButtons extends Component
         }
 
         // View, Edit, or Delete permissions allow access to this action-buttons group at least
-        return $this->checkPermission('view-' . $this->permissionPrefix) ||
-               $this->checkPermission('edit-' . $this->permissionPrefix) ||
-               $this->checkPermission('delete-' . $this->permissionPrefix);
+        return $this->checkPermission('view-'.$this->permissionPrefix) ||
+               $this->checkPermission('edit-'.$this->permissionPrefix) ||
+               $this->checkPermission('delete-'.$this->permissionPrefix);
     }
 
     public function isViewOnlyRole()
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return false;
         }
 
@@ -73,9 +85,9 @@ class ActionButtons extends Component
             return true;
         }
 
-        return $this->checkPermission('view-' . $this->permissionPrefix) && 
-               !$this->checkPermission('edit-' . $this->permissionPrefix) && 
-               !$this->checkPermission('delete-' . $this->permissionPrefix);
+        return $this->checkPermission('view-'.$this->permissionPrefix) &&
+               ! $this->checkPermission('edit-'.$this->permissionPrefix) &&
+               ! $this->checkPermission('delete-'.$this->permissionPrefix);
     }
 
     public function shouldShowHistory()
@@ -83,6 +95,7 @@ class ActionButtons extends Component
         if (Auth::check() && (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor')) {
             return false;
         }
+
         return $this->showHistory;
     }
 
@@ -96,7 +109,8 @@ class ActionButtons extends Component
         if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor') {
             return false;
         }
-        return $this->checkPermission('edit-' . $this->permissionPrefix);
+
+        return $this->checkPermission('edit-'.$this->permissionPrefix);
     }
 
     public function hasDeletePermission()
@@ -104,12 +118,13 @@ class ActionButtons extends Component
         if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor') {
             return false;
         }
-        return $this->checkPermission('delete-' . $this->permissionPrefix);
+
+        return $this->checkPermission('delete-'.$this->permissionPrefix);
     }
 
     public function canEdit()
     {
-        if (!$this->hasEditPermission()) {
+        if (! $this->hasEditPermission()) {
             return false;
         }
 
@@ -119,7 +134,8 @@ class ActionButtons extends Component
         // We use $this->routePrefix as the module key
         if (in_array(Auth::user()->id_role, $restrictedRoles) && isset($modules[$this->routePrefix])) {
             $timeLimitHours = config('edit_limit.time_limit_hours', 48);
-            $createdAt = \Carbon\Carbon::parse($this->item->created_at);
+            $createdAt = Carbon::parse($this->item->created_at);
+
             return $createdAt->addHours($timeLimitHours)->isFuture();
         }
 
@@ -133,29 +149,31 @@ class ActionButtons extends Component
 
         if (in_array(Auth::user()->id_role, $restrictedRoles) && isset($modules[$this->routePrefix])) {
             $timeLimitHours = config('edit_limit.time_limit_hours', 48);
-            $createdAt = \Carbon\Carbon::parse($this->item->created_at);
+            $createdAt = Carbon::parse($this->item->created_at);
             $deadline = $createdAt->copy()->addHours($timeLimitHours);
-            
+
             if ($deadline->isPast()) {
                 return null; // Return null if expired, so badge shows "Expired"
             }
-            
+
             $diffHours = now()->diffInHours($deadline, false);
             if ($diffHours < 1) {
                 $diffMinutes = now()->diffInMinutes($deadline, false);
-                return round($diffMinutes / 60, 1) . "h"; // Convert to hours for consistency
+
+                return round($diffMinutes / 60, 1).'h'; // Convert to hours for consistency
             }
-            
-            return round($diffHours, 1) . "h"; // Short format for badge
+
+            return round($diffHours, 1).'h'; // Short format for badge
         }
-        
+
         return null; // Return null for unlimited access
     }
 
     public function getEditDeadline()
     {
         $timeLimitHours = config('edit_limit.time_limit_hours', 48);
-        return \Carbon\Carbon::parse($this->item->created_at)->addHours($timeLimitHours)->format('d M Y, H:i');
+
+        return Carbon::parse($this->item->created_at)->addHours($timeLimitHours)->format('d M Y, H:i');
     }
 
     public function render()

@@ -1,12 +1,12 @@
 @extends('layouts.app')
 @php
-    $isCliServer = php_sapi_name() === 'cli-server';
-    $docRoot = str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: '');
-    $isDocRootPublic = str_ends_with($docRoot, '/public') || basename($docRoot) === 'public';
-    $hasSubfolder = !empty(request()->getBaseUrl());
-    $assetPath = ($isCliServer || $isDocRootPublic || !$hasSubfolder) ? '' : 'public/';
+    $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
 @endphp
-
+@if ($errors->has('sso'))
+<div class="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium text-center">
+{{ $errors->first('sso') }}
+</div>
+@endif
 @section('container')
 <div class="min-vh-100 d-flex align-items-center login-wrapper">
     <div class="overlay-bg"></div>
@@ -32,12 +32,6 @@
                             <h4 class="welcome-text">Welcome Back</h4>
                             <p class="subtitle">Sign in to Paperless Further</p>
                         </div>
-
-                        @if ($errors->has('sso'))
-                            <div class="alert-clean">
-                                <i class="fas fa-exclamation-circle me-2"></i>{{ $errors->first('sso') }}
-                            </div>
-                        @endif
 
                         @if(session('error'))
                             <div class="alert-clean">

@@ -2,21 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use App\Models\Plan;
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
-   
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -65,10 +63,11 @@ class User extends Authenticatable
             }
         });
     }
+
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-       date_default_timezone_set('Asia/Jakarta');
+        date_default_timezone_set('Asia/Jakarta');
     }
 
     public function plan()
@@ -90,7 +89,7 @@ class User extends Authenticatable
     public function allowedPlans()
     {
         return $this->belongsToMany(Plan::class, 'manager_plans', 'user_id', 'plan_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 
     /**
@@ -101,6 +100,7 @@ class User extends Authenticatable
         if ($this->roleModel) {
             return strtolower($this->roleModel->role) === 'manager';
         }
+
         return strtolower($this->attributes['role'] ?? '') === 'manager';
     }
 
@@ -112,6 +112,7 @@ class User extends Authenticatable
         if ($this->roleModel) {
             return strtolower($this->roleModel->role) === 'produksi';
         }
+
         return strtolower($this->attributes['role'] ?? '') === 'produksi';
     }
 
@@ -126,7 +127,31 @@ class User extends Authenticatable
         } else {
             $roleName = strtolower(trim($this->attributes['role'] ?? ''));
         }
+
         return $roleName === 'qc inspector' || $roleName === 'qc_inspector';
+    }
+
+    /**
+     * LOGIKA: Cek apakah user memiliki role QC (QC Inspector, SPV QC, QC Auditor, etc)
+     */
+    public function isQc(): bool
+    {
+        // Admin & superadmin bukan QC (memiliki akses penuh)
+        $idRole = (int) ($this->id_role ?? 0);
+        if (in_array($idRole, [1, 5], true)) {
+            return false;
+        }
+
+        if (in_array($idRole, [3, 4, 10], true)) {
+            return true;
+        }
+
+        $roleName = $this->roleModel->role ?? $this->attributes['role'] ?? '';
+        if (in_array(strtolower(trim($roleName)), ['admin', 'superadmin'], true)) {
+            return false;
+        }
+
+        return stripos($roleName, 'qc') !== false;
     }
 
     /**
@@ -134,7 +159,10 @@ class User extends Authenticatable
      */
     public function canAccessPlan(int $planId): bool
     {
-        if (!$this->isManager()) return false;
+        if (! $this->isManager()) {
+            return false;
+        }
+
         return $this->allowedPlans()->where('plan.id', $planId)->exists();
     }
 
@@ -146,6 +174,7 @@ class User extends Authenticatable
         if ($this->isManager() && $this->active_plan_id) {
             return $this->activePlan;
         }
+
         return $this->plan;
     }
 
@@ -160,6 +189,7 @@ class User extends Authenticatable
         if ($this->isManager() && $this->active_plan_id) {
             return (int) $this->active_plan_id;
         }
+
         return $value ? (int) $value : null;
     }
 
@@ -182,7 +212,7 @@ class User extends Authenticatable
         if ($this->relationLoaded('roleModel') ? $this->roleModel : $this->roleModel()->first()) {
             return $this->roleModel->role ?? $value;
         }
-        
+
         // Jika tidak ada, gunakan role legacy dari kolom role
         return $value;
     }
@@ -191,14 +221,15 @@ class User extends Authenticatable
     {
         return 'uuid';
     }
+
     /**
      * Method untuk login dengan username atau email
      */
     public function findForPassport($username)
     {
         return $this->where('username', $username)
-                   ->orWhere('email', $username)
-                   ->first();
+            ->orWhere('email', $username)
+            ->first();
     }
 
     /**
@@ -207,8 +238,8 @@ class User extends Authenticatable
     public static function findByUsernameOrEmail($login)
     {
         return static::where('username', $login)
-                    ->orWhere('email', $login)
-                    ->first();
+            ->orWhere('email', $login)
+            ->first();
     }
 
     /**
@@ -220,8 +251,8 @@ class User extends Authenticatable
         // if (strtolower($this->role) === 'superadmin') {
         //     return true;
         // }
-        
-        if (!$this->roleModel) {
+
+        if (! $this->roleModel) {
             return false;
         }
 

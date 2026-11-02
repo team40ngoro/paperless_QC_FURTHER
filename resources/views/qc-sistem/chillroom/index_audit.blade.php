@@ -96,16 +96,28 @@
                             @endif
 
                             <!-- Data Table -->
-                            @include('partials.bulk-approval-selected-toolbar', ['bulkApproveRoute' => 'chillroom.bulk-approve-selected'])
+                            @include('partials.bulk-approval-selected-toolbar', [
+                                'bulkApproveRoute' => 'chillroom.bulk-approve-selected',
+                                'bulkApprovalRoleMap' => [
+                                    'qc' => [1, 3, 5],
+                                    'spv' => [1, 4, 5],
+                                ],
+                            ])
                             @include('partials.date-range-filter')
+
+                            @php
+                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+                            @endphp
 
                             <div class="table-responsive">
                                 <table id="mainTable" class="table table-hover border-bottom mb-0">
                                     <thead class="bg-light text-uppercase small font-weight-bold border-top">
                                         <tr>
-                                            <th class="text-center py-3" style="width: 40px;">
-                                                <input type="checkbox" id="bulkApprovalSelectAll" class="form-check-input" title="Pilih semua">
-                                            </th>
+                                            @if($showApprovalCheckbox)
+                                                <th class="text-center py-3" style="width: 40px;">
+                                                    <input type="checkbox" id="bulkApprovalSelectAll" class="form-check-input" title="Pilih semua">
+                                                </th>
+                                            @endif
                                             <th class="text-center py-3" style="width: 50px;">No</th>
                                             <th class="py-3 text-center">Shift</th>
                                             <th class="py-3 text-center">Tanggal</th>
