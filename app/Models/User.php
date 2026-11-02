@@ -105,6 +105,29 @@ class User extends Authenticatable
     }
 
     /**
+     * LOGIKA: Cek apakah user memiliki role QC (QC Inspector, SPV QC, QC Auditor, etc)
+     */
+    public function isQc(): bool
+    {
+        // Admin & superadmin bukan QC (memiliki akses penuh)
+        $idRole = (int) ($this->id_role ?? 0);
+        if (in_array($idRole, [1, 5], true)) {
+            return false;
+        }
+
+        if (in_array($idRole, [3, 4, 10], true)) {
+            return true;
+        }
+
+        $roleName = $this->roleModel->role ?? $this->attributes['role'] ?? '';
+        if (in_array(strtolower(trim($roleName)), ['admin', 'superadmin'], true)) {
+            return false;
+        }
+
+        return stripos($roleName, 'qc') !== false;
+    }
+
+    /**
      * KEAMANAN: Verifikasi apakah Manager boleh akses plan tertentu
      */
     public function canAccessPlan(int $planId): bool

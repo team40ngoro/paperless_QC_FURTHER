@@ -101,6 +101,18 @@ class PenerimaanChillroom extends Model implements ImportableModel
         return $this->belongsTo(User::class, 'spv_approved_by');
     }
 
+    public function qcVerifications()
+    {
+        return $this->hasMany(ChillroomQcVerification::class, 'penerimaan_chillroom_id')
+            ->orderByDesc('verified_at');
+    }
+
+    public function latestQcVerification()
+    {
+        return $this->hasOne(ChillroomQcVerification::class, 'penerimaan_chillroom_id')
+            ->latestOfMany('verified_at');
+    }
+
     /**
      * ============================================================
      * IMPORT EXCEL INTERFACE IMPLEMENTATION

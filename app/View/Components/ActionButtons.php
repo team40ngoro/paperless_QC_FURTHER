@@ -15,8 +15,9 @@ class ActionButtons extends Component
     public $showPrint;
     public $layout;
     public $isAuditPage;
+    public $showQcVerificationLog;
     
-    public function __construct($item, $routePrefix, $permissionPrefix = null, $showHistory = true, $showView = true, $showPrint = false, $layout = 'horizontal', $isAuditPage = null)
+    public function __construct($item, $routePrefix, $permissionPrefix = null, $showHistory = true, $showView = true, $showPrint = false, $layout = 'horizontal', $isAuditPage = null, $showQcVerificationLog = false)
     {
         $this->item = $item;
         $this->routePrefix = $routePrefix;
@@ -25,6 +26,7 @@ class ActionButtons extends Component
         $this->showView = $showView;
         $this->showPrint = $showPrint;
         $this->layout = $layout;
+        $this->showQcVerificationLog = $showQcVerificationLog;
 
         // Otomatis deteksi halaman audit dari URL jika prop tidak diisi secara manual
         $this->isAuditPage = $isAuditPage ?? (

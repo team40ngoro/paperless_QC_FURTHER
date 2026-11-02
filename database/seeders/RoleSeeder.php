@@ -27,5 +27,8 @@ class RoleSeeder extends Seeder
         foreach ($roles as $id => $role) {
             Role::updateOrCreate(['id' => $id], ['role' => $role]);
         }
+
+        Role::firstOrCreate(['role' => 'Production Input Checker']);
+        Role::firstOrCreate(['role' => 'QC Auditor']);
     }
 }

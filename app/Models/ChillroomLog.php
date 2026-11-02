@@ -80,6 +80,7 @@ class ChillroomLog extends Model
             'status_rm' => 'Status RM',
             'nilai_jumlah_rm' => 'Nilai Jumlah RM',
             'catatan_rm' => 'Catatan RM',
+            'qc_verification_status' => 'Status Verifikasi QC',
             'id_plan' => 'Plan',
             'user_id' => 'User'
         ];

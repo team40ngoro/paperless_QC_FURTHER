@@ -1,9 +1,12 @@
-@php $rowNumber = 0; @endphp
+@php
+    $rowNumber = 0;
+    $showApprovalCheckbox = $showApprovalCheckbox ?? in_array((int) auth()->user()->id_role, [1, 3, 4, 5], true);
+@endphp
 @forelse($records as $groupItems)
     @foreach($groupItems as $item)
         @php
             $rowNumber++; // Increment nomor baris global
-            $isVerified = $item->approved_by_qc && $item->approved_by_produksi && $item->approved_by_spv;
+            $isVerified = $item->approved_by_qc && $item->approved_by_spv;
 
             $tanggalFormatted = $item->tanggal
                 ? \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y')
@@ -16,17 +19,18 @@
             $suhuIsDanger = $item->suhu > 5;
 
             $approvalSteps = [
-                'QC'   => $item->approved_by_qc,
-                'PROD' => $item->approved_by_produksi,
-                'SPV'  => $item->approved_by_spv,
+                'QC'  => $item->approved_by_qc,
+                'SPV' => $item->approved_by_spv,
             ];
         @endphp
         <tr @class(['item-row', 'row-verified' => $isVerified]) data-uuid="{{ $item->uuid }}">
-            <td class="text-center align-middle" style="width: 40px;">
-                <div class="d-flex align-items-center justify-content-center h-100">
-                    <input type="checkbox" class="form-check-input row-checkbox bulk-approval-checkbox" data-uuid="{{ $item->uuid }}" title="Pilih baris ini">
-                </div>
-            </td>
+            @if($showApprovalCheckbox)
+                <td class="text-center align-middle" style="width: 40px;">
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <input type="checkbox" class="form-check-input row-checkbox bulk-approval-checkbox" data-uuid="{{ $item->uuid }}" title="Pilih baris ini">
+                    </div>
+                </td>
+            @endif
             <td class="text-center align-middle">{{ $rowNumber }}</td>
             <td class="text-center align-middle">
                 <span class="badge badge-outline-info">Shift {{ $item->datashift->shift ?? '-' }}</span>
@@ -68,6 +72,7 @@
                     :show-history="true"
                     :show-view="true"
                     :show-print="false"
+                    :show-qc-verification-log="true"
                     layout="horizontal"
                     class="tombol"
                 />
@@ -79,7 +84,7 @@
     @endforeach
 @empty
     <tr>
-        <td colspan="12" class="text-center py-5">
+        <td colspan="{{ $showApprovalCheckbox ? 12 : 11 }}" class="text-center py-5">
             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
             <p class="text-muted mb-0">Tidak ada data Chillroom ditemukan.</p>
         </td>

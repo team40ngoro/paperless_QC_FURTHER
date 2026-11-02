@@ -213,6 +213,26 @@ class ChillroomController extends Controller
                         if (empty($nilaiSampelData)) {
                             $nilaiSampelData['entry_' . ($index + 1)] = [];
                         }
+
+                        // Role QC hanya boleh input card Detail Bahan Baku; card Sampling Berat Daging SPO diabaikan/dikosongkan
+                        if ($user && $user->isQc()) {
+                            $entry['standar_berat'] = '-';
+                            $entry['berat_atas'] = null;
+                            $entry['berat_std'] = null;
+                            $entry['berat_bawah'] = null;
+                            $entry['status_rm'] = '-';
+                            $entry['catatan_rm'] = '-';
+                            $jumlahRmData = [
+                                'entry_' . ($index + 1) => [
+                                    'berat_atas' => 0,
+                                    'berat_std' => 0,
+                                    'berat_bawah' => 0,
+                                ]
+                            ];
+                            $nilaiSampelData = [
+                                'entry_' . ($index + 1) => []
+                            ];
+                        }
                         
                         \Log::info("Entry {$index} - jumlah_rm_data (agregasi):", $jumlahRmData);
                         \Log::info("Entry {$index} - nilai_jumlah_rm (sampel berat):", $nilaiSampelData);
@@ -268,7 +288,7 @@ class ChillroomController extends Controller
     // Tampilkan detail data
     public function show($uuid)
     {
-        $chillroom = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover'])
+        $chillroom = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'qcVerifications.verifiedBy'])
             ->where('uuid', $uuid)->firstOrFail();
         
         $user = auth()->user();
@@ -414,6 +434,22 @@ class ChillroomController extends Controller
                 'catatan_rm' => $data->catatan_rm,
             ];
 
+            // Role QC hanya boleh mengubah Detail Bahan Baku; pertahankan data sampling berat SPO yang sudah ada
+            $isQc = $user && $user->isQc();
+            if ($isQc) {
+                $validated['standar_berat'] = $data->standar_berat;
+                $validated['berat_atas'] = $data->berat_atas;
+                $validated['berat_std'] = $data->berat_std;
+                $validated['berat_bawah'] = $data->berat_bawah;
+                $validated['status_rm'] = $data->status_rm;
+                $validated['catatan_rm'] = $data->catatan_rm;
+                $finalJumlahRm = $data->jumlah_rm;
+                $finalNilaiSampel = $data->nilai_jumlah_rm;
+            } else {
+                $finalJumlahRm = json_encode($jumlahRmData);
+                $finalNilaiSampel = json_encode($nilaiSampelData);
+            }
+
             // Update the record
             $data->update([
                 'tanggal' => Carbon::parse($validated['tanggal'])->setTimeFrom(now())->format('Y-m-d H:i:s'),
@@ -431,9 +467,9 @@ class ChillroomController extends Controller
                 'berat_std' => $validated['berat_std'] ?? null,
                 'berat_bawah' => $validated['berat_bawah'] ?? null,
                 // PERBAIKAN: jumlah_rm berisi agregasi berat (atas, std, bawah)
-                'jumlah_rm' => json_encode($jumlahRmData),
+                'jumlah_rm' => $finalJumlahRm,
                 // PERBAIKAN: nilai_jumlah_rm berisi data sampel berat
-                'nilai_jumlah_rm' => json_encode($nilaiSampelData),
+                'nilai_jumlah_rm' => $finalNilaiSampel,
                 'status_rm' => $validated['status_rm'] ?? '-',
                 'catatan_rm' => $validated['catatan_rm'] ?? '-',
             ]);
@@ -533,6 +569,66 @@ class ChillroomController extends Controller
                     ->simplePaginate(5);
         
         return view('qc-sistem.chillroom.logs', compact('item', 'logs'));
+    }
+
+    /**
+     * Simpan verifikasi QC untuk data Chillroom.
+     */
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        $item = PenerimaanChillroom::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if (!$user || !$user->isQc()) {
+            abort(403, 'Hanya role QC yang dapat melakukan verifikasi ini.');
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:OK,NOT_OK',
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        $latest = $item->qcVerifications()->first();
+
+        $verification = $item->qcVerifications()->create([
+            'penerimaan_chillroom_uuid' => $item->uuid,
+            'status' => $validated['status'],
+            'note' => $validated['note'] ?? null,
+            'verified_by' => $user->id,
+            'verified_at' => now(),
+        ]);
+
+        ChillroomLog::create([
+            'penerimaan_chillroom_id' => $item->id,
+            'penerimaan_chillroom_uuid' => $item->uuid,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role ?? 'QC',
+            'aksi' => 'qc_verification',
+            'field_yang_diubah' => ['qc_verification_status'],
+            'nilai_lama' => ['qc_verification_status' => $latest->status ?? '-'],
+            'nilai_baru' => ['qc_verification_status' => $verification->status],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'keterangan' => $validated['note'] ?? 'Verifikasi QC',
+        ]);
+
+        return redirect()->back()->with('success', 'Verifikasi QC berhasil disimpan.');
+    }
+
+    /**
+     * Tampilkan log verifikasi QC untuk data Chillroom.
+     */
+    public function qcVerificationLogs($uuid)
+    {
+        $item = PenerimaanChillroom::where('uuid', $uuid)->firstOrFail();
+        $verifications = $item->qcVerifications()
+            ->with('verifiedBy')
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        return view('qc-sistem.chillroom.qc-verification-logs', compact('item', 'verifications'));
     }
 
     /**
@@ -789,7 +885,7 @@ class ChillroomController extends Controller
     {
         try {
             $request->validate([
-                'type' => 'required|in:qc,produksi,spv'
+                'type' => 'required|in:qc,spv'
             ]);
 
             $user = auth()->user();
@@ -799,11 +895,10 @@ class ChillroomController extends Controller
             // Validasi role dan type yang diizinkan
             $allowedRoles = [
                 'qc' => [1, 3, 5], // Role 1, 3, dan 5 bisa approve QC
-                'produksi' => [2], // Role 2 bisa approve Produksi
                 'spv' => [4] // Role 4 bisa approve SPV
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type])) {
+            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan persetujuan ini'
@@ -853,6 +948,8 @@ class ChillroomController extends Controller
                 'message' => 'Data berhasil disetujui oleh ' . strtoupper($type)
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1022,7 +1119,7 @@ class ChillroomController extends Controller
     {
         try {
             $user = auth()->user();
-            $type = $request->input('type'); // qc, produksi, spv
+            $type = $request->input('type'); // qc, spv
             $tanggal = $request->input('tanggal');
             $shift_id = $request->input('shift_id');
 
@@ -1030,7 +1127,6 @@ class ChillroomController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
@@ -1051,13 +1147,9 @@ class ChillroomController extends Controller
             }
 
             // Check Sequential
-            if ($type === 'produksi') {
+            if ($type === 'spv') {
                 if ($items->contains(fn($i) => !$i->approved_by_qc)) {
                     return response()->json(['success' => false, 'message' => 'Verifikasi QC belum lengkap untuk shift ini.'], 422);
-                }
-            } elseif ($type === 'spv') {
-                if ($items->contains(fn($i) => !$i->approved_by_produksi)) {
-                    return response()->json(['success' => false, 'message' => 'Verifikasi Produksi belum lengkap untuk shift ini.'], 422);
                 }
             }
 
@@ -1106,12 +1198,12 @@ class ChillroomController extends Controller
     {
         try {
             $user = auth()->user();
-            $type = $request->input('type'); // qc, produksi, spv
+            $type = $request->input('type'); // qc, spv
             $uuids = $request->input('uuids', []); // array of selected UUIDs
 
             // Validate
             $request->validate([
-                'type' => 'required|in:qc,produksi,spv',
+                'type' => 'required|in:qc,spv',
                 'uuids' => 'required|array|min:1',
                 'uuids.*' => 'required|uuid'
             ]);
@@ -1120,7 +1212,6 @@ class ChillroomController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
@@ -1183,6 +1274,8 @@ class ChillroomController extends Controller
             }
 
             return response()->json(['success' => true, 'message' => 'Berhasil verifikasi ' . $count . ' data ' . strtoupper($type)]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
