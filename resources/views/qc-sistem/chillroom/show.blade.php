@@ -134,6 +134,9 @@
                                                 <small class="d-block text-muted">SPV</small>
                                                 <i class="fas {{ $chillroom->approved_by_spv ? 'fa-check-circle text-dark' : 'fa-clock text-muted' }} fa-lg my-2"></i>
                                                 <div class="small">{{ $chillroom->spvApprover->name ?? 'Belum' }}</div>
+                                                @if($chillroom->approved_by_spv)
+                                                    <div class="small font-weight-bold text-dark">Sudah disetujui oleh SPV QC</div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -218,6 +221,19 @@
                                         Diverifikasi oleh <strong>{{ $latestQcVerification->verifiedBy->name ?? '-' }}</strong>
                                         pada {{ $latestQcVerification->verified_at ? $latestQcVerification->verified_at->format('d/m/Y H:i') : '-' }}
                                     </div>
+                                    @if($latestQcVerification->suhu_rm !== null)
+                                        <div class="small mt-1"><strong>Suhu RM:</strong> {{ $latestQcVerification->suhu_rm }} °C</div>
+                                    @endif
+                                    @if($latestQcVerification->sensori !== null)
+                                        <div class="small mt-1">
+                                            <strong>Sensori:</strong>
+                                            @if(in_array($latestQcVerification->sensori, ['✔', '✓', 'OK', 'ok']))
+                                                <span class="badge badge-success">Oke</span>
+                                            @else
+                                                <span class="badge badge-danger">Tidak Oke</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                     @if($latestQcVerification->note)
                                         <div class="small mt-1"><strong>Catatan:</strong> {{ $latestQcVerification->note }}</div>
                                     @endif
@@ -251,6 +267,27 @@
                                         </div>
                                         <input type="hidden" name="status" id="qcVerificationStatus" value="{{ old('status', $latestQcVerification->status ?? '') }}">
                                         @error('status')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="qcSuhuRm" class="font-weight-bold">Input Suhu RM (°C)</label>
+                                        <input type="number" step="0.1" min="-60" max="60" name="suhu_rm" id="qcSuhuRm"
+                                            class="form-control @error('suhu_rm') is-invalid @enderror"
+                                            placeholder="Masukkan suhu RM"
+                                            value="{{ old('suhu_rm', $latestQcVerification->suhu_rm ?? '') }}">
+                                        @error('suhu_rm')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="qcSensori" class="font-weight-bold">Sensori</label>
+                                        <select name="sensori" id="qcSensori" class="form-control @error('sensori') is-invalid @enderror">
+                                            <option value="">Pilih Status Sensori</option>
+                                            <option value="✔" {{ in_array(old('sensori', $latestQcVerification->sensori ?? ''), ['✔', '✓', 'OK', 'ok']) ? 'selected' : '' }}>✓ Oke</option>
+                                            <option value="✘" {{ in_array(old('sensori', $latestQcVerification->sensori ?? ''), ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']) ? 'selected' : '' }}>✘ Tidak Oke</option>
+                                        </select>
+                                        @error('sensori')
                                             <small class="text-danger d-block">{{ $message }}</small>
                                         @enderror
                                     </div>

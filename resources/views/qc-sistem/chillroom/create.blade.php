@@ -162,24 +162,6 @@
                                                             </div>
                                                         </div>
                                                         <div class="form-group">
-                                                            <label>Suhu (°C) <span class="text-danger">*</span></label>
-                                                            <div class="input-group">
-                                                                <input type="number" step="0.1" class="form-control entry-field" name="entries[0][suhu]" 
-                                                                    placeholder="Masukkan suhu" required>
-                                                                <div class="input-group-append">
-                                                                    <span class="input-group-text">°C</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label>Sensori <span class="text-danger">*</span></label>
-                                                            <select class="form-control entry-field" name="entries[0][sensori]" required>
-                                                                <option value="">Pilih Status Sensori</option>
-                                                                <option value="✔">✓ Oke</option>
-                                                                <option value="✘">✘ Tidak Oke</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="form-group">
                                                             <label>Kemasan <span class="text-danger">*</span></label>
                                                             <select class="form-control entry-field" name="entries[0][kemasan]" required>
                                                                 <option value="">Pilih Status Kemasan</option>
@@ -504,24 +486,6 @@ $(document).ready(function() {
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Suhu (°C) <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" step="0.1" class="form-control entry-field" name="entries[${newEntryNum}][suhu]" 
-                                           placeholder="Masukkan suhu" required>
-                                    <div class="input-group-append">
-                                        <span class="input-group-text">°C</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Sensori <span class="text-danger">*</span></label>
-                                <select class="form-control entry-field" name="entries[${newEntryNum}][sensori]" required>
-                                    <option value="">Pilih Status Sensori</option>
-                                    <option value="✔">✓ Oke</option>
-                                    <option value="✘">✘ Tidak Oke</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label>Kemasan <span class="text-danger">*</span></label>
                                 <select class="form-control entry-field" name="entries[${newEntryNum}][kemasan]" required>
                                     <option value="">Pilih Status Kemasan</option>
@@ -713,8 +677,6 @@ $(document).ready(function() {
                             
                             <!-- Hidden inputs to satisfy standard validation -->
                             <input type="hidden" name="entries[${newEntryNum}][berat]" value="-">
-                            <input type="hidden" name="entries[${newEntryNum}][suhu]" value="0">
-                            <input type="hidden" name="entries[${newEntryNum}][sensori]" value="✔">
                             <input type="hidden" name="entries[${newEntryNum}][kemasan]" value="✔">
                             
                             <div class="form-group">

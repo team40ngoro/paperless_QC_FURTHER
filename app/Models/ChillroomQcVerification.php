@@ -18,11 +18,14 @@ class ChillroomQcVerification extends Model
         'penerimaan_chillroom_uuid',
         'status',
         'note',
+        'suhu_rm',
+        'sensori',
         'verified_by',
         'verified_at',
     ];
 
     protected $casts = [
+        'suhu_rm' => 'float',
         'verified_at' => 'datetime',
     ];
 

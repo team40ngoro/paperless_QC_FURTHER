@@ -609,14 +609,9 @@
               </li>
             @endif
               <!-- MENU QC SISTEM -->
-              @php
-                $receivingAccess = app(\App\Services\ReceivingInspection\ReceivingInspectionAccess::class);
-                $isQcUser = $receivingAccess->isQc(auth()->user());
-                $isAdminUser = $receivingAccess->isAdmin(auth()->user());
-              @endphp
-              <li class="nav-item has-treeview {{ request()->is('qc-sistem/chillroom*') || request()->is('qc-sistem/seasoning*') || request()->is('qc-sistem/shoestring*') || request()->is('qc-sistem/rebox*') || request()->is('qc-sistem/pemeriksaan-bahan-kemas*') || request()->is('receiving-inspections*') ? 'menu-open' : '' }}">
+              <li class="nav-item has-treeview {{ request()->is('qc-sistem/chillroom*') || request()->is('qc-sistem/seasoning*') || request()->is('qc-sistem/shoestring*') || request()->is('qc-sistem/rebox*') || request()->is('qc-sistem/pemeriksaan-bahan-kemas*') ? 'menu-open' : '' }}">
                 <a href="#" class="nav-link {{ request()->is('qc-sistem/chillroom*') || request()->is('qc-sistem/seasoning*') 
-                || request()->is('qc-sistem/shoestring*') || request()->is('qc-sistem/rebox*') || request()->is('qc-sistem/pemeriksaan-bahan-kemas*') || request()->is('receiving-inspections*') ? 'active' : '' }}" style="font-size:13px;">
+                || request()->is('qc-sistem/shoestring*') || request()->is('qc-sistem/rebox*') || request()->is('qc-sistem/pemeriksaan-bahan-kemas*') ? 'active' : '' }}" style="font-size:13px;">
                   <i class="nav-icon fas fa-inbox"></i>
                   <p>
                     Pemeriksaan Kedatangan
@@ -624,14 +619,6 @@
                   </p>
                 </a>
                 <ul class="nav nav-treeview">
-                  @if($isQcUser || $isAdminUser)
-                  <li class="nav-item">
-                    <a href="{{ url('/receiving-inspections') }}" class="nav-link {{ request()->is('receiving-inspections*') ? 'active' : '' }}" style="font-size:12px;">
-                      <i class="fas fa-circle nav-icon" style="font-size:8px;"></i>
-                      <p> Merged Receiving Inspection</p>
-                    </a>
-                  </li>
-                  @endif
                   <li class="nav-item">
                     <a href="{{ url('/qc-sistem/chillroom') }}" class="nav-link {{ request()->is('qc-sistem/chillroom*') ? 'active' : '' }}" style="font-size:12px;">
                       <i class="fas fa-circle nav-icon" style="font-size:8px;"></i>
