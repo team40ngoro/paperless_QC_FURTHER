@@ -3,10 +3,7 @@
 
 @section('container')
 @php
-<<<<<<< HEAD
-=======
     $isQc = auth()->check() && auth()->user()->isQc();
->>>>>>> ac8f49ac640e5f509c42554777698a697f7fbb9e
     // PERBAIKAN TOTAL: Safe JSON decode dengan proper error handling
     
     // 1. Decode jumlah_rm (agregasi data)

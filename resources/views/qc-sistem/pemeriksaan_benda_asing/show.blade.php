@@ -5,7 +5,11 @@
 @php
     $assetPath = (isset($_SERVER['DOCUMENT_ROOT']) && realpath($_SERVER['DOCUMENT_ROOT']) === realpath(public_path())) ? '' : 'public/';
 @endphp
+<<<<<<< HEAD
 >>>>>>> ac8f49ac640e5f509c42554777698a697f7fbb9e
+=======
+>>>>>>> 340557abfd354bdeb783859782d84d5ad34596fc
+>>>>>>> main
 @section('container')
 <div class="content-wrapper">
     <!-- Content Header -->
