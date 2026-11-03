@@ -279,6 +279,7 @@ class VerifPeralatanController extends Controller
                                 $hasKotor = true;
                                 break;
                             }
+
                         }
                         $verifikasi = ! $hasKotor;
                     } else {
@@ -294,6 +295,7 @@ class VerifPeralatanController extends Controller
                                 $hasNotOk = true;
                                 break;
                             }
+
                         }
                         $verifHasil = ! $hasNotOk;
                     } else {
@@ -550,6 +552,29 @@ class VerifPeralatanController extends Controller
                                 }
                             }
                         }
+
+                        // Agregasi verifikasi_hasil mesin induk dari sub-bagian (jika ada).
+                        // Refresh koleksi dari DB agar nilai yang baru tersimpan terbaca.
+                        if ($detailRow->bagianDetails->isNotEmpty()) {
+                            $freshBagian = $detailRow->bagianDetails()->get();
+                            $hasNull = false;
+                            $aggregated = true;
+                            foreach ($freshBagian as $bag) {
+                                if (is_null($bag->verifikasi_hasil)) {
+                                    $hasNull = true;
+                                    break;
+                                }
+                                if ($bag->verifikasi_hasil === false) {
+                                    $aggregated = false;
+                                    break;
+                                }
+                            }
+                            // Hanya update parent jika semua sub-bagian sudah di-set (tidak ada null).
+                            if (! $hasNull) {
+                                $detailRow->verifikasi_hasil = $aggregated;
+                                $detailRow->save();
+                            }
+                        }
                     }
                 }
             }
@@ -652,6 +677,7 @@ class VerifPeralatanController extends Controller
                                 $hasKotor = true;
                                 break;
                             }
+
                         }
                         $verifikasi = ! $hasKotor;
                     } else {
@@ -667,6 +693,7 @@ class VerifPeralatanController extends Controller
                                 $hasNotOk = true;
                                 break;
                             }
+
                         }
                         $verifHasil = ! $hasNotOk;
                     } else {
