@@ -78,6 +78,11 @@ class SeasoningLog extends Model
             'sensori' => 'Sensori',
             'kemasan' => 'Kemasan',
             'keterangan' => 'Keterangan',
+            'qc_data_status' => 'Verifikasi Data (Waktu/RM/Kode/Berat)',
+            'qc_sensori_status' => 'Verifikasi Sensori',
+            'qc_kemasan_status' => 'Verifikasi Kemasan',
+            'qc_kondisi_fisik_status' => 'Verifikasi Kondisi Fisik',
+            'qc_verification_note' => 'Keterangan Verifikasi QC',
             'shift_id' => 'Shift',
             'tanggal' => 'Tanggal',
             'id_plan' => 'Plan'
