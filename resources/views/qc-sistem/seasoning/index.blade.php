@@ -61,34 +61,6 @@
                                     @endif
                                 </div>
                             </div>
-
-                            <!-- Approval Buttons Row: hidden by default, muncul saat ada checkbox yang dicentang -->
-                            <div class="approval-buttons-group d-none">
-                                @php
-                                    $userRole = auth()->user()->id_role;
-                                    $canApproveQc = in_array($userRole, [1, 3, 5]);
-                                    $canApproveProduksi = in_array($userRole, [1, 2, 5]);
-                                    $canApproveSpv = in_array($userRole, [1, 4, 5]);
-                                @endphp
-
-                                <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
-
-                                @if($canApproveQc)
-                                    <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
-                                    </button>
-                                @endif
-                                @if($canApproveProduksi)
-                                    <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
-                                    </button>
-                                @endif
-                                @if($canApproveSpv)
-                                    <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
-                                    </button>
-                                @endif
-                            </div>
                         </div>
                         <div class="card-body">
                             @if(session('success'))
@@ -150,9 +122,6 @@
                                 <table id="mainTable" class="table table-hover border-bottom mb-0" style="white-space: nowrap;">
                                     <thead class="bg-light text-uppercase small font-weight-bold border-top">
                                         <tr>
-                                            <th class="text-center py-3" style="width: 40px;">
-                                                <input type="checkbox" id="selectAllCheckbox" title="Pilih semua">
-                                            </th>
                                             <th class="text-center py-3" style="width: 50px;">No</th>
                                             <th class="py-3 text-center">Shift</th>
                                             <th class="py-3 text-center">Tanggal</th>
@@ -333,25 +302,6 @@
         padding: 0.75rem 1rem !important;
         font-size: 0.85rem;
     }
-    .row-checkbox,
-    #selectAllCheckbox {
-        width: 18px;
-        height: 18px;
-        margin: 0 !important;
-        cursor: pointer;
-        position: static !important; /* override Bootstrap .form-check-input style if inherited globally */
-    }
-    .approval-buttons-group {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-        padding: 0.6rem 0.9rem;
-        background-color: #eef6fc;
-        border: 1px solid #cfe6f5;
-        border-radius: 6px;
-    }
 </style>
 
 @push('scripts')
@@ -361,11 +311,8 @@ $(document).ready(function() {
     let currentSearch = '{{ $search ?? "" }}';
     let currentPerPage = {{ $perPage ?? 5 }};
 
-    // Array untuk menyimpan UUID data yang dicentang (bertahan lintas halaman & search)
-    let selectedUuids = [];
-
     function performSearch(page = 1) {
-        $('#tableBody').html(`<tr><td colspan="11" class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Sedang mencari data...</p></td></tr>`);
+        $('#tableBody').html(`<tr><td colspan="10" class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Sedang mencari data...</p></td></tr>`);
         
         $.ajax({
             url: "{{ route('seasoning.search') }}",
@@ -378,10 +325,9 @@ $(document).ready(function() {
             success: function(response) {
                 $('#tableBody').html(response.html);
                 updatePagination(response.pagination);
-                restoreCheckboxStates();
             },
             error: function() {
-                $('#tableBody').html(`<tr><td colspan="11" class="text-center py-5 text-danger">Gagal memuat data. Silakan coba lagi.</td></tr>`);
+                $('#tableBody').html(`<tr><td colspan="10" class="text-center py-5 text-danger">Gagal memuat data. Silakan coba lagi.</td></tr>`);
             }
         });
     }
@@ -393,138 +339,6 @@ $(document).ready(function() {
             $('#paginationInfo').html('Menampilkan 0 dari 0 data');
         }
     }
-
-    // ===== Checkbox Selection Logic =====
-
-    function updateSelectedCount() {
-        const count = selectedUuids.length;
-        $('.selected-count').text(count);
-
-        if (count > 0) {
-            $('.approval-buttons-group').removeClass('d-none');
-        } else {
-            $('.approval-buttons-group').addClass('d-none');
-        }
-    }
-
-    // Restore checkbox tercentang setelah tabel di-reload via AJAX (search/pagination),
-    // supaya seleksi tidak hilang saat pindah halaman.
-    function restoreCheckboxStates() {
-        $('.row-checkbox').each(function() {
-            const uuid = $(this).data('uuid');
-            $(this).prop('checked', selectedUuids.includes(uuid));
-        });
-
-        const totalOnPage = $('.row-checkbox').length;
-        const checkedOnPage = $('.row-checkbox:checked').length;
-        $('#selectAllCheckbox').prop('checked', totalOnPage > 0 && totalOnPage === checkedOnPage);
-
-        updateSelectedCount();
-    }
-
-    // Handle checkbox per baris
-    $(document).on('change', '.row-checkbox', function() {
-        const uuid = $(this).data('uuid');
-
-        if ($(this).is(':checked')) {
-            if (!selectedUuids.includes(uuid)) {
-                selectedUuids.push(uuid);
-            }
-        } else {
-            selectedUuids = selectedUuids.filter(id => id !== uuid);
-        }
-
-        const totalOnPage = $('.row-checkbox').length;
-        const checkedOnPage = $('.row-checkbox:checked').length;
-        $('#selectAllCheckbox').prop('checked', totalOnPage > 0 && totalOnPage === checkedOnPage);
-
-        updateSelectedCount();
-    });
-
-    // Handle select-all checkbox (hanya untuk data di halaman saat ini)
-    $(document).on('change', '#selectAllCheckbox', function() {
-        const isChecked = $(this).is(':checked');
-        $('.row-checkbox').prop('checked', isChecked);
-
-        $('.row-checkbox').each(function() {
-            const uuid = $(this).data('uuid');
-            if (isChecked) {
-                if (!selectedUuids.includes(uuid)) {
-                    selectedUuids.push(uuid);
-                }
-            } else {
-                selectedUuids = selectedUuids.filter(id => id !== uuid);
-            }
-        });
-
-        updateSelectedCount();
-    });
-
-    // ===== Approve Selected Handler =====
-    $(document).on('click', '.approve-selected-btn', function(e) {
-        e.preventDefault();
-        const btn = $(this);
-        const type = btn.data('type');
-        const typeLabels = { qc: 'Approve QC', produksi: 'Approve Produksi', spv: 'Approve SPV' };
-
-        if (selectedUuids.length === 0) {
-            alert('Silakan pilih minimal 1 data untuk disetujui.');
-            return;
-        }
-
-        if (!confirm(`Apakah Anda yakin ingin menyetujui ${selectedUuids.length} data sebagai ${type.toUpperCase()}?`)) {
-            return;
-        }
-
-        $('.approve-selected-btn').prop('disabled', true);
-        btn.html('<i class="fas fa-spinner fa-spin"></i>');
-
-        $.ajax({
-            url: "{{ route('seasoning.bulk-approve-selected') }}",
-            type: 'POST',
-            data: {
-                _token: "{{ csrf_token() }}",
-                type: type,
-                uuids: selectedUuids
-            },
-            success: function(response) {
-                const finish = function() {
-                    selectedUuids = [];
-                    $('#selectAllCheckbox').prop('checked', false);
-                    updateSelectedCount();
-                    performSearch();
-                };
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: response.success ? 'success' : 'warning',
-                        title: response.success ? 'Berhasil!' : 'Perhatian',
-                        text: response.message,
-                        timer: response.success ? 1500 : undefined,
-                        showConfirmButton: !response.success
-                    }).then(finish);
-                } else {
-                    alert(response.message);
-                    finish();
-                }
-            },
-            error: function(xhr) {
-                const msg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error!', msg, 'error');
-                } else {
-                    alert('Error: ' + msg);
-                }
-            },
-            complete: function() {
-                $('.approve-selected-btn').prop('disabled', false);
-                $('.approve-selected-btn').each(function() {
-                    const t = $(this).data('type');
-                    $(this).html('<i class="fas fa-check mr-1"></i> ' + typeLabels[t]);
-                });
-            }
-        });
-    });
 
     $('#searchInput').on('input', function() {
         clearTimeout(searchTimeout);

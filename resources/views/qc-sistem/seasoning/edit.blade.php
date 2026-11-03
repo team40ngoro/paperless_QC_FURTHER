@@ -47,8 +47,8 @@
                                             </span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Tanda Centang (✓)</span>
-                                                <span class="info-box-number">Sensori : (warna, aroma, kenampakan OK), tidak ada benda asing
-                                                Kemasan : tidak sobek
+                                                <span class="info-box-number">Kemasan : tidak sobek.
+                                                Sensori akan diverifikasi oleh QC pada halaman detail.
                                                 </span>
                                                 <div class="progress">
                                                     <div class="progress-bar bg-success" style="width: 100%"></div>
@@ -193,17 +193,6 @@
                                                     <h3 class="card-title">Pemeriksaan Kualitas</h3>
                                                 </div>
                                                 <div class="card-body">
-                                                    <div class="form-group row">
-                                                        <label for="sensori" class="col-sm-3 col-form-label">Sensori <span class="text-danger">*</span></label>
-                                                        <div class="col-sm-9">
-                                                            <select class="form-control" name="sensori" required>
-                                                                <option value="">Pilih Status Sensori</option>
-                                                                <option value="✔" {{ in_array($seasoning->sensori, ['✔', '✓', 'OK', 'ok']) ? 'selected' : '' }}>✔ Baik</option>
-                                                                <option value="✘" {{ in_array($seasoning->sensori, ['✘', 'X', 'x', 'tidak ok', 'Tidak OK']) ? 'selected' : '' }}>✘ Tidak Baik</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-
                                                     <div class="form-group row">
                                                         <label for="kemasan" class="col-sm-3 col-form-label">Kemasan <span class="text-danger">*</span></label>
                                                         <div class="col-sm-9">

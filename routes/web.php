@@ -244,8 +244,7 @@ Route::middleware('auth')->group(function () {
     Route::post('seasoning/bulk-export-excel', [SeasoningController::class, 'bulkExportExcel'])
         ->name('seasoning.bulk-export-excel');
     Route::get('seasoning/search', [SeasoningController::class, 'searchAjax'])->name('seasoning.search');
-    Route::post('seasoning/bulk-approve', [SeasoningController::class, 'bulkApprove'])->name('seasoning.bulk-approve');
-    Route::post('seasoning/bulk-approve-selected', [SeasoningController::class, 'bulkApproveSelected'])->name('seasoning.bulk-approve-selected');
+
     // untuk Eksport PDF EXCEL Shoestring
     Route::post('/shoestring-export-pdf', [ShoestringController::class, 'exportPdf'])
         ->name('shoestring.export-pdf');
@@ -854,6 +853,10 @@ Route::middleware('auth')->group(function () {
             ->name('seasoning.logs');
         Route::get('seasoning/{uuid}/logs-json', [SeasoningController::class, 'getLogsJson'])
             ->name('seasoning.logs-json');
+        Route::get('seasoning/{uuid}/qc-verifications', [SeasoningController::class, 'qcVerificationLogs'])
+            ->name('seasoning.qc-verifications.index');
+        Route::post('seasoning/{uuid}/qc-verifications', [SeasoningController::class, 'storeQcVerification'])
+            ->name('seasoning.qc-verifications.store');
         // Route Untuk logging Shoestring
         Route::get('shoestring/{uuid}/logs', [ShoestringController::class, 'showLogs'])
             ->name('shoestring.logs');

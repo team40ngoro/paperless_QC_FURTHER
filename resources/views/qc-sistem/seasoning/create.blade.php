@@ -46,8 +46,8 @@
                                             </span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Tanda Centang (✓)</span>
-                                                <span class="info-box-number">Sensori : (warna, aroma, kenampakan OK), tidak ada benda asing
-                                                Kemasan : tidak sobek
+                                                <span class="info-box-number">Kemasan : tidak sobek.
+                                                Sensori akan diverifikasi oleh QC pada halaman detail.
                                                 </span>
                                                 <div class="progress">
                                                     <div class="progress-bar bg-success" style="width: 100%"></div>
@@ -196,14 +196,6 @@
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Sensori <span class="text-danger">*</span></label>
-                                                                <select class="form-control entry-field" name="entries[0][sensori]" required>
-                                                                    <option value="">Pilih Status Sensori</option>
-                                                                    <option value="✔">✔ Baik</option>
-                                                                    <option value="✘">✘ Tidak Baik</option>
-                                                                </select>
-                                                            </div>
                                                             <div class="form-group">
                                                                 <label>Kemasan <span class="text-danger">*</span></label>
                                                                 <select class="form-control entry-field" name="entries[0][kemasan]" required>
@@ -365,14 +357,6 @@ $(document).ready(function() {
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Sensori <span class="text-danger">*</span></label>
-                                <select class="form-control entry-field" name="entries[${newEntryNum}][sensori]" required>
-                                    <option value="">Pilih Status Sensori</option>
-                                    <option value="✔">✔ Baik</option>
-                                    <option value="✘">✘ Tidak Baik</option>
-                                </select>
-                            </div>
                             <div class="form-group">
                                 <label>Kemasan <span class="text-danger">*</span></label>
                                 <select class="form-control entry-field" name="entries[${newEntryNum}][kemasan]" required>

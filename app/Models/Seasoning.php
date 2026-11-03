@@ -91,6 +91,19 @@ class Seasoning extends Model implements ImportableModel
         return $this->belongsTo(\App\Models\User::class, 'spv_approved_by');
     }
 
+    public function qcVerifications()
+    {
+        return $this->hasMany(SeasoningQcVerification::class, 'seasoning_id')
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id');
+    }
+
+    public function latestQcVerification()
+    {
+        return $this->hasOne(SeasoningQcVerification::class, 'seasoning_id')
+            ->latestOfMany('verified_at');
+    }
+
     /**
      * ============================================================
      * IMPORT EXCEL INTERFACE IMPLEMENTATION

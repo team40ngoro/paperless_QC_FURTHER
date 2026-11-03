@@ -200,7 +200,6 @@ class SeasoningController extends Controller
             'entries.*.nama_rm' => 'required|string',
             'entries.*.kode_produksi' => 'required|string',
             'entries.*.berat' => 'required|string',
-            'entries.*.sensori' => 'required|string',
             'entries.*.kemasan' => 'required|string',
             'entries.*.keterangan' => 'nullable|string',
         ]);
@@ -222,7 +221,7 @@ class SeasoningController extends Controller
                         'nama_rm' => $entry['nama_rm'],
                         'kode_produksi' => $entry['kode_produksi'],
                         'berat' => $entry['berat'],
-                        'sensori' => $entry['sensori'],
+                        'sensori' => '-',
                         'kemasan' => $entry['kemasan'],
                         'keterangan' => $entry['keterangan'] ?? null,
                     ]);
@@ -252,7 +251,7 @@ class SeasoningController extends Controller
      */
     public function show($uuid)
     {
-        $seasoning = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy'])
+        $seasoning = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'qcVerifications.verifiedBy'])
             ->where('uuid', $uuid)->firstOrFail();
         
         $user = auth()->user();
@@ -322,8 +321,6 @@ class SeasoningController extends Controller
             'tanggal_seasoning' => 'required|date',
             'jam_seasoning' => 'required|date_format:H:i',
             'berat' => 'required|string',
-          
-            'sensori' => 'required|string',
             'kemasan' => 'required|string',
             'keterangan' => 'nullable|string',
         ]);
@@ -335,7 +332,6 @@ class SeasoningController extends Controller
             'berat' => $request->berat,
             'tanggal' => Carbon::parse($request->tanggal_seasoning)->setTimeFrom(now())->format('Y-m-d H:i:s'),
             'jam' => $request->jam_seasoning,
-            'sensori' => $request->sensori,
             'kemasan' => $request->kemasan,
             'keterangan' => $request->keterangan,
         ]);
@@ -404,6 +400,105 @@ class SeasoningController extends Controller
                     });
         
         return response()->json($logs);
+    }
+
+    /**
+     * Simpan verifikasi QC untuk data Seasoning.
+     */
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        $item = Seasoning::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if (! $user || ! $user->isQcInspector()) {
+            abort(403, 'Hanya role QC Inspector yang dapat melakukan verifikasi ini.');
+        }
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $validated = $request->validate([
+            'data_status' => 'required|in:OK,NOT_OK',
+            'sensori_status' => 'required|in:OK,NOT_OK',
+            'kemasan_status' => 'required|in:OK,NOT_OK',
+            'kondisi_fisik_status' => 'required|in:OK,NOT_OK',
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        $latest = $item->latestQcVerification;
+        $oldSensori = $item->sensori;
+
+        $verification = $item->qcVerifications()->create([
+            'seasoning_uuid' => $item->uuid,
+            'data_status' => $validated['data_status'],
+            'sensori_status' => $validated['sensori_status'],
+            'kemasan_status' => $validated['kemasan_status'],
+            'kondisi_fisik_status' => $validated['kondisi_fisik_status'],
+            'note' => $validated['note'] ?? null,
+            'verified_by' => $user->id,
+            'verified_at' => now(),
+        ]);
+
+        $item->update([
+            'approved_by_qc' => true,
+            'qc_approved_by' => $user->id,
+            'qc_approved_at' => now(),
+            'sensori' => $validated['sensori_status'] === 'OK' ? '✔' : '✘',
+        ]);
+
+        SeasoningLog::create([
+            'uuid' => (string) Str::uuid(),
+            'seasoning_id' => $item->id,
+            'seasoning_uuid' => $item->uuid,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role ?? 'QC',
+            'aksi' => 'qc_verification',
+            'field_yang_diubah' => ['qc_data_status', 'qc_sensori_status', 'qc_kemasan_status', 'qc_kondisi_fisik_status', 'qc_verification_note', 'sensori'],
+            'nilai_lama' => [
+                'qc_data_status' => $latest->data_status ?? '-',
+                'qc_sensori_status' => $latest->sensori_status ?? '-',
+                'qc_kemasan_status' => $latest->kemasan_status ?? '-',
+                'qc_kondisi_fisik_status' => $latest->kondisi_fisik_status ?? '-',
+                'qc_verification_note' => $latest->note ?? '-',
+                'sensori' => $oldSensori,
+            ],
+            'nilai_baru' => [
+                'qc_data_status' => $verification->data_status,
+                'qc_sensori_status' => $verification->sensori_status,
+                'qc_kemasan_status' => $verification->kemasan_status,
+                'qc_kondisi_fisik_status' => $verification->kondisi_fisik_status,
+                'qc_verification_note' => $verification->note ?? '-',
+                'sensori' => $item->sensori,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'keterangan' => $validated['note'] ?? 'Verifikasi QC',
+        ]);
+
+        return redirect()->back()->with('success', 'Verifikasi QC berhasil disimpan.');
+    }
+
+    /**
+     * Tampilkan log verifikasi QC untuk data Seasoning.
+     */
+    public function qcVerificationLogs($uuid)
+    {
+        $item = Seasoning::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $verifications = $item->qcVerifications()
+            ->with('verifiedBy')
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        return view('qc-sistem.seasoning.qc-verification-logs', compact('item', 'verifications'));
     }
 
     /**
@@ -566,21 +661,19 @@ class SeasoningController extends Controller
     {
         try {
             $request->validate([
-                'type' => 'required|in:qc,produksi,spv'
+                'type' => 'required|in:spv'
             ]);
 
             $user = auth()->user();
             $userRole = $user->id_role;
             $type = $request->type;
 
-            // Validasi role dan type yang diizinkan
+            // Approval SPV dilakukan di halaman detail (show).
             $allowedRoles = [
-                'qc' => [1, 3, 5], // Role 1, 3, dan 5 bisa approve QC
-                'produksi' => [2], // Role 2 bisa approve Produksi
-                'spv' => [4] // Role 4 bisa approve SPV
+                'spv' => [4]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type])) {
+            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan persetujuan ini'
@@ -589,18 +682,18 @@ class SeasoningController extends Controller
 
             $item = Seasoning::where('uuid', $uuid)->firstOrFail();
 
-            // Sequential approval validation
-            if ($type === 'produksi' && !$item->approved_by_qc) {
+            if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data harus disetujui oleh QC terlebih dahulu sebelum dapat disetujui oleh Produksi'
-                ], 422);
+                    'message' => 'Anda tidak memiliki akses ke data ini'
+                ], 403);
             }
 
-            if ($type === 'spv' && !$item->approved_by_produksi) {
+            // Sequential approval validation: QC harus verifikasi terlebih dahulu.
+            if (!$item->approved_by_qc) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu sebelum dapat disetujui oleh SPV'
+                    'message' => 'Data harus diverifikasi oleh QC terlebih dahulu sebelum dapat disetujui oleh SPV'
                 ], 422);
             }
 
