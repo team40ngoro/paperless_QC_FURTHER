@@ -34,6 +34,9 @@ class PemeriksaanBahanKemas extends Model implements ImportableModel
         'kode_produksi',
         'kondisi_bahan_kemasan',
         'keterangan',
+        'verifikasi_kedatangan',
+        'verifikasi_kedatangan_by',
+        'verifikasi_kedatangan_at',
         'kode_form',
         'approved_by_qc',
         'qc_approved_by',
@@ -48,6 +51,7 @@ class PemeriksaanBahanKemas extends Model implements ImportableModel
 
     protected $casts = [
         'tanggal' => 'datetime',
+        'verifikasi_kedatangan_at' => 'datetime',
         'qc_approved_at' => 'datetime',
         'produksi_approved_at' => 'datetime',
         'spv_approved_at' => 'datetime',
@@ -96,6 +100,11 @@ class PemeriksaanBahanKemas extends Model implements ImportableModel
     public function qcApprover()
     {
         return $this->belongsTo(User::class, 'qc_approved_by');
+    }
+
+    public function verifikasiKedatanganBy()
+    {
+        return $this->belongsTo(User::class, 'verifikasi_kedatangan_by');
     }
 
     public function produksiApprover()

@@ -18,7 +18,8 @@ class LabelStartUp extends Model implements ImportableModel
         'kode_form', 'is_audit', 'source_uuid',
         'approved_by_qc', 'qc_approved_by', 'qc_approved_at',
         'approved_by_produksi', 'produksi_approved_by', 'produksi_approved_at',
-        'approved_by_spv', 'spv_approved_by', 'spv_approved_at'
+        'approved_by_spv', 'spv_approved_by', 'spv_approved_at',
+        'verifikasi_bahan_kemas', 'verifikasi_bahan_kemas_by', 'verifikasi_bahan_kemas_at'
     ];
 
     protected function keepApprovalsOnAudit(): bool
@@ -34,6 +35,7 @@ class LabelStartUp extends Model implements ImportableModel
         'qc_approved_at' => 'datetime',
         'produksi_approved_at' => 'datetime',
         'spv_approved_at' => 'datetime',
+        'verifikasi_bahan_kemas_at' => 'datetime',
     ];
 
     public function details()
@@ -69,6 +71,11 @@ class LabelStartUp extends Model implements ImportableModel
     public function spvApprover()
     {
         return $this->belongsTo(User::class, 'spv_approved_by');
+    }
+
+    public function bahanKemasVerifier()
+    {
+        return $this->belongsTo(User::class, 'verifikasi_bahan_kemas_by');
     }
 
     public function copyToAudit(): self

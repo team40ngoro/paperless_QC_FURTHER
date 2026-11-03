@@ -134,13 +134,39 @@ class LabelStartUpController extends Controller
 
     public function show($uuid)
     {
-        $item = LabelStartUp::with(['details.produk', 'plan', 'shift', 'user'])->where('uuid', $uuid)->firstOrFail();
+        $item = LabelStartUp::with(['details.produk', 'plan', 'shift', 'user', 'bahanKemasVerifier'])->where('uuid', $uuid)->firstOrFail();
 
         if ($redirect = $this->redirectToCanonicalAuditUrl('label-pemeriksaan.show', $item)) {
             return $redirect;
         }
 
         return view('qc-sistem.label_pemeriksaan.show', compact('item'));
+    }
+
+    public function storeBahanKemasVerification(Request $request, $uuid)
+    {
+        $item = LabelStartUp::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if (! $user || ! in_array((int) $user->id_role, [1, 3, 5], true)) {
+            abort(403, 'Hanya role QC yang dapat melakukan verifikasi ini.');
+        }
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $validated = $request->validate([
+            'verifikasi_bahan_kemas' => 'required|in:OK,NOT_OK',
+        ]);
+
+        $item->update([
+            'verifikasi_bahan_kemas' => $validated['verifikasi_bahan_kemas'],
+            'verifikasi_bahan_kemas_by' => $user->id,
+            'verifikasi_bahan_kemas_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Verifikasi kedatangan bahan kemas berhasil disimpan.');
     }
 
     public function edit($uuid)

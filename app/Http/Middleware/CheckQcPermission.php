@@ -42,6 +42,8 @@ class CheckQcPermission
         // sehingga tidak boleh memakai permission create-chillroom.
         if (
             str_contains($request->path(), 'qc-verification') ||
+            str_ends_with($request->path(), '/verifikasi-bahan-kemas') ||
+            str_ends_with($request->path(), '/verifikasi-kedatangan') ||
             str_ends_with($request->path(), 'bulk-export-excel') ||
             str_ends_with($request->path(), '/approve') ||
             str_ends_with($request->path(), '/bulk-approve') ||
