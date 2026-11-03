@@ -478,6 +478,33 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $response->assertSee('<input type="checkbox" class="form-check-input row-checkbox bulk-approval-checkbox"', false);
     }
 
+    public function test_qc_role_tidak_melihat_approval_qc_dan_checkbox_bulk(): void
+    {
+        $this->createChillroomRecord();
+
+        $response = $this->actingAs($this->qcUser)->get(route('chillroom.index'));
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Approve QC');
+        $response->assertDontSee('bulk-approval-checkbox', false);
+    }
+
+    public function test_bulk_approve_selected_menolak_verifikasi_qc(): void
+    {
+        $item = $this->createChillroomRecord();
+
+        $response = $this->actingAs($this->qcUser)->postJson(route('chillroom.bulk-approve-selected'), [
+            'type' => 'qc',
+            'uuids' => [$item->uuid],
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('penerimaan_chillroom', [
+            'id' => $item->id,
+            'approved_by_qc' => false,
+        ]);
+    }
+
     public function test_qc_role_can_store_verification_and_view_the_log(): void
     {
         $item = $this->createChillroomRecord();
@@ -501,6 +528,11 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $this->assertDatabaseHas('chillroom_logs', [
             'penerimaan_chillroom_id' => $item->id,
             'aksi' => 'qc_verification',
+        ]);
+        $this->assertDatabaseHas('penerimaan_chillroom', [
+            'id' => $item->id,
+            'approved_by_qc' => true,
+            'qc_approved_by' => $this->qcUser->id,
         ]);
 
         $this->actingAs($this->qcUser)

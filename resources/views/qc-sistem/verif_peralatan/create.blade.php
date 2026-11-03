@@ -198,16 +198,20 @@
                                                                                          <textarea name="details[{{ $mesin->id }}][tindakan_koreksi]" class="form-control" rows="2" disabled>{{ old("details.{$mesin->id}.tindakan_koreksi") }}</textarea>
                                                                                      </div>
                                                                                  </td>
-                                                                                 <td class="text-center">
-                                                                                     @php
-                                                                                          $oldVerifHasil = old("details.{$mesin->id}.verifikasi_hasil");
-                                                                                          $verifHasilVal = ($oldVerifHasil === null) ? '' : (string) (int) (bool) $oldVerifHasil;
-                                                                                      @endphp
-                                                                                      <select name="details[{{ $mesin->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
-                                                                                          <option value="" {{ $verifHasilVal === '' ? 'selected' : '' }}>-</option>
-                                                                                          <option value="1" {{ $verifHasilVal === '1' ? 'selected' : '' }}>OK</option>
-                                                                                          <option value="0" {{ $verifHasilVal === '0' ? 'selected' : '' }}>Tidak OK</option>
-                                                                                      </select>
+                                                                                 <td class="text-center align-middle">
+                                                                                     @if(auth()->user()->isProduksi())
+                                                                                         <span class="text-muted font-italic">-</span>
+                                                                                     @else
+                                                                                         @php
+                                                                                             $oldVerifHasil = old("details.{$mesin->id}.verifikasi_hasil");
+                                                                                             $verifHasilVal = ($oldVerifHasil === null) ? '' : (string) (int) (bool) $oldVerifHasil;
+                                                                                         @endphp
+                                                                                         <select name="details[{{ $mesin->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
+                                                                                             <option value="" {{ $verifHasilVal === '' ? 'selected' : '' }}>-</option>
+                                                                                             <option value="1" {{ $verifHasilVal === '1' ? 'selected' : '' }}>OK</option>
+                                                                                             <option value="0" {{ $verifHasilVal === '0' ? 'selected' : '' }}>Tidak OK</option>
+                                                                                         </select>
+                                                                                     @endif
                                                                                  </td>
                                                                              @else
                                                                                  <td class="text-center text-muted">-</td>
@@ -263,13 +267,17 @@
                                                                                                                 <textarea name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][tindakan_koreksi]" class="form-control form-control-sm" rows="1" disabled></textarea>
                                                                                                             </div>
                                                                                                          </td>
-                                                                                                         <td class="text-center">
-                                                                                                              <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
-                                                                                                                  <option value="" selected>-</option>
-                                                                                                                  <option value="1">OK</option>
-                                                                                                                  <option value="0">Tidak OK</option>
-                                                                                                              </select>
-                                                                                                         </td>
+                                                                                                         <td class="text-center align-middle">
+                                                                                                              @if(auth()->user()->isProduksi())
+                                                                                                                  <span class="text-muted font-italic">-</span>
+                                                                                                              @else
+                                                                                                                  <select name="details[{{ $mesin->id }}][bagian][{{ $bagian->id }}][verifikasi_hasil]" class="form-control form-control-sm" disabled>
+                                                                                                                      <option value="" selected>-</option>
+                                                                                                                      <option value="1">OK</option>
+                                                                                                                      <option value="0">Tidak OK</option>
+                                                                                                                  </select>
+                                                                                                              @endif
+                                                                                                          </td>
                                                                                                     </tr>
                                                                                                 @endforeach
                                                                                             </tbody>
@@ -320,7 +328,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Data Area from PHP for JS use
     const areasList = [
         @foreach($areas as $area)
-            { id: "{{ $area->id }}", name: "{{ $area->area }}" },
+            @php
+                $areaMesins = $mesinsByArea->get($area->id, collect());
+            @endphp
+            @if($areaMesins->count() > 0)
+                { id: "{{ $area->id }}", name: "{{ $area->area }}" },
+            @endif
         @endforeach
     ];
 

@@ -111,6 +111,7 @@
                                                 <th class="py-3 text-left">Kode Produksi</th>
                                                 <th class="py-3 text-left">Nama Produk</th>
                                                 <th class="py-3 text-center">Dibuat Oleh</th>
+                                                <th class="py-3 text-center">Status Verifikasi QC</th>
                                                 <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
                                                 <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                             </tr>
@@ -122,6 +123,9 @@
 
                                             @forelse($records as $groupKey => $items)
                                                 @forelse($items as $item)
+                                                    @php
+                                                        $isQcVerified = !empty($item->hasil_penggorengan_uuid) && !empty(optional($item->penggorenganData)->hasil_pencetakan);
+                                                    @endphp
                                                     <tr class="item-row">
                                                         <td class="text-center align-middle">{{ $no }}</td>
                                                         <td class="text-center align-middle">{{ $item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('d-M-Y') : '-' }}</td>
@@ -129,10 +133,21 @@
                                                         <td class="text-center align-middle">{{ $item->penggorenganData->shift->shift ?? '-' }}</td>
                                                         <td class="text-left align-middle">{{ $item->penggorenganData->kode_produksi ?? '-' }}</td>
                                                         <td class="text-left align-middle">
-                                                            <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? '-' }}</div>
+                                                            <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? $item->hasilPenggorenganData->produk->nama_produk ?? '-' }}</div>
                                                         </td>
                                                         <td class="text-center align-middle">
                                                             <div style="font-size: 0.8rem;">{{ $item->user->name ?? '-' }}</div>
+                                                        </td>
+                                                        <td class="text-center align-middle">
+                                                            @if($isQcVerified)
+                                                                <span class="badge badge-success px-2 py-1" style="font-size: 0.72rem;">
+                                                                    <i class="fas fa-check-circle mr-1"></i> Sudah Diisi QC
+                                                                </span>
+                                                            @else
+                                                                <span class="badge badge-warning px-2 py-1" style="font-size: 0.72rem;">
+                                                                    <i class="fas fa-clock mr-1"></i> Menunggu QC
+                                                                </span>
+                                                            @endif
                                                         </td>
                                                         <td class="text-center align-middle">
                                                             <div class="d-flex flex-column align-items-center" style="gap: 2px;">
@@ -140,11 +155,6 @@
                                                                     <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
                                                                 @else
                                                                     <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">QC</span>
-                                                                @endif
-                                                                @if($item->approved_by_produksi)
-                                                                    <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> PRD</span>
-                                                                @else
-                                                                    <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">PRD</span>
                                                                 @endif
                                                                 @if($item->approved_by_spv)
                                                                     <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>
@@ -175,7 +185,7 @@
                                                         </td>        
                                                     </tr>
                                                     <tr id="rincian-{{ $item->uuid }}" class="rincian-row" style="display:none;">
-                                                        <td colspan="8" class="p-0">
+                                                        <td colspan="10" class="p-0">
                                                             <div class="p-3 bg-light border-bottom">
                                                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                                                     <h6 class="font-weight-bold text-info mb-0">
@@ -277,7 +287,7 @@
                                                 @endforelse
                                             @empty
                                                 <tr>
-                                                    <td colspan="8" class="text-center py-5 text-muted">
+                                                    <td colspan="10" class="text-center py-5 text-muted">
                                                         <i class="fas fa-inbox fa-2x mb-2"></i>
                                                         <p>Tidak ada data audit</p>
                                                     </td>

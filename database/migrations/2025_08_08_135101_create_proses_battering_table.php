@@ -1,0 +1,45 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('proses_battering', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->unsignedBigInteger('id_plan');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('id_shift');
+            $table->unsignedBigInteger('id_produk');
+            $table->unsignedBigInteger('id_jenis_better');
+            $table->string('hasil_better');
+            $table->date('tanggal');
+            $table->timestamps();
+
+            $table->foreign('id_plan')->references('id')->on('plan');
+            $table->foreign('user_id')->references('id')->on('users');
+            $table->foreign('id_shift')->references('id')->on('data_shift');
+            $table->foreign('id_produk')->references('id')->on('jenis_produk');
+            $table->foreign('id_jenis_better')->references('id')->on('jenis_better');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('proses_battering');
+    }
+};

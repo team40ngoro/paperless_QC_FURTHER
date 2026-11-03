@@ -61,7 +61,7 @@
 
         {{-- IDENTITAS DATA --}}
         <tr>
-            <td colspan="9" style="{{ $sec }}">Data: {{ $pembekuan->hasilPenggorenganData->produk->nama_produk ?? '-' }} {{ $pembekuan->penggorenganData->berat_produk ? $pembekuan->penggorenganData->berat_produk . ' gram' : '' }} (Kode: {{ $pembekuan->penggorenganData->kode_produksi ?? '-' }})</td>
+            <td colspan="9" style="{{ $sec }}">Data: {{ $pembekuan->penggorenganData->produk->nama_produk ?? $pembekuan->hasilPenggorenganData->produk->nama_produk ?? '-' }} {{ optional($pembekuan->penggorenganData)->berat_produk ? $pembekuan->penggorenganData->berat_produk . ' gram' : '' }} (Kode: {{ $pembekuan->penggorenganData->kode_produksi ?? '-' }})</td>
         </tr>
         <tr>
             <td colspan="2" style="{{ $lbl }}">Hari / Tanggal</td>
@@ -83,7 +83,7 @@
         <tr>
             <td colspan="3" style="{{ $td }}">{{ $pembekuan->penggorenganData->waktu_pemasakan ?? '-' }}</td>
             <td colspan="3" style="{{ $td }}">{{ $pembekuan->penggorenganData->no_of_strokes }}</td>
-            <td colspan="3" style="{{ $td }}">{{ $pembekuan->penggorenganData->hasil_pencetakan == '✔' ? 'OK' : ($pembekuan->penggorenganData->hasil_pencetakan == '✘' ? 'Tidak OK' : $pembekuan->penggorenganData->hasil_pencetakan) }}</td>
+            <td colspan="3" style="{{ $td }}">{{ $pembekuan->penggorenganData->hasil_pencetakan == '✔' ? 'OK' : ($pembekuan->penggorenganData->hasil_pencetakan == '✘' ? 'Tidak OK' : ($pembekuan->penggorenganData->hasil_pencetakan ?? '-')) }}</td>
         </tr>
         @endif
 
@@ -98,7 +98,7 @@
         <tr>
             <td colspan="3" style="{{ $td }}">{{ $pembekuan->predustData->jenisPredust->jenis_predust ?? '-' }}</td>
             <td colspan="3" style="{{ $td }}">{{ $pembekuan->predustData->kode_produksi ?? '-' }}</td>
-            <td colspan="3" style="{{ $td }}">{{ $pembekuan->predustData->kondisi_predust == '✔' ? 'OK' : ($pembekuan->predustData->kondisi_predust == '✘' ? 'Tidak OK' : $pembekuan->predustData->kondisi_predust) }}</td>
+            <td colspan="3" style="{{ $td }}">{{ $pembekuan->predustData->kondisi_predust == '✔' ? 'OK' : ($pembekuan->predustData->kondisi_predust == '✘' ? 'Tidak OK' : ($pembekuan->predustData->kondisi_predust ?? '-')) }}</td>
         </tr>
         @endif
 
@@ -113,7 +113,7 @@
         <tr>
             <td colspan="3" style="{{ $tdL }}">{!! $pembekuan->batteringData->better_names_with_codes_html !!}</td>
             <td colspan="3" style="{{ $td }}">{{ $pembekuan->batteringData->jenis_better_names ?? '-' }}</td>
-            <td colspan="3" style="{{ $td }}">{{ $pembekuan->batteringData->hasil_better == '✔' ? 'OK' : ($pembekuan->batteringData->hasil_better == '✘' ? 'Tidak OK' : $pembekuan->batteringData->hasil_better) }}</td>
+            <td colspan="3" style="{{ $td }}">{{ $pembekuan->batteringData->hasil_better == '✔' ? 'OK' : ($pembekuan->batteringData->hasil_better == '✘' ? 'Tidak OK' : ($pembekuan->batteringData->hasil_better ?? '-')) }}</td>
         </tr>
         @endif
 
@@ -134,7 +134,7 @@
                     N/A
                 @endif
             </td>
-            <td colspan="3" style="{{ $td }}">{{ $pembekuan->breaderData->hasil_breader == '✔' ? 'OK' : ($pembekuan->breaderData->hasil_breader == '✘' ? 'Tidak OK' : $pembekuan->breaderData->hasil_breader) }}</td>
+            <td colspan="3" style="{{ $td }}">{{ $pembekuan->breaderData->hasil_breader == '✔' ? 'OK' : ($pembekuan->breaderData->hasil_breader == '✘' ? 'Tidak OK' : ($pembekuan->breaderData->hasil_breader ?? '-')) }}</td>
         </tr>
         @endif
 
@@ -247,17 +247,6 @@
             <td style="{{ $td }}">{{ $pembekuan->hasilPenggorenganData->keterangan ?? '-' }}</td>
         </tr>
         @endif
-
-        {{-- G. PEMBEKUAN IQF --}}
-        <tr><td colspan="9" style="{{ $sec }}">G. PEMBEKUAN IQF</td></tr>
-        <tr>
-            <td colspan="4" style="{{ $th }}">Suhu Ruang IQF</td>
-            <td colspan="5" style="{{ $th }}">Holding Time</td>
-        </tr>
-        <tr>
-            <td colspan="4" style="{{ $td }}">{{ $pembekuan->suhu_ruang_iqf }} °C</td>
-            <td colspan="5" style="{{ $td }}">{{ $pembekuan->holding_time }} menit</td>
-        </tr>
 
         {{-- KODE FORM --}}
         <tr>

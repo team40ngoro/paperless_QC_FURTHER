@@ -90,6 +90,6 @@ class SsoLoginController extends Controller
             }
         }
 
-        return redirect(config('services.employee_api.portal_url'));
+        return redirect()->route('login');
     }
 }
