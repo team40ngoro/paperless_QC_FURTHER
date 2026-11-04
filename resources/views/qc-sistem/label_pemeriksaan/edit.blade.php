@@ -87,8 +87,7 @@
                                         <th style="width: 100px;">Label</th>
                                         <th style="width: 120px;">Pukul</th>
                                         <th style="width: 150px;">Foto Kode Produksi</th>
-                                        <th style="width: 150px;">Hasil</th>
-                                        <th style="width: 400px;">PIC</th>
+                                        <th style="width: 260px;">PIC Produksi</th>
                                         <th>Tindakan Koreksi</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
@@ -148,32 +147,18 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <select name="hasil_pengecekan[]" class="form-control" required>
-                                                <option value="OK" {{ $detail->hasil_pengecekan == 'OK' ? 'selected' : '' }}>OK</option>
-                                                <option value="Tidak OK" {{ $detail->hasil_pengecekan == 'Tidak OK' ? 'selected' : '' }}>Tidak OK</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <div class="row">
-                                                <div class="col-6 mb-2">
-                                                    <label class="small">Operator</label>
-                                                    <input type="text" name="nama_operator[]" class="form-control form-control-sm mb-1" value="{{ $detail->nama_operator }}" required>
-                                                    <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="operator" data-target="#sig_input_op_{{ $index }}" data-preview="#sig_preview_op_{{ $index }}">
-                                                        <i class="fas fa-signature"></i> TTD Op
-                                                    </button>
-                                                    <img id="sig_preview_op_{{ $index }}" src="{{ $detail->ttd_operator }}" style="max-width: 100%; height: 40px; cursor: pointer;" class="mt-1 border preview-img">
-                                                    <input type="hidden" name="ttd_operator[]" id="sig_input_op_{{ $index }}" value="{{ $detail->ttd_operator }}" required>
-                                                </div>
-                                                <div class="col-6 mb-2">
-                                                    <label class="small">QC</label>
-                                                    <input type="text" name="nama_qc[]" class="form-control form-control-sm mb-1" value="{{ $detail->nama_qc }}" required>
-                                                    <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="qc" data-target="#sig_input_qc_{{ $index }}" data-preview="#sig_preview_qc_{{ $index }}">
-                                                        <i class="fas fa-signature"></i> TTD QC
-                                                    </button>
-                                                    <img id="sig_preview_qc_{{ $index }}" src="{{ $detail->ttd_qc }}" style="max-width: 100%; height: 40px; cursor: pointer;" class="mt-1 border preview-img">
-                                                    <input type="hidden" name="ttd_qc[]" id="sig_input_qc_{{ $index }}" value="{{ $detail->ttd_qc }}" required>
-                                                </div>
+                                            <div class="form-group mb-1">
+                                                <label class="small mb-1">Operator</label>
+                                                <input type="text" name="nama_operator[]" class="form-control form-control-sm mb-1" value="{{ $detail->nama_operator }}" required>
+                                                <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="operator" data-target="#sig_input_op_{{ $index }}" data-preview="#sig_preview_op_{{ $index }}">
+                                                    <i class="fas fa-signature"></i> TTD Operator
+                                                </button>
+                                                <img id="sig_preview_op_{{ $index }}" src="{{ $detail->ttd_operator }}" style="max-width: 100%; height: 40px; cursor: pointer;" class="mt-1 border preview-img">
+                                                <input type="hidden" name="ttd_operator[]" id="sig_input_op_{{ $index }}" value="{{ $detail->ttd_operator }}" required>
                                             </div>
+                                            <input type="hidden" name="hasil_pengecekan[]" value="{{ $detail->hasil_pengecekan }}">
+                                            <input type="hidden" name="nama_qc[]" value="{{ $detail->nama_qc }}">
+                                            <input type="hidden" name="ttd_qc[]" value="{{ $detail->ttd_qc }}">
                                         </td>
                                         <td>
                                             <textarea name="tindakan_koreksi[]" class="form-control" rows="3">{{ $detail->tindakan_koreksi }}</textarea>
@@ -284,9 +269,7 @@ $(document).ready(function() {
         newRow.find('img[id^="sig_preview_op_"]').attr('id', 'sig_preview_op_' + rowIndex);
         newRow.find('input[name="ttd_operator[]"]').attr('id', 'sig_input_op_' + rowIndex);
 
-        newRow.find('.btn-signature[data-type="qc"]').attr('data-target', '#sig_input_qc_' + rowIndex).attr('data-preview', '#sig_preview_qc_' + rowIndex);
-        newRow.find('img[id^="sig_preview_qc_"]').attr('id', 'sig_preview_qc_' + rowIndex);
-        newRow.find('input[name="ttd_qc[]"]').attr('id', 'sig_input_qc_' + rowIndex);
+
 
         newRow.find('.btn-remove-row').show();
         

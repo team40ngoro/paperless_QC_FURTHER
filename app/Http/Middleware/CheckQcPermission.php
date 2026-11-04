@@ -180,6 +180,11 @@ class CheckQcPermission
                 }
             }
 
+            // E-QF 36 Label Start Up: Produksi (2) membuat/edit form produksi, QC (3) hanya verifikasi lewat show
+            if ($module === 'label-pemeriksaan' && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) {
+                return $next($request);
+            }
+
             // Pengecualian nama module untuk URL yang berbeda dengan nama Permission
             $moduleMap = [
                 'penggorengan' => 'proses-penggorengan',

@@ -1404,6 +1404,7 @@ Route::middleware('auth')->group(function () {
         Route::get('label-pemeriksaan/copy-to-audit/{uuid}', [LabelStartUpController::class, 'copyToAudit'])->name('label-pemeriksaan.copy-to-audit');
         Route::get('label-pemeriksaan/audit-data', [LabelStartUpController::class, 'auditIndex'])->name('label-pemeriksaan.audit');
         Route::get('label-pemeriksaan/audit-search', [LabelStartUpController::class, 'auditSearchAjax'])->name('label-pemeriksaan.audit-search');
+        Route::put('label-pemeriksaan/{uuid}/qc-verification', [LabelStartUpController::class, 'updateQcVerification'])->name('label-pemeriksaan.qc-verification');
         Route::resource('label-pemeriksaan', LabelStartUpController::class, [
             'parameters' => ['label-pemeriksaan' => 'uuid'],
         ]);

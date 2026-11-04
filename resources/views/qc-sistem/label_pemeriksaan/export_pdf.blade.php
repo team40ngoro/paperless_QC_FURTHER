@@ -105,16 +105,16 @@
                             -
                         @endif
                     </td>
-                    <td>{{ $detail->hasil_pengecekan }}</td>
+                    <td>{{ $detail->hasil_pengecekan ?? '-' }}</td>
                     <td>{{ $detail->tindakan_koreksi ?? '-' }}</td>
                     <td>
-                        {{ $detail->nama_operator }}<br>
+                        {{ $detail->nama_operator ?? '-' }}<br>
                         @if($detail->ttd_operator)
                             <img src="{{ $detail->ttd_operator }}" style="max-height: 40px; display: block; margin: 2px auto;">
                         @endif
                     </td>
                     <td>
-                        {{ $detail->nama_qc }}<br>
+                        {{ $detail->nama_qc ?? '-' }}<br>
                         @if($detail->ttd_qc)
                             <img src="{{ $detail->ttd_qc }}" style="max-height: 40px; display: block; margin: 2px auto;">
                         @endif
