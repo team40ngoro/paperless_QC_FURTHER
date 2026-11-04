@@ -92,16 +92,17 @@ class PemeriksaanRiceBitesController extends Controller
     {
         $user = Auth::user();
         
-        // Get shifts filtered by user's plan
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
-        
-        // Get products filtered by user's plan
-        $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
-
-        // Get all bahan baku master data grouped by id_produk for this plan
-        $bahanBakuMaster = BahanBakuRiceBites::where('id_plan', $user->id_plan)
-            ->get()
-            ->groupBy('id_produk');
+        if ($user->role === 'superadmin') {
+            $shifts  = DataShift::all();
+            $produks = JenisProduk::all();
+            $bahanBakuMaster = BahanBakuRiceBites::all()->groupBy('id_produk');
+        } else {
+            $shifts  = DataShift::where('id_plan', $user->id_plan)->get();
+            $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
+            $bahanBakuMaster = BahanBakuRiceBites::where('id_plan', $user->id_plan)
+                ->get()
+                ->groupBy('id_produk');
+        }
         
         return view('qc-sistem.pemeriksaan_rice_bites.create', compact('shifts', 'produks', 'bahanBakuMaster'));
     }
@@ -856,7 +857,7 @@ class PemeriksaanRiceBitesController extends Controller
 
             $items = PemeriksaanRiceBites::whereDate('tanggal', $tanggal)
                 ->where('shift_id', $shift_id)
-                ->where('id_plan', $user->id_plan)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
                 ->get();
 
             if ($items->isEmpty()) {

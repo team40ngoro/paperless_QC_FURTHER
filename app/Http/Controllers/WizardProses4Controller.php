@@ -176,8 +176,13 @@ class WizardProses4Controller extends Controller
             $draftData = BahanBakuTumbling::where('uuid', $continueUuid)->first();
         }
 
-        $produks = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
+        if ($user->role === 'superadmin') {
+            $produks = JenisProduk::orderBy('nama_produk', 'asc')->get();
+            $shifts  = DataShift::all();
+        } else {
+            $produks = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
+            $shifts  = DataShift::where('id_plan', $user->id_plan)->get();
+        }
 
         return view('qc-sistem.wizard_proses4.create', compact('produks', 'shifts', 'user', 'draftData'));
     }
@@ -412,10 +417,14 @@ class WizardProses4Controller extends Controller
             'prosesTumbling.dataTumbling',
             'prosesTumbling.shift',
             'prosesTumbling.user'
-        ])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->first();
+        ])->where('uuid', $uuid)
+          ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+          ->first();
 
         if (!$aging) {
-            $tumbling = ProsesTumbling::with(['bahanBakuTumbling', 'dataTumbling'])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->firstOrFail();
+            $tumbling = ProsesTumbling::with(['bahanBakuTumbling', 'dataTumbling'])->where('uuid', $uuid)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+                ->firstOrFail();
             $aging = (object)[
                 'uuid' => $tumbling->uuid,
                 'bahanBaku' => $tumbling->bahanBakuTumbling,
@@ -460,7 +469,9 @@ class WizardProses4Controller extends Controller
 
         // Removed restriction that prevented editing approved data as requested by user
 
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
+        $shifts = $user->role === 'superadmin'
+            ? DataShift::all()
+            : DataShift::where('id_plan', $user->id_plan)->get();
 
         return view('qc-sistem.wizard_proses4.edit', compact('aging', 'shifts'));
     }
@@ -471,12 +482,16 @@ class WizardProses4Controller extends Controller
             \Illuminate\Support\Facades\DB::beginTransaction();
             $user = Auth::user();
 
-            $aging = ProsesAging::with(['bahanBaku', 'prosesTumbling'])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->first();
+            $aging = ProsesAging::with(['bahanBaku', 'prosesTumbling'])->where('uuid', $uuid)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+                ->first();
             $isDummyAging = false;
             $isAuditMode = (bool) ($aging->is_audit ?? false);
 
             if (!$aging) {
-                $tumbling = ProsesTumbling::with(['bahanBakuTumbling'])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->firstOrFail();
+                $tumbling = ProsesTumbling::with(['bahanBakuTumbling'])->where('uuid', $uuid)
+                    ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+                    ->firstOrFail();
                 $aging = (object)[
                     'bahanBaku' => $tumbling->bahanBakuTumbling,
                     'prosesTumbling' => $tumbling,
@@ -631,7 +646,9 @@ class WizardProses4Controller extends Controller
             'prosesTumbling.dataTumbling',
             'prosesTumbling.shift',
             'prosesTumbling.user'
-        ])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->first();
+        ])->where('uuid', $uuid)
+          ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+          ->first();
 
         if ($aging) {
             if ($redirect = $this->redirectToCanonicalAuditUrl('wizard.proses4.show', $aging)) {
@@ -645,7 +662,9 @@ class WizardProses4Controller extends Controller
         $tumbling = ProsesTumbling::with([
             'user', 'plan', 'produk', 'shift', 'dataTumbling',
             'bahanBakuTumbling.shift'
-        ])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->firstOrFail();
+        ])->where('uuid', $uuid)
+          ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+          ->firstOrFail();
 
         // Buat object aging dummy agar view tetap bisa menampilkan data
         $aging = (object) [
@@ -689,13 +708,17 @@ class WizardProses4Controller extends Controller
             'prosesTumbling.shift',
             'prosesTumbling.user',
             'qcApprover', 'produksiApprover', 'spvApprover'
-        ])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->first();
+        ])->where('uuid', $uuid)
+          ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+          ->first();
 
         if (!$aging) {
             $tumbling = ProsesTumbling::with([
                 'user', 'plan', 'produk', 'shift', 'dataTumbling',
                 'bahanBakuTumbling.shift'
-            ])->where('uuid', $uuid)->where('id_plan', $user->id_plan)->firstOrFail();
+            ])->where('uuid', $uuid)
+              ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+              ->firstOrFail();
 
             $aging = (object) [
                 'uuid' => $tumbling->uuid,
@@ -739,7 +762,9 @@ class WizardProses4Controller extends Controller
     {
         $user = Auth::user();
         try {
-            $aging = ProsesAging::where('uuid', $uuid)->where('id_plan', $user->id_plan)->firstOrFail();
+            $aging = ProsesAging::where('uuid', $uuid)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
+                ->firstOrFail();
             
             // Delete related tumbling & bahan baku records if they exist
             if($aging->prosesTumbling) {

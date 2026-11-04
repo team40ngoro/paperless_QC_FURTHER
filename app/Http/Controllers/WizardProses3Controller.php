@@ -177,8 +177,13 @@ class WizardProses3Controller extends Controller
             $draftData = InputRoasting::where('uuid', $continueUuid)->first();
         }
 
-        $produk = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
-        $shift = DataShift::where('id_plan', $user->id_plan)->get();
+        if ($user->role === 'superadmin') {
+            $produk = JenisProduk::orderBy('nama_produk', 'asc')->get();
+            $shift  = DataShift::all();
+        } else {
+            $produk = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
+            $shift  = DataShift::where('id_plan', $user->id_plan)->get();
+        }
         $suhuBlok = SuhuBlok::all();
         $stdFan = StdFan::all();
         $stdSuhuPusat = StdSuhuPusatRoasting::all();

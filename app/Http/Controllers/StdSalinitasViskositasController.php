@@ -67,7 +67,7 @@ class StdSalinitasViskositasController extends Controller
         $item = StdSalinitasViskositas::where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
 
-        if ($user->role !== 'admin' && $item->id_plan !== $user->id_plan) {
+        if (!in_array($user->role, ['admin', 'superadmin'], true) && $item->id_plan !== $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
         }
 
