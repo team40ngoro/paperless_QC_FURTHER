@@ -35,9 +35,13 @@
                                     <a href="{{ route('wizards.packing.audit') }}" class="btn btn-sm btn-purple mr-1" style="background-color: #6f42c1; color: white;">
                                         <i class="fas fa-history"></i>
                                     </a>
-                                    @if(auth()->user()->hasPermissionTo('create-wizard-packing'))
-                                    <a href="{{ route('wizards.packing.create') }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru
+                                    @php
+                                        $userRole = (int) (auth()->user()->id_role ?? 0);
+                                        $canCreatePacking = $userRole !== 3 && (in_array($userRole, [1, 2, 5], true) || auth()->user()->hasPermissionTo('create-wizard-packing'));
+                                    @endphp
+                                    @if($canCreatePacking)
+                                    <a href="{{ route('wizards.packing.create') }}" class="btn btn-sm btn-primary shadow-sm">
+                                        <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru (Produksi)
                                     </a>
                                     @endif
                                 </div>
@@ -113,6 +117,7 @@
                                                 <th>Shift</th>
                                                 <th>Produk</th>
                                                 <th>Kode Produksi</th>
+                                                <th>Verifikasi QC</th>
                                                 <th>Status Appr</th>
                                                 <th>Aksi</th>
                                             </tr>
@@ -127,6 +132,18 @@
                                                 <td>{{ $item->shift->shift ?? '-' }}</td>
                                                 <td>{{ $item->pengemasanProduk->produk->nama_produk ?? '-' }} {{ $item->pengemasanProduk->berat ?? '' }} gram</td>
                                                 <td>{{ $item->pengemasanProduk->kode_produksi ?? '-' }}</td>
+                                                <td class="align-middle">
+                                                    @php
+                                                        $releaseStatus = $item->pengemasanProduk->status_release_produk ?? null;
+                                                    @endphp
+                                                    @if(is_null($releaseStatus) || $releaseStatus === '')
+                                                        <span class="badge badge-warning" title="Menunggu verifikasi dan release QC"><i class="fas fa-clock mr-1"></i> Menunggu QC</span>
+                                                    @elseif($releaseStatus === 'ya')
+                                                        <span class="badge badge-success" title="Produk Di-release QC"><i class="fas fa-check-circle mr-1"></i> Release: Ya</span>
+                                                    @else
+                                                        <span class="badge badge-danger" title="Produk Tidak Di-release QC"><i class="fas fa-times-circle mr-1"></i> Release: Tidak</span>
+                                                    @endif
+                                                </td>
                                                 <td class="align-middle">
                                                     <div class="status-badges d-flex flex-column align-items-center">
                                                         <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">

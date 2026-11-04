@@ -46,5 +46,20 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        // Tangani CSRF Token Expired (419) secara anggun agar user tidak melihat error 419
+        $this->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->is('logout') || $request->routeIs('logout')) {
+                return redirect()->route('login');
+            }
+
+            if ($request->expectsJson() || $request->isXmlHttpRequest()) {
+                return response()->json([
+                    'message' => 'Sesi Anda telah berakhir. Silakan muat ulang halaman.',
+                ], 419);
+            }
+
+            return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir karena tidak aktif cukup lama. Silakan login kembali.');
+        });
     }
 }
