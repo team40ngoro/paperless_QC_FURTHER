@@ -1207,6 +1207,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [WizardPackingController::class, 'index'])->name('index');
             Route::get('/create', [WizardPackingController::class, 'create'])->name('create');
             Route::get('/show/{uuid}', [WizardPackingController::class, 'show'])->name('show');
+            Route::put('/show/{uuid}/qc-verification', [WizardPackingController::class, 'updateQcVerification'])->name('qc-verification');
             Route::get('/edit/{uuid}', [WizardPackingController::class, 'edit'])->name('edit');
             Route::put('/update/{uuid}', [WizardPackingController::class, 'update'])->name('update');
             Route::get('/pdf/{uuid}', [WizardPackingController::class, 'exportPdf'])->name('pdf');
