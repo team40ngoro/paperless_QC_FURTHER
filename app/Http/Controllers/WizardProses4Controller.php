@@ -213,7 +213,7 @@ class WizardProses4Controller extends Controller
 
             $record = BahanBakuTumbling::create([
                 'uuid'                      => (string) Str::uuid(),
-                'id_plan'                   => $user->id_plan,
+                'id_plan'                   => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'                   => $user->id,
                 'shift_id'                  => $request->shift_id,
                 'id_produk'                 => $request->id_produk,
@@ -281,7 +281,7 @@ class WizardProses4Controller extends Controller
             foreach ($validated['tumbling_data'] as $tumblingData) {
                 $record = ProsesTumbling::create([
                     'uuid'                          => (string) Str::uuid(),
-                    'id_plan'                       => $user->id_plan,
+                    'id_plan'                       => $this->resolvePlanId($user, $validated['id_produk'], $bahanBaku?->id_plan),
                     'user_id'                       => $user->id,
                     'shift_id'                      => $validated['shift_id'],
                     'id_produk'                     => $validated['id_produk'],
@@ -380,7 +380,7 @@ class WizardProses4Controller extends Controller
 
             $record = ProsesAging::create([
                 'uuid'                    => (string) Str::uuid(),
-                'id_plan'                 => $user->id_plan,
+                'id_plan'                 => $this->resolvePlanId($user, $request->id_produk, $prosesTumbling?->id_plan),
                 'user_id'                 => $user->id,
                 'id_produk'               => $request->id_produk,
                 'proses_tumbling_uuid'    => $request->proses_tumbling_uuid,
