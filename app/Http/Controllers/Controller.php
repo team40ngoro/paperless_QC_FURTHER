@@ -38,6 +38,33 @@ class Controller extends BaseController
         return compact('tanggalMulai', 'tanggalAkhir');
     }
 
+    /**
+     * Tentukan id_plan saat menyimpan data.
+     * Superadmin tidak memiliki id_plan, sehingga plan diturunkan dari produk
+     * atau record induk yang dipilih.
+     */
+    protected function resolvePlanId($user, $produkId = null, $fallback = null)
+    {
+        if (! $user || $user->role !== 'superadmin') {
+            return $user->id_plan;
+        }
+
+        $produkId = $produkId ?: request('id_produk');
+
+        if ($produkId) {
+            $planId = \App\Models\JenisProduk::whereKey($produkId)->value('id_plan');
+            if ($planId) {
+                return $planId;
+            }
+        }
+
+        if ($fallback) {
+            return $fallback;
+        }
+
+        return $user->id_plan;
+    }
+
     protected function redirectToCanonicalAuditUrl(string $routeName, object $record): ?RedirectResponse
     {
         $isAuditMode = (bool) ($record->is_audit ?? false);

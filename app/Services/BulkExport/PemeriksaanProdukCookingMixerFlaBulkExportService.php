@@ -45,7 +45,7 @@ class PemeriksaanProdukCookingMixerFlaBulkExportService
             'spvApprover',
         ]);
 
-        if ($user->id_role != 1) {
+        if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
         }
 

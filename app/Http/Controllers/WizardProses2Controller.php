@@ -201,7 +201,7 @@ class WizardProses2Controller extends Controller
                 'uuid'             => Str::uuid(),
                 'id_produk'        => $request->id_produk,
                 'shift_id'         => $request->id_shift,
-                'id_plan'          => $user->id_plan,
+                'id_plan'          => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'          => $user->id,
                 'kode_produksi'    => $request->kode_produksi,
                 'berat_produk'     => $request->berat_produk,
@@ -244,7 +244,7 @@ class WizardProses2Controller extends Controller
 
             $record = PembuatanPredust::create([
                 'uuid'              => Str::uuid(),
-                'id_plan'           => $user->id_plan,
+                'id_plan'           => $this->resolvePlanId($user, $request->id_produk, $penggorengan?->id_plan),
                 'user_id'           => $user->id,
                 'id_produk'         => $request->id_produk,
                 'id_jenis_predust'  => $request->id_jenis_predust,
@@ -293,7 +293,7 @@ class WizardProses2Controller extends Controller
 
             $record = ProsesBattering::create([
                 'uuid'                 => Str::uuid(),
-                'id_plan'              => $user->id_plan,
+                'id_plan'              => $this->resolvePlanId($user, $request->id_produk, $predust?->id_plan),
                 'user_id'              => $user->id,
                 'id_produk'            => $request->id_produk,
                 'id_jenis_better'      => $jenisBetter,
@@ -341,7 +341,7 @@ class WizardProses2Controller extends Controller
 
             $record = ProsesBreader::create([
                 'uuid'              => Str::uuid(),
-                'id_plan'           => $user->id_plan,
+                'id_plan'           => $this->resolvePlanId($user, $request->id_produk, $battering?->id_plan),
                 'user_id'           => $user->id,
                 'id_produk'         => $request->id_produk,
                 'id_jenis_breader'  => $jenisBreader,
@@ -392,7 +392,7 @@ class WizardProses2Controller extends Controller
             $breader = ProsesBreader::where('uuid', $request->breader_uuid)->first();
 
             $baseData = [
-                'id_plan'                  => $user->id_plan,
+                'id_plan'                  => $this->resolvePlanId($user, $request->id_produk, $breader?->id_plan),
                 'user_id'                  => $user->id,
                 'id_produk'                => $request->id_produk,
                 'tanggal'                  => Carbon::parse($request->tanggal)->setTimeFrom(now()),
@@ -563,7 +563,7 @@ class WizardProses2Controller extends Controller
 
             $record = ProsesRoastingFan::create([
                 'uuid'               => Str::uuid(),
-                'id_plan'            => $user->id_plan,
+                'id_plan'            => $this->resolvePlanId($user, $validated['id_produk'], $penggorengan?->id_plan),
                 'user_id'            => $user->id,
                 'id_produk'          => $validated['id_produk'],
                 'id_shift'           => $penggorengan ? $penggorengan->shift_id : 1,
@@ -650,7 +650,7 @@ class WizardProses2Controller extends Controller
 
             $record = HasilProsesRoasting::create([
                 'uuid'               => Str::uuid(),
-                'id_plan'            => $user->id_plan,
+                'id_plan'            => $this->resolvePlanId($user, $request->id_produk, $roastingFan?->id_plan),
                 'id_shift'           => $roastingFan?->id_shift,
                 'user_id'            => $user->id,
                 'id_produk'          => $request->id_produk,
@@ -738,7 +738,7 @@ class WizardProses2Controller extends Controller
 
             $record = PembekuanIqfRoasting::create([
                 'uuid'                       => Str::uuid(),
-                'id_plan'                    => $user->id_plan,
+                'id_plan'                    => $this->resolvePlanId($user, $hasilRoasting?->id_produk, $hasilRoasting?->id_plan),
                 'shift_id'                   => $hasilRoasting?->id_shift, // Sourced from HasilRoasting's id_shift
                 'user_id'                    => $user->id,
                 'id_produk'                  => $hasilRoasting?->id_produk,

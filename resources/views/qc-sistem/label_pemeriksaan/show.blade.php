@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('container')
+@php
+    $currentUser = auth()->user();
+    $canVerifyBahanKemas = $currentUser
+        && in_array((int) $currentUser->id_role, [1, 3, 5], true)
+        && ($currentUser->role === 'superadmin' || (int) $currentUser->id_plan === (int) $item->id_plan);
+@endphp
 <div class="content-wrapper">
     <section class="content-header">
         <div class="container-fluid">
@@ -255,6 +261,26 @@
 
 @push('scripts')
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkboxes = document.querySelectorAll('#verifikasiBahanKemasOk, #verifikasiBahanKemasNotOk');
+        const hiddenInput = document.getElementById('verifikasiBahanKemasValue');
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                if (this.checked) {
+                    checkboxes.forEach(function (other) {
+                        if (other !== checkbox) {
+                            other.checked = false;
+                        }
+                    });
+                    hiddenInput.value = this.dataset.value;
+                } else {
+                    hiddenInput.value = '';
+                }
+            });
+        });
+    });
+
     $(document).ready(function() {
         $('.preview-img').on('click', function() {
             const src = $(this).attr('src');

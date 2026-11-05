@@ -119,7 +119,7 @@ class SuhuBlokController extends Controller
         ]);
         
         $data = $request->only(['id_plan', 'id_produk', 'suhu_blok']);
-        if ($user->role !== 'admin') {
+        if (!in_array($user->role, ['admin', 'superadmin'], true)) {
             $data['id_plan'] = $user->id_plan;
         }
         

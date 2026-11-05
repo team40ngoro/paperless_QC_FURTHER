@@ -1038,7 +1038,7 @@ class VerifPeralatanController extends Controller
 
             $items = VerifPeralatan::whereDate('tanggal', $tanggal)
                 ->where('id_shift', $id_shift)
-                ->where('id_plan', $user->id_plan)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
                 ->when($id_area && $id_area !== 'no_area', function ($q) use ($id_area) {
                     $q->whereHas('details.mesin', function ($query) use ($id_area) {
                         $query->where('id_area', $id_area);

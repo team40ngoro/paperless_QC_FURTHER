@@ -33,7 +33,7 @@ class LabelStartUpController extends Controller
         $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
             ->where('is_audit', false);
 
-        if ($user->role_id != 1) {
+        if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
         }
 
@@ -56,8 +56,8 @@ class LabelStartUpController extends Controller
             ->paginate($perPage);
 
         // Load shifts and produks untuk filter modal
-        $shifts = ($user->role_id == 1) ? DataShift::all() : DataShift::where('id_plan', $user->id_plan)->get();
-        $produks = ($user->role_id == 1) ? JenisProduk::all() : JenisProduk::where('id_plan', $user->id_plan)->get();
+        $shifts = ($user->role === 'superadmin') ? DataShift::all() : DataShift::where('id_plan', $user->id_plan)->get();
+        $produks = ($user->role === 'superadmin') ? JenisProduk::all() : JenisProduk::where('id_plan', $user->id_plan)->get();
 
         return view('qc-sistem.label_pemeriksaan.index', compact('data', 'search', 'perPage', 'shifts', 'produks'));
     }
@@ -75,7 +75,7 @@ class LabelStartUpController extends Controller
         $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
 
         // Jika super-admin login (atau butuh akses semua plant)
-        if ($user->role_id == 1) {
+        if ($user->role === 'superadmin') {
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         }
@@ -141,7 +141,7 @@ class LabelStartUpController extends Controller
 
     public function show($uuid)
     {
-        $item = LabelStartUp::with(['details.produk', 'plan', 'shift', 'user'])->where('uuid', $uuid)->firstOrFail();
+        $item = LabelStartUp::with(['details.produk', 'plan', 'shift', 'user', 'bahanKemasVerifier'])->where('uuid', $uuid)->firstOrFail();
 
         if ($redirect = $this->redirectToCanonicalAuditUrl('label-pemeriksaan.show', $item)) {
             return $redirect;
@@ -193,6 +193,32 @@ class LabelStartUpController extends Controller
         return redirect()->route('label-pemeriksaan.show', $uuid)->with('success', 'Verifikasi QC Inspector berhasil disimpan.');
     }
 
+    public function storeBahanKemasVerification(Request $request, $uuid)
+    {
+        $item = LabelStartUp::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if (! $user || ! in_array((int) $user->id_role, [1, 3, 5], true)) {
+            abort(403, 'Hanya role QC yang dapat melakukan verifikasi ini.');
+        }
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $validated = $request->validate([
+            'verifikasi_bahan_kemas' => 'required|in:OK,NOT_OK',
+        ]);
+
+        $item->update([
+            'verifikasi_bahan_kemas' => $validated['verifikasi_bahan_kemas'],
+            'verifikasi_bahan_kemas_by' => $user->id,
+            'verifikasi_bahan_kemas_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Verifikasi kedatangan bahan kemas berhasil disimpan.');
+    }
+
     public function edit($uuid)
     {
         $item = LabelStartUp::where('uuid', $uuid)->firstOrFail();
@@ -233,7 +259,7 @@ class LabelStartUpController extends Controller
         $shifts = DataShift::where('id_plan', $user->id_plan)->get();
         $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
         
-        if ($user->role_id == 1) {
+        if ($user->role === 'superadmin') {
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         }
@@ -501,7 +527,7 @@ class LabelStartUpController extends Controller
                     $query->with('produk');
                 }, 'plan', 'shift', 'user'])
                 ->where('is_audit', $isAudit)
-                ->when($user->role_id != 1, function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 });
 
@@ -599,7 +625,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
                   }
               });
         })
-            ->when($user->role_id != 1, function ($q) use ($user) {
+            ->when($user->role !== 'superadmin', function ($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
             });
 
@@ -616,7 +642,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
             ->paginate($perPage);
 
         // Load shifts and produks for the filter modal
-        if ($user->role_id == 1) { // Superadmin can see all
+        if ($user->role === 'superadmin') { // Superadmin can see all
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         } else {
@@ -637,7 +663,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
 
             $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
                 ->where('is_audit', true)
-                ->when($user->role_id != 1, fn($q) => $q->where('id_plan', $user->id_plan));
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan));
 
             if ($search) {
                 $query->whereHas('details.produk', function ($q) use ($search) {

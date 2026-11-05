@@ -675,6 +675,10 @@ Route::middleware('auth')->group(function () {
         Route::post('pemeriksaan-bahan-kemas/{uuid}/approve', [PemeriksaanBahanKemasController::class, 'approve'])
             ->name('pemeriksaan-bahan-kemas.approve');
 
+        // untuk verifikasi kedatangan bahan kemas
+        Route::post('pemeriksaan-bahan-kemas/{uuid}/verifikasi-kedatangan', [PemeriksaanBahanKemasController::class, 'storeVerifikasiKedatangan'])
+            ->name('pemeriksaan-bahan-kemas.verifikasi-kedatangan.store');
+
         // Untuk approval pengemasan
         Route::post('dokumentasi/{uuid}/approve', [DokumentasiController::class, 'approve'])
             ->name('dokumentasi.approve');
@@ -1289,6 +1293,7 @@ Route::middleware('auth')->group(function () {
         Route::get('wizard/proses-4/{uuid}/pdf', [WizardProses4Controller::class, 'exportPdf'])->name('wizard.proses4.pdf');
         Route::delete('wizard/proses-4/destroy/{uuid}', [WizardProses4Controller::class, 'destroy'])->name('wizard.proses4.destroy');
         Route::post('wizard/proses-4/{uuid}/approve', [WizardProses4Controller::class, 'approve'])->name('wizard.proses4.approve');
+        Route::post('wizard/proses-4/{uuid}/qc-verification', [WizardProses4Controller::class, 'storeQcVerification'])->name('wizard.proses4.qc-verification.store');
 
         // STORE ROUTES FOR PROCESSES (Shared or Specific)
         Route::post('wizard/proses-1/store-penggorengan', [WizardProses1Controller::class, 'storePenggorengan'])->name('wizard.proses1.store-penggorengan');
@@ -1405,6 +1410,7 @@ Route::middleware('auth')->group(function () {
         Route::get('label-pemeriksaan/download-template', [LabelStartUpController::class, 'downloadTemplate'])->name('label-pemeriksaan.download-template');
         Route::post('label-pemeriksaan/import-excel', [LabelStartUpController::class, 'importExcel'])->name('label-pemeriksaan.import-excel');
         Route::post('label-pemeriksaan/{uuid}/approve', [LabelStartUpController::class, 'approve'])->name('label-pemeriksaan.approve');
+        Route::post('label-pemeriksaan/{uuid}/verifikasi-bahan-kemas', [LabelStartUpController::class, 'storeBahanKemasVerification'])->name('label-pemeriksaan.verifikasi-bahan-kemas.store');
         Route::get('label-pemeriksaan/{uuid}/export-pdf', [LabelStartUpController::class, 'pdf'])->name('label-pemeriksaan.export-pdf');
         Route::get('label-pemeriksaan/copy-to-audit/{uuid}', [LabelStartUpController::class, 'copyToAudit'])->name('label-pemeriksaan.copy-to-audit');
         Route::get('label-pemeriksaan/audit-data', [LabelStartUpController::class, 'auditIndex'])->name('label-pemeriksaan.audit');

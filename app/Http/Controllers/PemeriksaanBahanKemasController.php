@@ -184,7 +184,7 @@ class PemeriksaanBahanKemasController extends Controller
 
     public function show($uuid)
     {
-        $item = PemeriksaanBahanKemas::with(['user', 'plan', 'shift'])->where('uuid', $uuid)->firstOrFail();
+        $item = PemeriksaanBahanKemas::with(['user', 'plan', 'shift', 'verifikasiKedatanganBy'])->where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
 
         if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
@@ -196,6 +196,52 @@ class PemeriksaanBahanKemasController extends Controller
         }
 
         return view('qc-sistem.pemeriksaan_bahan_kemas.show', compact('item'));
+    }
+
+    public function storeVerifikasiKedatangan(Request $request, $uuid)
+    {
+        $user = Auth::user();
+        $item = PemeriksaanBahanKemas::where('uuid', $uuid)->firstOrFail();
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Anda tidak memiliki akses ke data ini.');
+        }
+
+        $allowedRoles = [1, 3, 5];
+
+        if ($user->role !== 'superadmin' && !in_array((int) $user->id_role, $allowedRoles, true)) {
+            abort(403, 'Anda tidak memiliki akses untuk melakukan verifikasi ini.');
+        }
+
+        $validated = $request->validate([
+            'verifikasi_kedatangan' => 'required|in:OK,NOT_OK',
+        ]);
+
+        $previousStatus = $item->verifikasi_kedatangan;
+
+        $item->update([
+            'verifikasi_kedatangan' => $validated['verifikasi_kedatangan'],
+            'verifikasi_kedatangan_by' => $user->id,
+            'verifikasi_kedatangan_at' => now(),
+        ]);
+
+        PemeriksaanBahanKemasLog::create([
+            'pemeriksaan_bahan_kemas_id' => $item->id,
+            'pemeriksaan_bahan_kemas_uuid' => $item->uuid,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role,
+            'aksi' => 'verifikasi_kedatangan',
+            'field_yang_diubah' => ['verifikasi_kedatangan'],
+            'nilai_lama' => ['verifikasi_kedatangan' => $previousStatus],
+            'nilai_baru' => ['verifikasi_kedatangan' => $validated['verifikasi_kedatangan']],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'keterangan' => 'Verifikasi kedatangan bahan kemas oleh QC',
+        ]);
+
+        return redirect()->route('pemeriksaan-bahan-kemas.show', $item->uuid)
+            ->with('success', 'Verifikasi kedatangan bahan kemas berhasil disimpan.');
     }
 
     public function showLogs($uuid)

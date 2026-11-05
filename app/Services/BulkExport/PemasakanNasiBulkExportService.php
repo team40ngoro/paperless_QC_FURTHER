@@ -33,7 +33,7 @@ class PemasakanNasiBulkExportService
 
         $query = PemasakanNasi::with(['produk', 'plan', 'shift', 'user']);
 
-        if ($user->id_role != 1) {
+        if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
         }
 
