@@ -26,7 +26,7 @@ class PengemasanPlastikController extends Controller
         $query = PengemasanPlastik::with(['plan', 'user', 'shift','pengemasanProduk', 'pengemasanProduk.produk'])
             ->withCount('beratProdukBag');
 
-        if ($user->role != 'admin') {
+        if (!in_array($user->role, ['admin', 'superadmin'], true)) {
             $query->where('id_plan', $user->id_plan);
         }
 

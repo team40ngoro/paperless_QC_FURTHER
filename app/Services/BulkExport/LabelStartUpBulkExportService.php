@@ -41,7 +41,7 @@ class LabelStartUpBulkExportService
         }, 'plan', 'shift', 'user'])
         ->where('is_audit', $isAudit);
 
-        if ($user->role_id != 1) {
+        if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
         }
 

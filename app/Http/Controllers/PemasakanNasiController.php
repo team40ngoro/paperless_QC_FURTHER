@@ -622,7 +622,7 @@ class PemasakanNasiController extends Controller
 
             $items = PemasakanNasi::whereDate('tanggal', $tanggal)
                 ->where('shift_id', $shift_id)
-                ->where('id_plan', $user->id_plan)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
                 ->get();
 
             if ($items->isEmpty()) {

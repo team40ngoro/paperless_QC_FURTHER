@@ -79,7 +79,7 @@ class StdFanController extends Controller
     {
         $user = Auth::user();
         $stdFan = StdFan::where('uuid', $uuid)->firstOrFail();
-        if ($user->role !== 'admin' && $stdFan->id_plan !== $user->id_plan) {
+        if (!in_array($user->role, ['admin', 'superadmin'], true) && $stdFan->id_plan !== $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
         }
 
@@ -101,8 +101,8 @@ class StdFanController extends Controller
         $user = Auth::user();
         $stdFan = StdFan::where('uuid', $uuid)->firstOrFail();
 
-        if ($user->role !== 'admin' && $stdFan->id_plan !== $user->id_plan) {
-            abort(403, 'Anda tidak memiliki akses untuk memperbarui data ini.');
+        if (!in_array($user->role, ['admin', 'superadmin'], true) && $stdFan->id_plan !== $user->id_plan) {
+            abort(403, 'Anda tidak memiliki akses untuk menghapus data ini.');
         }
 
         $request->validate([

@@ -62,11 +62,13 @@ class VerifikasiBeratProdukController extends Controller
     {
         $user = Auth::user();
         
-        // Get shifts filtered by user's plan
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
-        
-        // Get products filtered by user's plan
-        $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
+        if ($user->role === 'superadmin') {
+            $shifts  = DataShift::all();
+            $produks = JenisProduk::all();
+        } else {
+            $shifts  = DataShift::where('id_plan', $user->id_plan)->get();
+            $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
+        }
 
         return view('qc-sistem.verifikasi-berat-produk.create', compact('shifts', 'produks'));
     }
@@ -136,7 +138,7 @@ class VerifikasiBeratProdukController extends Controller
 
         // Verify shift belongs to user's plan
         $shift = DataShift::where('id', $request->shift_id)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->first();
 
         if (!$shift) {
@@ -145,7 +147,7 @@ class VerifikasiBeratProdukController extends Controller
 
         // Verify product belongs to user's plan
         $produk = JenisProduk::where('id', $request->id_produk)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->first();
 
         if (!$produk) {
@@ -194,7 +196,7 @@ class VerifikasiBeratProdukController extends Controller
         $rataRataRoasting = $roastingFiltered ? $verifikasiBeratProduk->calculateRoastingAverage($roastingFiltered) : null;
 
         VerifikasiBeratProduk::create([
-            'id_plan' => $user->id_plan,
+            'id_plan' => $user->role === 'superadmin' ? $produk->id_plan : $user->id_plan,
             'user_id' => $user->id,
             'shift_id' => $request->shift_id,
             'id_produk' => $request->id_produk,
@@ -293,11 +295,13 @@ class VerifikasiBeratProdukController extends Controller
 
         $user = Auth::user();
 
-        // Get shifts filtered by user's plan
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
-        
-        // Get products filtered by user's plan
-        $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
+        if ($user->role === 'superadmin') {
+            $shifts  = DataShift::all();
+            $produks = JenisProduk::all();
+        } else {
+            $shifts  = DataShift::where('id_plan', $user->id_plan)->get();
+            $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
+        }
 
         return view('qc-sistem.verifikasi-berat-produk.edit', compact('verifikasiBeratProduk', 'shifts', 'produks'));
     }
@@ -388,7 +392,7 @@ class VerifikasiBeratProdukController extends Controller
 
         // Verify shift belongs to user's plan
         $shift = DataShift::where('id', $request->shift_id)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->first();
 
         if (!$shift) {
@@ -397,7 +401,7 @@ class VerifikasiBeratProdukController extends Controller
 
         // Verify product belongs to user's plan
         $produk = JenisProduk::where('id', $request->id_produk)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->first();
 
         if (!$produk) {

@@ -656,7 +656,7 @@ class WizardProses1Controller extends Controller
                 'uuid'             => Str::uuid(),
                 'id_produk'        => $request->id_produk,
                 'shift_id'         => $request->shift_id,
-                'id_plan'          => $user->id_plan,
+                'id_plan'          => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'          => $user->id,
                 'kode_produksi'    => $request->kode_produksi,
                 'berat_produk'     => $request->berat_produk,
@@ -716,7 +716,7 @@ class WizardProses1Controller extends Controller
 
             $record = PembuatanPredust::create([
                 'uuid'              => Str::uuid(),
-                'id_plan'           => $user->id_plan,
+                'id_plan'           => $this->resolvePlanId($user, $penggorengan?->id_produk, $penggorengan?->id_plan),
                 'user_id'           => $user->id,
                 'penggorengan_uuid' => $request->penggorengan_uuid,
                 'id_produk'         => $request->id_produk,
@@ -776,7 +776,7 @@ class WizardProses1Controller extends Controller
 
             $record = ProsesBattering::create([
                 'uuid'                 => Str::uuid(),
-                'id_plan'              => $user->id_plan,
+                'id_plan'              => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'              => $user->id,
                 'id_produk'            => $request->id_produk,
                 'kode_produksi_better' => $request->kode_produksi_better,
@@ -842,7 +842,7 @@ class WizardProses1Controller extends Controller
                 'uuid'              => Str::uuid(),
                 'id_produk'         => $request->id_produk,
                 'user_id'           => $user->id,
-                'id_plan'           => $user->id_plan,
+                'id_plan'           => $this->resolvePlanId($user, $request->id_produk, $battering?->id_plan),
                 'id_jenis_breader'  => $jenisBreader,
                 'kode_produksi'     => $request->kode_produksi_breader,
                 'hasil_breader'     => $hasilBreader,
@@ -867,7 +867,7 @@ class WizardProses1Controller extends Controller
             } else {
                 $pembekuan = PembekuanIqfPenggorengan::create([
                     'uuid'              => (string) Str::uuid(),
-                    'id_plan'           => $user->id_plan,
+                    'id_plan'           => $this->resolvePlanId($user, $request->id_produk, $battering?->id_plan),
                     'user_id'           => $user->id,
                     'tanggal'           => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
                     'jam'               => $request->jam,
@@ -938,7 +938,7 @@ class WizardProses1Controller extends Controller
                 : null;
 
             $baseData = [
-                'id_plan'                  => $user->id_plan,
+                'id_plan'                  => $this->resolvePlanId($user, $request->id_produk, $battering?->id_plan),
                 'user_id'                  => $user->id,
                 'id_produk'                => $request->id_produk,
                 'tanggal'                  => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
@@ -1046,7 +1046,7 @@ class WizardProses1Controller extends Controller
             }
 
             $data = [
-                'id_plan'             => $user->id_plan,
+                'id_plan'             => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'             => $user->id,
                 'tanggal'             => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
                 'jam'                 => $request->jam,
@@ -1079,7 +1079,7 @@ class WizardProses1Controller extends Controller
                 ->first();
 
             $pembekuanPayload = [
-                'id_plan'                 => $user->id_plan,
+                'id_plan'                 => $this->resolvePlanId($user, $request->id_produk, $record?->id_plan),
                 'user_id'                 => $user->id,
                 'tanggal'                 => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
                 'jam'                     => $request->jam,
@@ -1135,7 +1135,11 @@ class WizardProses1Controller extends Controller
             ]);
 
             $data = [
-                'id_plan'                 => $user->id_plan,
+                'id_plan'                 => $this->resolvePlanId(
+                    $user,
+                    null,
+                    \App\Models\HasilPenggorengan::where('uuid', $request->hasil_penggorengan_uuid)->value('id_plan')
+                ),
                 'user_id'                 => $user->id,
                 'tanggal'                 => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
                 'jam'                     => $request->jam,
