@@ -108,6 +108,50 @@
                     </div>
 
                     <div class="col-12">
+                        @php
+                            $qcUser = auth()->user();
+                            $isQcUser = $qcUser && $qcUser->isQc();
+                            $verif = $latestVerification ?? null;
+                            $bahanForQc = $aging->bahanBaku
+                                ?? (optional($aging->prosesTumbling)->bahanBakuTumbling ?? null);
+                            $manualForQc = optional($bahanForQc)->manual_bahan_data ?? [];
+                            $firstManualForQc = is_array($manualForQc) && count($manualForQc) > 0
+                                ? $manualForQc[0]
+                                : [];
+                            $inputDisabled = $isQcUser ? '' : 'disabled';
+                            $inputRequired = $isQcUser ? 'required' : 'disabled';
+
+                            $valVerifBahan = old('verifikasi_bahan_baku', $verif->verifikasi_bahan_baku ?? '');
+                            $valVerifCampur = old('verifikasi_hasil_pencampuran', $verif->verifikasi_hasil_pencampuran ?? '');
+                            $valSuhuBahan = old('suhu_bahan_baku', $verif->suhu_bahan_baku
+                                ?? (optional($bahanForQc)->suhu ?? ($firstManualForQc['suhu'] ?? '')));
+                            $valKondisiBahan = old('kondisi_bahan_baku', $verif->kondisi_bahan_baku ?? '');
+                        @endphp
+
+                        <form action="{{ route('wizard.proses4.qc-verification.store', $aging->uuid) }}"
+                            method="POST" id="qcVerificationForm">
+                            @csrf
+
+                            @if(isset($errors) && $errors->any())
+                                <div class="alert alert-danger shadow-sm border-0">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    <strong>Verifikasi gagal disimpan:</strong>
+                                    <ul class="mb-0 mt-1">
+                                        @foreach($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            @if($verif && $verif->verified_at)
+                                <div class="alert alert-info shadow-sm border-0">
+                                    <i class="fas fa-user-check mr-2"></i>
+                                    Verifikasi terakhir oleh
+                                    <strong>{{ $verif->verifiedBy->name ?? '-' }}</strong>
+                                    pada {{ $verif->verified_at->format('d/m/Y H:i') }}
+                                </div>
+                            @endif
 
                         {{-- ===== LANGKAH 1: BAHAN BAKU ===== --}}
                         <div class="card card-outline card-info mb-4 shadow-sm">
@@ -187,6 +231,52 @@
                                         <span class="badge badge-secondary ml-2">{{ $bahan->hasil_pencampuran ?? '-' }}</span>
                                     </div>
                                 </div>
+
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="font-weight-bold text-info mb-3">
+                                        <i class="fas fa-user-check mr-1"></i>
+                                        Verifikasi QC - Bahan Baku & Pencampuran
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Verifikasi Bahan Baku, Kode Produksi, Jumlah</label>
+                                                <select name="verifikasi_bahan_baku" class="form-control" {{ $inputRequired }}>
+                                                    <option value="">Pilih</option>
+                                                    <option value="OK" {{ $valVerifBahan == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                    <option value="NOT_OK" {{ $valVerifBahan == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Verifikasi Hasil Pencampuran</label>
+                                                <select name="verifikasi_hasil_pencampuran" class="form-control" {{ $inputRequired }}>
+                                                    <option value="">Pilih</option>
+                                                    <option value="OK" {{ $valVerifCampur == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                    <option value="NOT_OK" {{ $valVerifCampur == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Suhu Bahan Baku</label>
+                                                <input type="text" name="suhu_bahan_baku" class="form-control"
+                                                    value="{{ $valSuhuBahan }}" placeholder="Masukkan suhu bahan baku" {{ $inputDisabled }}>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Kondisi Bahan Baku</label>
+                                                <select name="kondisi_bahan_baku" class="form-control" {{ $inputRequired }}>
+                                                    <option value="">Pilih</option>
+                                                    <option value="OK" {{ $valKondisiBahan == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                    <option value="NOT_OK" {{ $valKondisiBahan == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -210,6 +300,18 @@
                                     $allTumbling = \App\Models\ProsesTumbling::with(['dataTumbling'])
                                         ->where('bahan_baku_tumbling_uuid', $bahanUuid)
                                         ->get();
+
+                                    $firstTumbling = $allTumbling->first();
+                                    $firstSensori = strtolower(trim($firstTumbling->sensori_hasil_tumbling ?? ''));
+                                    $defaultSensori = $firstSensori === 'oke'
+                                        ? 'OK'
+                                        : ($firstSensori !== '' ? 'NOT_OK' : '');
+
+                                    $valVerifTumbling = old('verifikasi_proses_tumbling', $verif->verifikasi_proses_tumbling ?? '');
+                                    $valSuhuHasil = old('suhu_hasil_tumbling', $verif->suhu_hasil_tumbling
+                                        ?? ($firstTumbling->suhu_hasil_tumbling ?? ''));
+                                    $valSensoriHasil = old('sensori_hasil_tumbling', $verif->sensori_hasil_tumbling
+                                        ?? $defaultSensori);
                                 @endphp
 
                                 @if($allTumbling->count() > 0)
@@ -463,6 +565,42 @@
                                         Data proses tumbling belum tersedia untuk produksi ini.
                                     </div>
                                 @endif
+
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="font-weight-bold text-primary mb-3">
+                                        <i class="fas fa-user-check mr-1"></i>
+                                        Verifikasi QC - Proses Tumbling
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Verifikasi Proses Tumbling</label>
+                                                <select name="verifikasi_proses_tumbling" class="form-control" {{ $inputRequired }}>
+                                                    <option value="">Pilih</option>
+                                                    <option value="OK" {{ $valVerifTumbling == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                    <option value="NOT_OK" {{ $valVerifTumbling == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Suhu Hasil Tumbling</label>
+                                                <input type="text" name="suhu_hasil_tumbling" class="form-control"
+                                                    value="{{ $valSuhuHasil }}" placeholder="Masukkan suhu hasil tumbling" {{ $inputDisabled }}>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Hasil Sensori</label>
+                                                <select name="sensori_hasil_tumbling" class="form-control" {{ $inputRequired }}>
+                                                    <option value="">Pilih</option>
+                                                    <option value="OK" {{ $valSensoriHasil == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                    <option value="NOT_OK" {{ $valSensoriHasil == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -478,6 +616,38 @@
                                     $waktuMulaiArray  = array_map('trim', explode(',', $aging->waktu_mulai_aging ?? ''));
                                     $suhuKondisiArray = array_map('trim', explode(',', $aging->suhu_produk ?? ''));
                                     $maxCount = max(count($waktuMulaiArray), count($suhuKondisiArray));
+
+                                    $agingVerifRows = old('aging_data', $verif->aging_data ?? null);
+
+                                    if (! is_array($agingVerifRows) || count($agingVerifRows) === 0) {
+                                        $agingVerifRows = [];
+
+                                        for ($index = 0; $index < $maxCount; $index++) {
+                                            $waktu = $waktuMulaiArray[$index] ?? '';
+                                            $suhuKondisi = $suhuKondisiArray[$index] ?? '';
+
+                                            if (preg_match('/^(.+?)\s*\((.+?)\)$/', $suhuKondisi, $matches)) {
+                                                $suhu = trim($matches[1]);
+                                                $kondisiRaw = trim($matches[2]);
+                                            } else {
+                                                $suhu = $suhuKondisi;
+                                                $kondisiRaw = $aging->kondisi_produk ?? '✓';
+                                            }
+
+                                            if ($waktu === '' && $suhu === '') {
+                                                continue;
+                                            }
+
+                                            $agingVerifRows[] = [
+                                                'waktu_mulai' => $waktu,
+                                                'suhu' => $suhu,
+                                                'kondisi' => in_array($kondisiRaw, ['✓', 'OK', 'ok'], true) ? 'OK' : 'NOT_OK',
+                                            ];
+                                        }
+                                    }
+
+                                    $valWaktuSelesai = old('waktu_selesai_aging', $verif->waktu_selesai_aging
+                                        ?? ($aging->waktu_selesai_aging ?? ''));
                                 @endphp
 
                                 <div class="row">
@@ -555,8 +725,119 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="font-weight-bold text-success mb-3">
+                                        <i class="fas fa-user-check mr-1"></i>
+                                        Verifikasi QC - Hasil Proses Aging
+                                    </h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm" id="qcAgingTable">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th width="5%">No</th>
+                                                    <th width="30%">Waktu Mulai Aging</th>
+                                                    <th width="25%">Suhu Aging</th>
+                                                    <th width="25%">Kondisi Produk</th>
+                                                    @if($isQcUser)
+                                                        <th width="15%">Aksi</th>
+                                                    @endif
+                                                </tr>
+                                            </thead>
+                                            <tbody id="qcAgingBody">
+                                                @forelse($agingVerifRows as $index => $row)
+                                                    <tr class="qc-aging-row">
+                                                        <td class="text-center qc-aging-number">{{ $index + 1 }}</td>
+                                                        <td>
+                                                            <input type="text" name="aging_data[{{ $index }}][waktu_mulai]"
+                                                                class="form-control form-control-sm"
+                                                                value="{{ $row['waktu_mulai'] ?? '' }}"
+                                                                placeholder="Contoh: 08:00" {{ $inputDisabled }}>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="aging_data[{{ $index }}][suhu]"
+                                                                class="form-control form-control-sm"
+                                                                value="{{ $row['suhu'] ?? '' }}"
+                                                                placeholder="Contoh: 5.5" {{ $inputDisabled }}>
+                                                        </td>
+                                                        <td>
+                                                            <select name="aging_data[{{ $index }}][kondisi]"
+                                                                class="form-control form-control-sm" {{ $inputDisabled }}>
+                                                                <option value="OK" {{ ($row['kondisi'] ?? '') == 'OK' ? 'selected' : '' }}>✓ Oke</option>
+                                                                <option value="NOT_OK" {{ ($row['kondisi'] ?? '') == 'NOT_OK' ? 'selected' : '' }}>✗ Tidak Oke</option>
+                                                            </select>
+                                                        </td>
+                                                        @if($isQcUser)
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-danger btn-sm qc-aging-remove">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        @endif
+                                                    </tr>
+                                                @empty
+                                                    <tr class="qc-aging-row">
+                                                        <td class="text-center qc-aging-number">1</td>
+                                                        <td>
+                                                            <input type="text" name="aging_data[0][waktu_mulai]"
+                                                                class="form-control form-control-sm"
+                                                                placeholder="Contoh: 08:00" {{ $inputDisabled }}>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="aging_data[0][suhu]"
+                                                                class="form-control form-control-sm"
+                                                                placeholder="Contoh: 5.5" {{ $inputDisabled }}>
+                                                        </td>
+                                                        <td>
+                                                            <select name="aging_data[0][kondisi]"
+                                                                class="form-control form-control-sm" {{ $inputDisabled }}>
+                                                                <option value="OK">✓ Oke</option>
+                                                                <option value="NOT_OK">✗ Tidak Oke</option>
+                                                            </select>
+                                                        </td>
+                                                        @if($isQcUser)
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-danger btn-sm qc-aging-remove">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        @endif
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    @if($isQcUser)
+                                        <button type="button" class="btn btn-success btn-sm" id="qcAgingAdd">
+                                            <i class="fas fa-plus mr-1"></i> Tambah Baris
+                                        </button>
+                                    @endif
+
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Waktu Selesai Aging</label>
+                                                <input type="text" name="waktu_selesai_aging" class="form-control"
+                                                    value="{{ $valWaktuSelesai }}" placeholder="Contoh: 16:00" {{ $inputDisabled }}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        @if($isQcUser)
+                            <div class="card card-outline card-success mb-5 shadow-sm">
+                                <div class="card-body text-right">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-save mr-1"></i> Simpan Verifikasi QC
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
+                        </form>
 
                     </div>
                 </div>
@@ -580,7 +861,55 @@
 @push('scripts')
 <script>
 $(document).ready(function () {
-    // scripts tambahan jika diperlukan
+    @if($isQcUser)
+    function reindexQcAging() {
+        $('#qcAgingBody .qc-aging-row').each(function (index) {
+            $(this).find('.qc-aging-number').text(index + 1);
+            $(this).find('[name^="aging_data"]').each(function () {
+                const newName = $(this).attr('name').replace(/aging_data\[\d+\]/, 'aging_data[' + index + ']');
+                $(this).attr('name', newName);
+            });
+        });
+    }
+
+    $('#qcAgingAdd').on('click', function () {
+        const index = $('#qcAgingBody .qc-aging-row').length;
+
+        $('#qcAgingBody').append(`
+            <tr class="qc-aging-row">
+                <td class="text-center qc-aging-number">${index + 1}</td>
+                <td>
+                    <input type="text" name="aging_data[${index}][waktu_mulai]"
+                        class="form-control form-control-sm" placeholder="Contoh: 08:00">
+                </td>
+                <td>
+                    <input type="text" name="aging_data[${index}][suhu]"
+                        class="form-control form-control-sm" placeholder="Contoh: 5.5">
+                </td>
+                <td>
+                    <select name="aging_data[${index}][kondisi]" class="form-control form-control-sm">
+                        <option value="OK">✓ Oke</option>
+                        <option value="NOT_OK">✗ Tidak Oke</option>
+                    </select>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-danger btn-sm qc-aging-remove">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `);
+    });
+
+    $(document).on('click', '.qc-aging-remove', function () {
+        if ($('#qcAgingBody .qc-aging-row').length <= 1) {
+            return;
+        }
+
+        $(this).closest('tr').remove();
+        reindexQcAging();
+    });
+    @endif
 });
 </script>
 @endpush

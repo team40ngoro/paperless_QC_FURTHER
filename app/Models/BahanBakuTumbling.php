@@ -108,4 +108,14 @@ class BahanBakuTumbling extends Model
             'uuid'                       // Local key on proses_tumbling table
         );
     }
+
+    public function verifikasiProsesTumbling()
+    {
+        return $this->hasMany(VerifikasiProsesTumbling::class, 'bahan_baku_tumbling_id');
+    }
+
+    public function latestVerifikasiProsesTumbling()
+    {
+        return $this->hasOne(VerifikasiProsesTumbling::class, 'bahan_baku_tumbling_id')->latestOfMany();
+    }
 }

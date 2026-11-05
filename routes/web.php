@@ -1287,6 +1287,7 @@ Route::middleware('auth')->group(function () {
         Route::get('wizard/proses-4/{uuid}/pdf', [WizardProses4Controller::class, 'exportPdf'])->name('wizard.proses4.pdf');
         Route::delete('wizard/proses-4/destroy/{uuid}', [WizardProses4Controller::class, 'destroy'])->name('wizard.proses4.destroy');
         Route::post('wizard/proses-4/{uuid}/approve', [WizardProses4Controller::class, 'approve'])->name('wizard.proses4.approve');
+        Route::post('wizard/proses-4/{uuid}/qc-verification', [WizardProses4Controller::class, 'storeQcVerification'])->name('wizard.proses4.qc-verification.store');
 
         // STORE ROUTES FOR PROCESSES (Shared or Specific)
         Route::post('wizard/proses-1/store-penggorengan', [WizardProses1Controller::class, 'storePenggorengan'])->name('wizard.proses1.store-penggorengan');
