@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Traits\HasAuditController;
 use App\Models\BarangMudahPecah;
-use App\Models\DataShift;
-use App\Models\Plan;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use App\Models\BarangMudahPecahLog;
 use App\Models\DataBarang;
+use App\Models\DataShift;
 use App\Models\InputArea;
+use App\Models\Plan;
 use App\Models\SubArea;
 use App\Services\BulkExport\BarangMudahPecahBulkExportService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BarangMudahPecahController extends Controller
 {
-    use \App\Http\Controllers\Traits\HasAuditController;
+    use HasAuditController;
 
     protected function auditModel(): string
     {
@@ -73,12 +74,12 @@ class BarangMudahPecahController extends Controller
             $q->whereHas('area', function ($a) use ($search) {
                 $a->where('area', 'like', "%{$search}%");
             })
-            ->orWhereHas('namaBarang', function ($b) use ($search) {
-                $b->where('nama_barang', 'like', "%{$search}%");
-            })
-            ->orWhere('nama_barang_manual', 'like', "%{$search}%")
-            ->orWhere('items_json', 'like', "%{$search}%")
-            ->orWhere('tanggal', 'like', "%{$search}%");
+                ->orWhereHas('namaBarang', function ($b) use ($search) {
+                    $b->where('nama_barang', 'like', "%{$search}%");
+                })
+                ->orWhere('nama_barang_manual', 'like', "%{$search}%")
+                ->orWhere('items_json', 'like', "%{$search}%")
+                ->orWhere('tanggal', 'like', "%{$search}%");
         });
     }
 
@@ -96,7 +97,7 @@ class BarangMudahPecahController extends Controller
 
         $search = trim((string) $request->input('search', ''));
         $perPage = (int) ($request->input('per_page') ?? 5);
-        if (!in_array($perPage, [5, 10, 25, 50, 100], true)) {
+        if (! in_array($perPage, [5, 10, 25, 50, 100], true)) {
             $perPage = 5;
         }
 
@@ -142,7 +143,7 @@ class BarangMudahPecahController extends Controller
         $user = Auth::user();
         $search = trim((string) $request->input('search', ''));
         $perPage = (int) ($request->input('per_page') ?? 5);
-        if (!in_array($perPage, [5, 10, 25, 50, 100], true)) {
+        if (! in_array($perPage, [5, 10, 25, 50, 100], true)) {
             $perPage = 5;
         }
 
@@ -157,12 +158,12 @@ class BarangMudahPecahController extends Controller
         $query = BarangMudahPecah::with(['user', 'plan', 'shift', 'namaBarang', 'qcApprover', 'produksiApprover', 'spvApprover', 'area'])
             ->where(function ($q) use ($auditedSourceUuids) {
                 $q->where('is_audit', true)
-                  ->orWhere(function ($subQ) use ($auditedSourceUuids) {
-                      $subQ->where('is_audit', false);
-                      if (!empty($auditedSourceUuids)) {
-                          $subQ->whereNotIn('uuid', $auditedSourceUuids);
-                      }
-                  });
+                    ->orWhere(function ($subQ) use ($auditedSourceUuids) {
+                        $subQ->where('is_audit', false);
+                        if (! empty($auditedSourceUuids)) {
+                            $subQ->whereNotIn('uuid', $auditedSourceUuids);
+                        }
+                    });
             });
 
         // Role-based data filtering
@@ -212,9 +213,16 @@ class BarangMudahPecahController extends Controller
             $plans = Plan::where('id', $user->id_plan)->get();
             $dataBarang = DataBarang::where('id_plan', $user->id_plan)->get();
 
-            $areas = InputArea::where('id_plan', $user->id_plan)
-                ->orderBy('area')
-                ->get(['id', 'area']);
+            if ($user->isPlanNgoro()) {
+                $areas = InputArea::where('id_plan', $user->id_plan)
+                    ->whereIn('area', ['Meat preparation', 'Packing Primary', 'Packing Secondary'])
+                    ->orderBy('area')
+                    ->get(['id', 'area']);
+            } else {
+                $areas = InputArea::where('id_plan', $user->id_plan)
+                    ->orderBy('area')
+                    ->get(['id', 'area']);
+            }
 
             $barangByArea = DataBarang::where('id_plan', $user->id_plan)
                 ->orderBy('nama_barang')
@@ -279,7 +287,7 @@ class BarangMudahPecahController extends Controller
             $idArea = $map['id_area'] ?? null;
             $idNamaBarang = $map['id_nama_barang'] ?? null;
 
-            if (!$idArea || !$idNamaBarang) {
+            if (! $idArea || ! $idNamaBarang) {
                 continue;
             }
 
@@ -296,7 +304,7 @@ class BarangMudahPecahController extends Controller
             ];
         }
 
-        if (!empty($itemsData)) {
+        if (! empty($itemsData)) {
             BarangMudahPecah::create([
                 'user_id' => $user->id,
                 'id_plan' => $effectivePlanId,
@@ -437,9 +445,9 @@ class BarangMudahPecahController extends Controller
             foreach ((array) $request->items as $idx => $row) {
                 $record = BarangMudahPecah::where('uuid', $row['record_uuid'])->firstOrFail();
 
-                //update record tanggal dan jam apakah disini?
-                $record->tanggal = \Carbon\Carbon::parse(str_replace('T', ' ', $request->tanggal));
-                $record->jam = \Carbon\Carbon::parse($request->jam)->format('H:i');
+                // update record tanggal dan jam apakah disini?
+                $record->tanggal = Carbon::parse(str_replace('T', ' ', $request->tanggal));
+                $record->jam = Carbon::parse($request->jam)->format('H:i');
                 if ($user->role !== 'superadmin' && (int) $record->id_plan !== (int) $user->id_plan) {
                     abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
                 }
@@ -501,6 +509,7 @@ class BarangMudahPecahController extends Controller
             $areaMessage = ($user->role === 'superadmin')
                 ? 'Area tidak sesuai dengan plan shift yang dipilih.'
                 : 'Area tidak sesuai dengan plan yang sedang login.';
+
             return back()->withErrors(['id_area' => $areaMessage])->withInput();
         }
 
@@ -513,7 +522,7 @@ class BarangMudahPecahController extends Controller
 
         $isManual = $request->boolean('is_manual');
 
-        if (!$isManual) {
+        if (! $isManual) {
             $barang = DataBarang::findOrFail($request->id_nama_barang);
             if ((int) $barang->id_plan !== (int) $effectivePlanId || (int) $barang->id_area !== (int) $request->id_area) {
                 return back()->withErrors(['id_nama_barang' => 'Nama barang tidak sesuai dengan Area yang dipilih.'])->withInput();
@@ -527,7 +536,7 @@ class BarangMudahPecahController extends Controller
             'id_area' => $request->id_area,
             'id_sub_area' => $request->id_sub_area,
             'is_manual' => $isManual,
-            'id_nama_barang' => !$isManual ? $request->id_nama_barang : null,
+            'id_nama_barang' => ! $isManual ? $request->id_nama_barang : null,
             'nama_barang_manual' => $isManual ? $request->nama_barang_manual : null,
             'jumlah' => $request->jumlah,
             'nama_karyawan' => $isManual ? $request->nama_karyawan : null,
@@ -620,7 +629,7 @@ class BarangMudahPecahController extends Controller
 
             // Fetch the whole group (same tanggal, shift, area, jam)
             $data = BarangMudahPecah::with(['user', 'plan', 'shift', 'namaBarang', 'area', 'subArea',
-                                            'qcApprover', 'produksiApprover', 'spvApprover'])
+                'qcApprover', 'produksiApprover', 'spvApprover'])
                 ->operasional()
                 ->where('id_plan', $barangMudahPecah->id_plan)
                 ->where('shift_id', $barangMudahPecah->shift_id)
@@ -634,11 +643,12 @@ class BarangMudahPecahController extends Controller
             $pdf = PDF::loadView('qc-sistem.barang_mudah_pecah.export_pdf', compact('data', 'kode_form'));
             $pdf->setPaper('A4', 'landscape');
 
-            $filename = 'barang_mudah_pecah_' . ($barangMudahPecah->tanggal ? Carbon::parse($barangMudahPecah->tanggal)->format('Y-m-d') : date('Y-m-d')) . '.pdf';
+            $filename = 'barang_mudah_pecah_'.($barangMudahPecah->tanggal ? Carbon::parse($barangMudahPecah->tanggal)->format('Y-m-d') : date('Y-m-d')).'.pdf';
+
             return $pdf->download($filename);
 
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal mengekspor PDF: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengekspor PDF: '.$e->getMessage());
         }
     }
 
@@ -653,7 +663,7 @@ class BarangMudahPecahController extends Controller
                 'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_awal',
                 'shift_id' => 'nullable|integer',
                 'id_area' => 'nullable|integer|exists:input_area,id',
-                'kode_form' => 'required|string|max:50'
+                'kode_form' => 'required|string|max:50',
             ]);
 
             $user = auth()->user();
@@ -666,14 +676,14 @@ class BarangMudahPecahController extends Controller
                 $query->operasional();
             }
 
-            $query->when($user->role !== 'superadmin', function($q) use ($user) {
-                    $q->where('id_plan', $user->id_plan);
-                });
+            $query->when($user->role !== 'superadmin', function ($q) use ($user) {
+                $q->where('id_plan', $user->id_plan);
+            });
 
             // Apply filters
             if ($request->tanggal_awal && $request->tanggal_akhir) {
-                $tanggalAwal = \Carbon\Carbon::parse($request->tanggal_awal)->startOfDay();
-                $tanggalAkhir = \Carbon\Carbon::parse($request->tanggal_akhir)->endOfDay();
+                $tanggalAwal = Carbon::parse($request->tanggal_awal)->startOfDay();
+                $tanggalAkhir = Carbon::parse($request->tanggal_akhir)->endOfDay();
                 $query->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir]);
             } elseif ($request->tanggal_awal) {
                 $query->whereDate('tanggal', $request->tanggal_awal);
@@ -699,17 +709,17 @@ class BarangMudahPecahController extends Controller
                 $filterInfo = [];
 
                 if ($request->tanggal_awal && $request->tanggal_akhir) {
-                    $filterInfo[] = 'Tanggal: ' . \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y') . ' s/d ' . \Carbon\Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
+                    $filterInfo[] = 'Tanggal: '.Carbon::parse($request->tanggal_awal)->format('d-m-Y').' s/d '.Carbon::parse($request->tanggal_akhir)->format('d-m-Y');
                 } elseif ($request->tanggal_awal) {
-                    $filterInfo[] = 'Tanggal: ' . \Carbon\Carbon::parse($request->tanggal_awal)->format('d-m-Y');
+                    $filterInfo[] = 'Tanggal: '.Carbon::parse($request->tanggal_awal)->format('d-m-Y');
                 }
                 if ($request->shift_id) {
                     $shift = DataShift::find($request->shift_id);
-                    $filterInfo[] = 'Shift: ' . ($shift ? $shift->shift : 'Unknown');
+                    $filterInfo[] = 'Shift: '.($shift ? $shift->shift : 'Unknown');
                 }
                 if ($request->id_area) {
                     $area = InputArea::find($request->id_area);
-                    $filterInfo[] = 'Area: ' . ($area ? $area->area : 'Unknown');
+                    $filterInfo[] = 'Area: '.($area ? $area->area : 'Unknown');
                 }
 
                 $html = '
@@ -735,15 +745,15 @@ class BarangMudahPecahController extends Controller
                     <div class="container">
                         <div class="icon">⚠️</div>
                         <h1>Data Tidak Ditemukan</h1>
-                        <p class="message">' . $errorMessage . '</p>';
+                        <p class="message">'.$errorMessage.'</p>';
 
-                if (!empty($filterInfo)) {
+                if (! empty($filterInfo)) {
                     $html .= '
                         <div class="filter-info">
                             <h4>Filter yang digunakan:</h4>
                             <ul>';
                     foreach ($filterInfo as $info) {
-                        $html .= '<li>' . $info . '</li>';
+                        $html .= '<li>'.$info.'</li>';
                     }
                     $html .= '
                             </ul>
@@ -766,13 +776,14 @@ class BarangMudahPecahController extends Controller
             $pdf = \PDF::loadView('qc-sistem.barang_mudah_pecah.export_pdf', compact('data', 'kode_form'));
             $pdf->setPaper('A4', 'landscape');
 
-            $filename = 'barang_mudah_pecah_' . date('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'barang_mudah_pecah_'.date('Y-m-d_H-i-s').'.pdf';
+
             return $pdf->download($filename);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengekspor PDF: ' . $e->getMessage()
+                'message' => 'Gagal mengekspor PDF: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -787,7 +798,7 @@ class BarangMudahPecahController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengekspor Excel: ' . $e->getMessage(),
+                'message' => 'Gagal mengekspor Excel: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -798,6 +809,7 @@ class BarangMudahPecahController extends Controller
     public function getSubAreasByArea($areaId)
     {
         $subAreas = SubArea::where('id_input_area', $areaId)->get();
+
         return response()->json($subAreas);
     }
 
@@ -809,7 +821,7 @@ class BarangMudahPecahController extends Controller
         $request->validate([
             'type' => 'required|in:qc,produksi,spv',
             'tanggal' => 'required|date',
-            'shift_id' => 'required|exists:data_shift,id'
+            'shift_id' => 'required|exists:data_shift,id',
         ]);
 
         $user = Auth::user();
@@ -821,20 +833,20 @@ class BarangMudahPecahController extends Controller
         $allowedRoles = [
             'qc' => [1, 3, 5],
             'produksi' => [1, 2, 5],
-            'spv' => [1, 4, 5]
+            'spv' => [1, 4, 5],
         ];
 
-        if (!in_array($user->id_role, $allowedRoles[$type])) {
+        if (! in_array($user->id_role, $allowedRoles[$type])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk melakukan approval ini.'
+                'message' => 'Anda tidak memiliki akses untuk melakukan approval ini.',
             ], 403);
         }
 
         // Ambil semua data pada tanggal dan shift tersebut
         $query = BarangMudahPecah::whereDate('tanggal', $tanggal)
-                                ->where('shift_id', $shift_id)
-                                ->operasional();
+            ->where('shift_id', $shift_id)
+            ->operasional();
 
         if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
@@ -845,7 +857,7 @@ class BarangMudahPecahController extends Controller
         if ($items->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak ada data ditemukan untuk shift ini.'
+                'message' => 'Tidak ada data ditemukan untuk shift ini.',
             ], 404);
         }
 
@@ -855,7 +867,7 @@ class BarangMudahPecahController extends Controller
             if ($unapprovedByQc > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Seluruh data pada shift ini harus disetujui oleh QC terlebih dahulu.'
+                    'message' => 'Seluruh data pada shift ini harus disetujui oleh QC terlebih dahulu.',
                 ], 400);
             }
         }
@@ -865,7 +877,7 @@ class BarangMudahPecahController extends Controller
             if ($unapprovedByProduksi > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Seluruh data pada shift ini harus disetujui oleh Produksi terlebih dahulu.'
+                    'message' => 'Seluruh data pada shift ini harus disetujui oleh Produksi terlebih dahulu.',
                 ], 400);
             }
         }
@@ -876,33 +888,33 @@ class BarangMudahPecahController extends Controller
         $query->update([
             $approvalField => true,
             "{$type}_approved_by" => $user->id,
-            "{$type}_approved_at" => now()
+            "{$type}_approved_at" => now(),
         ]);
 
         // Log approval activity for each record
         foreach ($items as $item) {
             // Cek jika data ini sebelumnya belum di-approve tipe ini
-            if (!$item->$approvalField) {
+            if (! $item->$approvalField) {
                 BarangMudahPecahLog::create([
                     'barang_mudah_pecah_id' => $item->id,
                     'barang_mudah_pecah_uuid' => $item->uuid,
                     'user_id' => $user->id,
                     'user_name' => $user->name,
                     'user_role' => $user->id_role,
-                    'aksi' => 'Bulk Approval ' . ucfirst($type),
-                    'field_yang_diubah' => ['approval_' . $type],
+                    'aksi' => 'Bulk Approval '.ucfirst($type),
+                    'field_yang_diubah' => ['approval_'.$type],
                     'nilai_lama' => [false],
                     'nilai_baru' => [true],
                     'ip_address' => request()->ip(),
                     'user_agent' => request()->userAgent(),
-                    'keterangan' => 'Data disetujui secara massal (per shift) oleh ' . ucfirst($type)
+                    'keterangan' => 'Data disetujui secara massal (per shift) oleh '.ucfirst($type),
                 ]);
             }
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Seluruh data pada shift ini berhasil disetujui.'
+            'message' => 'Seluruh data pada shift ini berhasil disetujui.',
         ]);
     }
 
@@ -912,7 +924,7 @@ class BarangMudahPecahController extends Controller
     public function approve(Request $request, $uuid)
     {
         $request->validate([
-            'type' => 'required|in:qc,produksi,spv'
+            'type' => 'required|in:qc,produksi,spv',
         ]);
 
         $barangMudahPecah = BarangMudahPecah::where('uuid', $uuid)->firstOrFail();
@@ -923,28 +935,28 @@ class BarangMudahPecahController extends Controller
         $allowedRoles = [
             'qc' => [1, 3, 5], // Role IDs yang bisa approve QC
             'produksi' => [2], // Role IDs yang bisa approve Produksi
-            'spv' => [4] // Role IDs yang bisa approve SPV
+            'spv' => [4], // Role IDs yang bisa approve SPV
         ];
 
-        if (!in_array($user->id_role, $allowedRoles[$type])) {
+        if (! in_array($user->id_role, $allowedRoles[$type])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki wewenang untuk melakukan persetujuan ini.'
+                'message' => 'Anda tidak memiliki wewenang untuk melakukan persetujuan ini.',
             ], 403);
         }
 
         // Sequential approval validation (QC → Produksi → SPV)
-        if ($type === 'produksi' && !$barangMudahPecah->approved_by_qc) {
+        if ($type === 'produksi' && ! $barangMudahPecah->approved_by_qc) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data harus disetujui oleh QC terlebih dahulu.'
+                'message' => 'Data harus disetujui oleh QC terlebih dahulu.',
             ], 400);
         }
 
-        if ($type === 'spv' && !$barangMudahPecah->approved_by_produksi) {
+        if ($type === 'spv' && ! $barangMudahPecah->approved_by_produksi) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'
+                'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.',
             ], 400);
         }
 
@@ -953,7 +965,7 @@ class BarangMudahPecahController extends Controller
         if ($barangMudahPecah->$approvalField) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data sudah disetujui sebelumnya.'
+                'message' => 'Data sudah disetujui sebelumnya.',
             ], 400);
         }
 
@@ -961,12 +973,12 @@ class BarangMudahPecahController extends Controller
         $barangMudahPecah->update([
             $approvalField => true,
             "{$type}_approved_by" => $user->id,
-            "{$type}_approved_at" => now()
+            "{$type}_approved_at" => now(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Data berhasil disetujui.'
+            'message' => 'Data berhasil disetujui.',
         ]);
     }
 
@@ -976,7 +988,7 @@ class BarangMudahPecahController extends Controller
             $request->validate([
                 'type' => 'required|in:qc,produksi,spv',
                 'uuids' => 'required|array|min:1',
-                'uuids.*' => 'required|uuid'
+                'uuids.*' => 'required|uuid',
             ]);
 
             $user = Auth::user();
@@ -987,20 +999,20 @@ class BarangMudahPecahController extends Controller
             $allowedRoles = [
                 'qc' => [1, 3, 5],
                 'produksi' => [1, 2, 5],
-                'spv' => [1, 4, 5]
+                'spv' => [1, 4, 5],
             ];
 
-            if (!in_array($user->id_role, $allowedRoles[$type] ?? [])) {
+            if (! in_array($user->id_role, $allowedRoles[$type] ?? [])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'
+                    'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.',
                 ], 403);
             }
 
             // Find records - ONLY unapproved ones (smart auto-skip)
             $query = BarangMudahPecah::whereIn('uuid', $uuids)
                 ->where("approved_by_{$type}", false)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 });
 
@@ -1010,7 +1022,7 @@ class BarangMudahPecahController extends Controller
             if ($count === 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Semua data sudah diverifikasi sebelumnya.'
+                    'message' => 'Semua data sudah diverifikasi sebelumnya.',
                 ]);
             }
 
@@ -1023,7 +1035,7 @@ class BarangMudahPecahController extends Controller
 
             BarangMudahPecah::whereIn('uuid', $uuids)
                 ->where("approved_by_{$type}", false)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 })
                 ->update($updateData);
@@ -1034,19 +1046,19 @@ class BarangMudahPecahController extends Controller
             // Update audit copies with same approval data
             BarangMudahPecah::where('is_audit', true)
                 ->whereIn('source_uuid', $updatedSourceUuids)
-                ->when($user->role !== 'superadmin', function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 })
                 ->update($updateData);
 
             return response()->json([
                 'success' => true,
-                'message' => "Berhasil verifikasi {$count} data " . strtoupper($type)
+                'message' => "Berhasil verifikasi {$count} data ".strtoupper($type),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

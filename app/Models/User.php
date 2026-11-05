@@ -258,4 +258,9 @@ class User extends Authenticatable
 
         return $this->roleModel->permissions()->where('name', $permission)->exists();
     }
+
+    public function isPlanNgoro(): bool
+    {
+        return $this->plan->nama_plan === 'Ngoro - Mojokerto';
+    }
 }

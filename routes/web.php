@@ -521,9 +521,14 @@ Route::middleware('auth')->group(function () {
             $user = auth()->user();
             $effectivePlanId = ($user->role === 'superadmin') ? $plan_id : $user->id_plan;
 
-            return InputArea::where('id_plan', $effectivePlanId)
-                ->orderBy('area')
-                ->get(['id', 'area']);
+            $query = InputArea::where('id_plan', $effectivePlanId);
+
+            // User Ngoro hanya boleh melihat 3 area tertentu
+            if ($user->role !== 'superadmin' && $user->isPlanNgoro()) {
+                $query->whereIn('area', ['Meat preparation', 'Packing Primary', 'Packing Secondary']);
+            }
+
+            return $query->orderBy('area')->get(['id', 'area']);
         })->name('qc.ajax.area-by-plan');
 
         Route::get('/ajax/data-barang-by-area/{area_id}', function ($area_id) {
@@ -1690,9 +1695,14 @@ Route::middleware('auth')->group(function () {
             $user = auth()->user();
             $effectivePlanId = ($user->role === 'superadmin') ? $plan_id : $user->id_plan;
 
-            return InputArea::where('id_plan', $effectivePlanId)
-                ->orderBy('area')
-                ->get(['id', 'area']);
+            $query = InputArea::where('id_plan', $effectivePlanId);
+
+            // User Ngoro hanya boleh melihat 3 area tertentu
+            if ($user->role !== 'superadmin' && $user->isPlanNgoro()) {
+                $query->whereIn('area', ['Meat preparation', 'Packing Primary', 'Packing Secondary']);
+            }
+
+            return $query->orderBy('area')->get(['id', 'area']);
         })->name('ajax.area-by-plan');
         // bahan non forming
         // Letakkan di sekitar atau bersama route resource lainnya
