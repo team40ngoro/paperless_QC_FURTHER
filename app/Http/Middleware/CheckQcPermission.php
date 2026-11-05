@@ -99,7 +99,9 @@ class CheckQcPermission
                 $action === 'view' ||
                 ($segment4 === 'audit-data') ||
                 ($segment4 === 'audit') ||
-                (in_array($segment3, ['proses1', 'proses-1'], true) && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true))
+                (in_array($segment3, ['proses1', 'proses-1'], true) && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) ||
+                // E-QF 15 Packing: Produksi (2) membuat/edit bagian Produksi, QC (3) edit bagian QC. Pembatasan field dilakukan di WizardPackingController.
+                ($segment3 === 'packing' && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 3, 5], true))
             ) {
                 Log::info('CheckQcPermission: Allowing wizard view/audit', ['action' => $action, 'segment4' => $segment4]);
 
@@ -178,6 +180,11 @@ class CheckQcPermission
                 } elseif ($segment4 === 'edit') {
                     $action = 'edit';
                 }
+            }
+
+            // E-QF 36 Label Start Up: Produksi (2) membuat/edit form produksi, QC (3) hanya verifikasi lewat show
+            if ($module === 'label-pemeriksaan' && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) {
+                return $next($request);
             }
 
             // Pengecualian nama module untuk URL yang berbeda dengan nama Permission

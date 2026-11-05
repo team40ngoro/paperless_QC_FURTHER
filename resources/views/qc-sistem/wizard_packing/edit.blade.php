@@ -31,6 +31,14 @@
                     </div>
                 @endif
 
+                @if(($roleMode ?? 'all') === 'qc')
+                    <div class="alert alert-info"><i class="fas fa-user-lock mr-1"></i> Anda login sebagai <strong>QC</strong>. Bagian <strong>Produksi</strong> (identitas produk, line, waktu, penimbangan, sealing, kode kemasan, aktual isi karton) bersifat <em>read-only</em>. Silakan lengkapi bagian verifikasi QC.</div>
+                @elseif(($roleMode ?? 'all') === 'produksi')
+                    <div class="alert alert-info"><i class="fas fa-user-lock mr-1"></i> Anda login sebagai <strong>Produksi</strong>. Bagian verifikasi <strong>QC</strong> (suhu produk, label/seal, berat pack &amp; box, kesesuaian karton, dokumentasi, release) bersifat <em>read-only</em>.</div>
+                @elseif(($roleMode ?? 'all') === 'none')
+                    <div class="alert alert-warning"><i class="fas fa-lock mr-1"></i> Anda tidak memiliki hak untuk mengubah data ini.</div>
+                @endif
+
                 <form action="{{ route('wizards.packing.update', $pembekuan->uuid) }}" method="POST" enctype="multipart/form-data" id="form-edit-packing">
                     @csrf
                     @method('PUT')
@@ -856,6 +864,46 @@
             $(this).closest('.input-group').remove();
             $('.aktual-box').first().trigger('input');
         });
+    });
+
+    // ===== PEMBAGIAN ROLE (E-QF 15): kunci field milik role lain =====
+    $(function() {
+        const MODE = @json($roleMode ?? 'all');
+        if (MODE === 'all') return;
+
+        const produksiRe = [
+            /^step1\[(tanggal|jam|id_shift|id_produk|berat|tanggal_expired|kode_produksi|is_kombinasi|id_produk_2|berat_produk_2|tanggal_expired_2|kode_produksi_2|waktu_awal_packing)\]/,
+            /^step2\[(line|waktu_pengemasan|proses_penimbangan|proses_sealing|kode_kemasan_plastik|nomor_md)\]/,
+            /^step5\[aktual_jumlah_karton\]/
+        ];
+        const qcRe = [
+            /^step1\[aktual_suhu_produk\]/,
+            /^step2\[(identitas_produk|kesesuaian_label_plastik|kekuatan_seal)\]/,
+            /^step3\[/, /^step4\[/,
+            /^step5\[(?!aktual_jumlah_karton)/,
+            /^step6\[/
+        ];
+        const lockedRe = MODE === 'qc' ? produksiRe : (MODE === 'produksi' ? qcRe : produksiRe.concat(qcRe));
+
+        document.querySelectorAll('#form-edit-packing [name]').forEach(function(el) {
+            if (el.name === '_token' || el.name === '_method') return;
+            if (!lockedRe.some(function(re) { return re.test(el.name); })) return;
+            el.disabled = true;
+            el.required = false;
+            el.classList.add('role-locked');
+            const group = el.closest('.form-group');
+            if (group) group.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+        });
+
+        // Tombol tambah/hapus baris dinamis milik bagian yang terkunci
+        const lockedBtn = MODE === 'qc'
+            ? '.add-line-plastik-edit, .remove-line-plastik-edit'
+            : '.add-berat-aktual-edit, .remove-berat-aktual-edit, .add-edit-berat-box, .remove-edit-berat-box, .add-edit-suhu, .remove-edit-suhu, .add-edit-kesesuaian-isi, .remove-edit-kesesuaian-isi';
+        document.querySelectorAll(lockedBtn).forEach(function(b) { b.disabled = true; });
+
+        const style = document.createElement('style');
+        style.textContent = '.role-locked{background-color:#e9ecef !important;cursor:not-allowed;}';
+        document.head.appendChild(style);
     });
 
     // Dynamic Edit Suhu Produk

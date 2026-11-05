@@ -696,6 +696,39 @@
     'use strict';
     
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // ===== PEMBAGIAN ROLE (E-QF 15) =====
+    // produksi : hanya mengisi bagian Produksi (Langkah 1, 2, 3, 6). Verifikasi QC (suhu, label/seal,
+    //            berat bag & box, kesesuaian karton, dokumentasi, release) diisi QC lewat menu Edit.
+    // all      : Admin/Superadmin mengisi seluruh langkah.
+    const ROLE_MODE = @json($roleMode ?? 'all');
+    const IS_PRODUKSI = ROLE_MODE === 'produksi';
+
+    (function applyRoleLock() {
+        if (!IS_PRODUKSI) return;
+        ['aktual_suhu_produk[]', 'identitas_produk', 'kesesuaian_label_plastik', 'kekuatan_seal',
+         'identitas_produk_pada_karton', 'standar_jumlah_karton', 'kesesuaian_isi_pack[]'].forEach(function(name) {
+            document.querySelectorAll('[name="' + name + '"]').forEach(function(el) {
+                el.required = false;
+                el.disabled = true;
+                const group = el.closest('.form-group');
+                if (group) group.style.display = 'none';
+            });
+        });
+        [4, 5, 7].forEach(function(i) {
+            const ind = document.getElementById('step-indicator-' + i);
+            if (ind) ind.style.display = 'none';
+        });
+        const alertEl = document.getElementById('wizardAlert');
+        if (alertEl) {
+            alertEl.insertAdjacentHTML('beforebegin',
+                '<div class="alert alert-info"><i class="fas fa-user-lock mr-1"></i> ' +
+                'Anda login sebagai <strong>Produksi</strong>. Anda hanya mengisi bagian Produksi; ' +
+                'bagian verifikasi <strong>QC</strong> (suhu produk, label/seal plastik, berat pack &amp; box, kesesuaian karton, dokumentasi, status release) akan dilengkapi oleh QC.</div>');
+        }
+        const btnKarton = document.querySelector('#step-6 .next-step');
+        if (btnKarton) btnKarton.innerHTML = 'Simpan &amp; Selesai <i class="fas fa-check ml-1"></i>';
+    })();
     
     const state = {
         currentStep: 1,
@@ -1283,7 +1316,7 @@
                 document.getElementById('p4_id_pengemasan_plastik').value = res.id;
                 document.getElementById('p5_id_pengemasan_plastik').value = res.id;
                 document.getElementById('p6_id_pengemasan_plastik').value = res.id;
-                goToStep(4);
+                goToStep(IS_PRODUKSI ? 6 : 4);
             } else {
                 if (res.errors) showErrors(res.errors);
                 else showAlert('danger', res.message || 'Tolong Lengkapi Pengisian Datanya.');
@@ -1341,7 +1374,7 @@
             if (res.success) {
                 state.id_pengemasan_karton = res.id;
                 document.getElementById('p6_id_pengemasan_karton').value = res.id;
-                goToStep(7);
+                if (IS_PRODUKSI) { finalizeProduksi(); } else { goToStep(7); }
             } else {
                 if (res.errors) showErrors(res.errors);
                 else showAlert('danger', res.message || 'Tolong Lengkapi Pengisian Datanya.');
@@ -1349,11 +1382,44 @@
         }).catch(e => { hideLoading(); showAlert('danger', 'Tolong Lengkapi Pengisian Datanya.'); });
     });
 
+    // Produksi: simpan bagiannya, buat record induk agar muncul di Index untuk diverifikasi QC
+    function finalizeProduksi() {
+        showLoading('Menyimpan Data Produksi...');
+        const src = new FormData(document.getElementById('form-step-6'));
+        const fd = new FormData();
+        fd.append('id_pengemasan_produk', state.id_pengemasan_produk || '');
+        fd.append('id_pengemasan_plastik', state.id_pengemasan_plastik || '');
+        fd.append('id_pengemasan_karton', state.id_pengemasan_karton || '');
+        fd.append('tanggal', src.get('tanggal') || '');
+        fd.append('jam', src.get('jam') || '');
+
+        ajaxPost('{{ route("wizards.packing.store-dokumentasi") }}', fd).then(res => {
+            hideLoading();
+            if (res.success) {
+                document.querySelectorAll('.wizard-step').forEach(p => p.style.display = 'none');
+                const panel = document.getElementById('panel-7');
+                panel.classList.remove('d-none');
+                const msg = panel.querySelector('p.text-muted');
+                if (msg) msg.textContent = 'Data Produksi tersimpan. Menunggu verifikasi QC.';
+                panel.scrollIntoView({ behavior: 'smooth' });
+                for (let i = 1; i <= 7; i++) {
+                    const el = document.getElementById('step-indicator-' + i);
+                    if (el) { el.classList.remove('active'); el.classList.add('completed'); }
+                }
+                sessionStorage.removeItem(STORAGE_KEY);
+                sessionStorage.removeItem(FORM_DATA_KEY);
+            } else {
+                showAlert('danger', res.message || 'Gagal menyimpan data.');
+            }
+        }).catch(() => { hideLoading(); showAlert('danger', 'Terjadi kesalahan saat menyimpan data.'); });
+    }
+
     // Previous Step Button handler
     document.addEventListener('click', function(e) {
         if (e.target && (e.target.classList.contains('prev-step') || e.target.closest('.prev-step'))) {
             const btn = e.target.closest('.prev-step');
-            const step = parseInt(btn.getAttribute('data-step'));
+            let step = parseInt(btn.getAttribute('data-step'));
+            if (IS_PRODUKSI && (step === 4 || step === 5)) step = 3;
             goToStep(step);
         }
     });

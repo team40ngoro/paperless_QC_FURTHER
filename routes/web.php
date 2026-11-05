@@ -1211,6 +1211,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [WizardPackingController::class, 'index'])->name('index');
             Route::get('/create', [WizardPackingController::class, 'create'])->name('create');
             Route::get('/show/{uuid}', [WizardPackingController::class, 'show'])->name('show');
+            Route::put('/show/{uuid}/qc-verification', [WizardPackingController::class, 'updateQcVerification'])->name('qc-verification');
             Route::get('/edit/{uuid}', [WizardPackingController::class, 'edit'])->name('edit');
             Route::put('/update/{uuid}', [WizardPackingController::class, 'update'])->name('update');
             Route::get('/pdf/{uuid}', [WizardPackingController::class, 'exportPdf'])->name('pdf');
@@ -1408,6 +1409,7 @@ Route::middleware('auth')->group(function () {
         Route::get('label-pemeriksaan/copy-to-audit/{uuid}', [LabelStartUpController::class, 'copyToAudit'])->name('label-pemeriksaan.copy-to-audit');
         Route::get('label-pemeriksaan/audit-data', [LabelStartUpController::class, 'auditIndex'])->name('label-pemeriksaan.audit');
         Route::get('label-pemeriksaan/audit-search', [LabelStartUpController::class, 'auditSearchAjax'])->name('label-pemeriksaan.audit-search');
+        Route::put('label-pemeriksaan/{uuid}/qc-verification', [LabelStartUpController::class, 'updateQcVerification'])->name('label-pemeriksaan.qc-verification');
         Route::resource('label-pemeriksaan', LabelStartUpController::class, [
             'parameters' => ['label-pemeriksaan' => 'uuid'],
         ]);
