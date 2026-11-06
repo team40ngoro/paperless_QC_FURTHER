@@ -173,7 +173,7 @@ class MasterStandarAuditController extends Controller
     {
         $user = Auth::user();
         $item = MasterStandarAudit::where('uuid', $uuid)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->firstOrFail();
 
         $request->validate([
@@ -201,7 +201,7 @@ class MasterStandarAuditController extends Controller
     {
         $user = Auth::user();
         $item = MasterStandarAudit::where('uuid', $uuid)
-            ->where('id_plan', $user->id_plan)
+            ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
             ->firstOrFail();
         $item->delete();
 

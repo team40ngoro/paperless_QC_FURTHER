@@ -86,8 +86,7 @@
                                         <th style="width: 100px;">Label</th>
                                         <th style="width: 120px;">Pukul</th>
                                         <th style="width: 150px;">Foto Kode Produksi</th>
-                                        <th style="width: 150px;">Hasil</th>
-                                        <th style="width: 400px;">PIC</th>
+                                        <th style="width: 260px;">PIC Produksi</th>
                                         <th>Tindakan Koreksi</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
@@ -130,31 +129,14 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <select name="hasil_pengecekan[]" class="form-control" required>
-                                                <option value="OK">OK</option>
-                                                <option value="Tidak OK">Tidak OK</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <div class="row">
-                                                <div class="col-6 mb-2">
-                                                    <label class="small">Operator</label>
-                                                    <input type="text" name="nama_operator[]" class="form-control form-control-sm mb-1" placeholder="Nama Operator" required>
-                                                    <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="operator" data-target="#sig_input_op_0" data-preview="#sig_preview_op_0">
-                                                        <i class="fas fa-signature"></i> TTD Op
-                                                    </button>
-                                                    <img id="sig_preview_op_0" src="#" style="max-width: 100%; height: 40px; display: none;" class="mt-1 border">
-                                                    <input type="hidden" name="ttd_operator[]" id="sig_input_op_0" required>
-                                                </div>
-                                                <div class="col-6 mb-2">
-                                                    <label class="small">QC</label>
-                                                    <input type="text" name="nama_qc[]" class="form-control form-control-sm mb-1" placeholder="Nama QC" required>
-                                                    <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="qc" data-target="#sig_input_qc_0" data-preview="#sig_preview_qc_0">
-                                                        <i class="fas fa-signature"></i> TTD QC
-                                                    </button>
-                                                    <img id="sig_preview_qc_0" src="#" style="max-width: 100%; height: 40px; display: none;" class="mt-1 border">
-                                                    <input type="hidden" name="ttd_qc[]" id="sig_input_qc_0" required>
-                                                </div>
+                                            <div class="form-group mb-1">
+                                                <label class="small mb-1">Operator</label>
+                                                <input type="text" name="nama_operator[]" class="form-control form-control-sm mb-1" placeholder="Nama Operator" required>
+                                                <button type="button" class="btn btn-xs btn-block btn-outline-info btn-signature" data-type="operator" data-target="#sig_input_op_0" data-preview="#sig_preview_op_0">
+                                                    <i class="fas fa-signature"></i> TTD Operator
+                                                </button>
+                                                <img id="sig_preview_op_0" src="#" style="max-width: 100%; height: 40px; display: none;" class="mt-1 border">
+                                                <input type="hidden" name="ttd_operator[]" id="sig_input_op_0" required>
                                             </div>
                                         </td>
                                         <td>
@@ -248,9 +230,7 @@ $(document).ready(function() {
         newRow.find('img[id^="sig_preview_op_"]').attr('id', 'sig_preview_op_' + rowIndex);
         newRow.find('input[name="ttd_operator[]"]').attr('id', 'sig_input_op_' + rowIndex);
 
-        newRow.find('.btn-signature[data-type="qc"]').attr('data-target', '#sig_input_qc_' + rowIndex).attr('data-preview', '#sig_preview_qc_' + rowIndex);
-        newRow.find('img[id^="sig_preview_qc_"]').attr('id', 'sig_preview_qc_' + rowIndex);
-        newRow.find('input[name="ttd_qc[]"]').attr('id', 'sig_input_qc_' + rowIndex);
+
 
         // Show remove button
         newRow.find('.btn-remove-row').show();

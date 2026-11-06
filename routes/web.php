@@ -521,9 +521,14 @@ Route::middleware('auth')->group(function () {
             $user = auth()->user();
             $effectivePlanId = ($user->role === 'superadmin') ? $plan_id : $user->id_plan;
 
-            return InputArea::where('id_plan', $effectivePlanId)
-                ->orderBy('area')
-                ->get(['id', 'area']);
+            $query = InputArea::where('id_plan', $effectivePlanId);
+
+            // User Ngoro hanya boleh melihat 3 area tertentu
+            if ($user->role !== 'superadmin' && $user->isPlanNgoro()) {
+                $query->whereIn('area', ['Meat preparation', 'Packing Primary', 'Packing Secondary']);
+            }
+
+            return $query->orderBy('area')->get(['id', 'area']);
         })->name('qc.ajax.area-by-plan');
 
         Route::get('/ajax/data-barang-by-area/{area_id}', function ($area_id) {
@@ -1288,6 +1293,7 @@ Route::middleware('auth')->group(function () {
         Route::get('wizard/proses-4/{uuid}/pdf', [WizardProses4Controller::class, 'exportPdf'])->name('wizard.proses4.pdf');
         Route::delete('wizard/proses-4/destroy/{uuid}', [WizardProses4Controller::class, 'destroy'])->name('wizard.proses4.destroy');
         Route::post('wizard/proses-4/{uuid}/approve', [WizardProses4Controller::class, 'approve'])->name('wizard.proses4.approve');
+        Route::post('wizard/proses-4/{uuid}/qc-verification', [WizardProses4Controller::class, 'storeQcVerification'])->name('wizard.proses4.qc-verification.store');
 
         // STORE ROUTES FOR PROCESSES (Shared or Specific)
         Route::post('wizard/proses-1/store-penggorengan', [WizardProses1Controller::class, 'storePenggorengan'])->name('wizard.proses1.store-penggorengan');
@@ -1378,6 +1384,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('pembuatan-sample', PembuatanSampleController::class, [
             'parameters' => ['pembuatan-sample' => 'uuid'],
         ]);
+        Route::put('input-metal-detector/{uuid}/qc-verification', [MetalDetectorController::class, 'updateQcVerification'])->name('input-metal-detector.qc-verification');
         Route::resource('input-metal-detector', MetalDetectorController::class, [
             'parameters' => ['input-metal-detector' => 'uuid'],
         ]);
@@ -1409,6 +1416,7 @@ Route::middleware('auth')->group(function () {
         Route::get('label-pemeriksaan/copy-to-audit/{uuid}', [LabelStartUpController::class, 'copyToAudit'])->name('label-pemeriksaan.copy-to-audit');
         Route::get('label-pemeriksaan/audit-data', [LabelStartUpController::class, 'auditIndex'])->name('label-pemeriksaan.audit');
         Route::get('label-pemeriksaan/audit-search', [LabelStartUpController::class, 'auditSearchAjax'])->name('label-pemeriksaan.audit-search');
+        Route::put('label-pemeriksaan/{uuid}/qc-verification', [LabelStartUpController::class, 'updateQcVerification'])->name('label-pemeriksaan.qc-verification');
         Route::resource('label-pemeriksaan', LabelStartUpController::class, [
             'parameters' => ['label-pemeriksaan' => 'uuid'],
         ]);
@@ -1694,9 +1702,14 @@ Route::middleware('auth')->group(function () {
             $user = auth()->user();
             $effectivePlanId = ($user->role === 'superadmin') ? $plan_id : $user->id_plan;
 
-            return InputArea::where('id_plan', $effectivePlanId)
-                ->orderBy('area')
-                ->get(['id', 'area']);
+            $query = InputArea::where('id_plan', $effectivePlanId);
+
+            // User Ngoro hanya boleh melihat 3 area tertentu
+            if ($user->role !== 'superadmin' && $user->isPlanNgoro()) {
+                $query->whereIn('area', ['Meat preparation', 'Packing Primary', 'Packing Secondary']);
+            }
+
+            return $query->orderBy('area')->get(['id', 'area']);
         })->name('ajax.area-by-plan');
         // bahan non forming
         // Letakkan di sekitar atau bersama route resource lainnya

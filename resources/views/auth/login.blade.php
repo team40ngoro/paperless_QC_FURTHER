@@ -23,7 +23,7 @@
                         <p class="panel-desc">
                             Sistem manajemen dokumen digital untuk operasional lebih efisien dan terorganisir.
                         </p>
-                        <div class="panel-brand-tag">PT. Charoen Pokphand Indonesia</div>
+                        <div class="panel-brand-tag">PT. Charoen Pokphand Indonesia - Plant Ngoro - Mojokerto</div>
                     </div>
 
                     {{-- ====== PANEL KANAN: FORM LOGIN ====== --}}
@@ -89,7 +89,7 @@
                         <div class="footer-text">
                             <p>Paperless Further v2.0.3</p>
                             <div class="copyright-text">
-                                <!-- &copy; {{ date('Y') }} PT. Charoen Pokphand Indonesia<br> -->
+                                <!-- &copy; {{ date('Y') }} PT. Charoen Pokphand Indonesia - Plant Ngoro - Mojokerto<br> -->
                                 <span>|| All rights reserved by Tim Industry 4.0 ||</span>
                             </div>
                         </div>
@@ -113,7 +113,7 @@
     ============================ */
     .login-wrapper {
         position: relative;
-        background: url("{{ asset($assetPath . 'dist/img/nugget-bg.webp') }}") no-repeat center center;
+        background: url("{{ asset($assetPath . 'dist/img/nugget-background.jpeg') }}") no-repeat center center;
         background-size: cover;
         background-attachment: fixed;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

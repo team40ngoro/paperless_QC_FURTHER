@@ -96,6 +96,7 @@
                                             <th class="text-center" style="width: 140px;">Kondisi</th>
                                             <th>Temuan Ketidaksesuaian</th>
                                             <th>Tindakan Koreksi</th>
+                                            <th class="text-center" style="width: 140px;">Verifikasi Hasil</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -113,6 +114,7 @@
                                                             'kondisi' => $jsonRow['kondisi'] ?? '-',
                                                             'temuan' => $jsonRow['temuan_ketidaksesuaian'] ?? '',
                                                             'tindakan' => $jsonRow['tindakan_koreksi'] ?? '',
+                                                            'verifikasi_hasil' => $jsonRow['verifikasi_hasil'] ?? null,
                                                             'nama_karyawan' => null
                                                         ]);
                                                     }
@@ -125,6 +127,7 @@
                                                         'kondisi' => $record->kondisi ?? '-',
                                                         'temuan' => $record->temuan_ketidaksesuaian ?? '',
                                                         'tindakan' => $record->tindakan_koreksi ?? '',
+                                                        'verifikasi_hasil' => $record->verifikasi_hasil ?? null,
                                                         'nama_karyawan' => $record->is_manual ? $record->nama_karyawan : null
                                                     ]);
                                                 }
@@ -134,7 +137,7 @@
 <!--  -->
                                         @foreach($groupedForShow as $areaId => $items)
                                             <tr class="table-secondary">
-                                                <td colspan="6" class="font-weight-bold">{{ $items->first()->area_name }}</td>
+                                                <td colspan="7" class="font-weight-bold">{{ $items->first()->area_name }}</td>
                                             </tr>
                                             @foreach($items as $item)
                                                 <tr>
@@ -164,6 +167,19 @@
                                                     <td>
                                                         @if($item->tindakan)
                                                             {{ $item->tindakan }}
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($item->verifikasi_hasil === 'OK')
+                                                            <span class="badge badge-success">
+                                                                <i class="fas fa-check"></i> OK
+                                                            </span>
+                                                        @elseif($item->verifikasi_hasil === 'Tidak OK')
+                                                            <span class="badge badge-danger">
+                                                                <i class="fas fa-times"></i> Tidak OK
+                                                            </span>
                                                         @else
                                                             <span class="text-muted">-</span>
                                                         @endif

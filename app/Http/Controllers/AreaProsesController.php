@@ -845,7 +845,7 @@ class AreaProsesController extends Controller
             $items = AreaProses::whereDate('tanggal', $tanggal)
                 ->where('shift_id', $shiftId)
                 ->where('area_id', $areaId)
-                ->where('id_plan', $user->id_plan)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
                 ->get();
 
             if ($items->isEmpty()) {

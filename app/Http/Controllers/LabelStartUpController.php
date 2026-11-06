@@ -33,7 +33,7 @@ class LabelStartUpController extends Controller
         $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
             ->where('is_audit', false);
 
-        if ($user->role_id != 1) {
+        if ($user->role !== 'superadmin') {
             $query->where('id_plan', $user->id_plan);
         }
 
@@ -56,8 +56,8 @@ class LabelStartUpController extends Controller
             ->paginate($perPage);
 
         // Load shifts and produks untuk filter modal
-        $shifts = ($user->role_id == 1) ? DataShift::all() : DataShift::where('id_plan', $user->id_plan)->get();
-        $produks = ($user->role_id == 1) ? JenisProduk::all() : JenisProduk::where('id_plan', $user->id_plan)->get();
+        $shifts = ($user->role === 'superadmin') ? DataShift::all() : DataShift::where('id_plan', $user->id_plan)->get();
+        $produks = ($user->role === 'superadmin') ? JenisProduk::all() : JenisProduk::where('id_plan', $user->id_plan)->get();
 
         return view('qc-sistem.label_pemeriksaan.index', compact('data', 'search', 'perPage', 'shifts', 'produks'));
     }
@@ -65,13 +65,17 @@ class LabelStartUpController extends Controller
     public function create()
     {
         $user = Auth::user();
-        
+
+        if ((int) ($user->id_role ?? 0) === 3) {
+            abort(403, 'Role QC Inspector tidak diizinkan membuat data baru. Verifikasi dilakukan melalui icon mata (Detail) pada data yang diinput Produksi.');
+        }
+
         // Filter shift dan produk berdasarkan plant user login
         $shifts = DataShift::where('id_plan', $user->id_plan)->get();
         $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
-        
+
         // Jika super-admin login (atau butuh akses semua plant)
-        if ($user->role_id == 1) {
+        if ($user->role === 'superadmin') {
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         }
@@ -81,6 +85,12 @@ class LabelStartUpController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        if ((int) ($user->id_role ?? 0) === 3) {
+            abort(403, 'Role QC Inspector tidak diizinkan membuat data baru. Verifikasi dilakukan melalui icon mata (Detail) pada data yang diinput Produksi.');
+        }
+
         $request->validate([
             'tanggal' => 'required|date',
             'id_shift' => 'required',
@@ -91,14 +101,9 @@ class LabelStartUpController extends Controller
             'jam' => 'required|array',
             'foto_kode_produksi' => 'nullable|array',
             'foto_kode_produksi.*' => 'nullable',
-            'hasil_pengecekan' => 'required|array',
             'nama_operator' => 'required|array',
             'ttd_operator' => 'required|array',
-            'nama_qc' => 'required|array',
-            'ttd_qc' => 'required|array',
         ]);
-
-        $user = Auth::user();
 
         // 1. Simpan Header
         $header = LabelStartUp::create([
@@ -111,7 +116,9 @@ class LabelStartUpController extends Controller
 
         // 2. Simpan Detail (Looping)
         foreach ($request->id_produk as $index => $id_produk) {
-            $fotoPath = $this->handleUploadFoto($request->foto_kode_produksi[$index]);
+            $fotoPath = isset($request->foto_kode_produksi[$index])
+                ? $this->handleUploadFoto($request->foto_kode_produksi[$index])
+                : null;
 
             LabelStartUpDetail::create([
                 'label_start_up_id' => $header->id,
@@ -120,11 +127,11 @@ class LabelStartUpController extends Controller
                 'label_produk' => $request->label_produk[$index],
                 'jam' => $request->jam[$index],
                 'foto_kode_produksi' => $fotoPath,
-                'hasil_pengecekan' => $request->hasil_pengecekan[$index],
-                'nama_operator' => $request->nama_operator[$index],
-                'ttd_operator' => $request->ttd_operator[$index], // Langsung Base64 dari Signature Pad
-                'nama_qc' => $request->nama_qc[$index],
-                'ttd_qc' => $request->ttd_qc[$index], // Langsung Base64 dari Signature Pad
+                'hasil_pengecekan' => null, // Diisi oleh QC melalui halaman show (icon mata)
+                'nama_operator' => $request->nama_operator[$index] ?? null,
+                'ttd_operator' => $request->ttd_operator[$index] ?? null,
+                'nama_qc' => null,
+                'ttd_qc' => null,
                 'tindakan_koreksi' => $request->tindakan_koreksi[$index] ?? null,
             ]);
         }
@@ -140,7 +147,50 @@ class LabelStartUpController extends Controller
             return $redirect;
         }
 
-        return view('qc-sistem.label_pemeriksaan.show', compact('item'));
+        $user = Auth::user();
+        $userRole = (int) ($user->id_role ?? 0);
+        $canEditQcVerification = in_array($userRole, [1, 3, 5], true);
+
+        return view('qc-sistem.label_pemeriksaan.show', compact('item', 'canEditQcVerification'));
+    }
+
+    public function updateQcVerification(Request $request, $uuid)
+    {
+        $user = Auth::user();
+        $userRole = (int) ($user->id_role ?? 0);
+
+        if (!in_array($userRole, [1, 3, 5], true)) {
+            abort(403, 'Hanya QC Inspector yang diizinkan menginput/memperbarui verifikasi QC.');
+        }
+
+        $item = LabelStartUp::with('details')->where('uuid', $uuid)->firstOrFail();
+
+        if ($user->role !== 'superadmin' && !$item->is_audit) {
+            if ($item->id_plan !== $user->id_plan) {
+                abort(403, 'Anda tidak memiliki akses ke data plant ini.');
+            }
+        }
+
+        $request->validate([
+            'hasil_pengecekan' => 'required|array',
+            'hasil_pengecekan.*' => 'required|in:OK,Tidak OK',
+        ], [
+            'hasil_pengecekan.*.required' => 'Verifikasi hasil (OK / Tidak OK) wajib dipilih.',
+            'hasil_pengecekan.*.in' => 'Pilihan hasil harus OK atau Tidak OK.',
+        ]);
+
+        DB::transaction(function () use ($request, $user, $item) {
+            foreach ($item->details as $detail) {
+                if (isset($request->hasil_pengecekan[$detail->id])) {
+                    $detail->update([
+                        'hasil_pengecekan' => $request->hasil_pengecekan[$detail->id],
+                        'nama_qc' => $user->name,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('label-pemeriksaan.show', $uuid)->with('success', 'Verifikasi QC Inspector berhasil disimpan.');
     }
 
     public function storeBahanKemasVerification(Request $request, $uuid)
@@ -174,6 +224,10 @@ class LabelStartUpController extends Controller
         $item = LabelStartUp::where('uuid', $uuid)->firstOrFail();
         
         $user = auth()->user();
+        if ((int) ($user->id_role ?? 0) === 3) {
+            return redirect()->route('label-pemeriksaan.show', $uuid)
+                ->with('info', 'Role QC Inspector melakukan verifikasi melalui halaman detail ini.');
+        }
         $isAuditMode = (bool) $item->is_audit;
         $queryParameters = request()->query();
         $hasAuditFlag = array_key_exists('is_audit', $queryParameters);
@@ -205,7 +259,7 @@ class LabelStartUpController extends Controller
         $shifts = DataShift::where('id_plan', $user->id_plan)->get();
         $produks = JenisProduk::where('id_plan', $user->id_plan)->get();
         
-        if ($user->role_id == 1) {
+        if ($user->role === 'superadmin') {
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         }
@@ -245,18 +299,22 @@ class LabelStartUpController extends Controller
             'tanggal' => $request->tanggal,
         ]);
 
-        // Hapus detail lama untuk diganti yang baru (Simple Sync)
-        // Catatan: Di sistem nyata kita sebaiknya menghapus file lama jika diganti, 
-        // tapi untuk kemudahan edit dinamis kita timpa datanya.
+        // Ambil data detail lama sebelum dihapus
+        $oldDetails = $header->details()->get();
         $header->details()->delete();
 
         foreach ($request->id_produk as $index => $id_produk) {
-            $fotoPath = $request->old_foto[$index]; // Gunakan foto lama sebagai default
+            $fotoPath = $request->old_foto[$index] ?? null;
             
             // Jika ada foto baru yang diupload/diambil
-            if (isset($request->foto_kode_produksi[$index])) {
+            if (isset($request->foto_kode_produksi[$index]) && !empty($request->foto_kode_produksi[$index])) {
                 $fotoPath = $this->handleUploadFoto($request->foto_kode_produksi[$index]);
             }
+
+            // Pertahankan data verifikasi QC yang sudah ada jika ada
+            $existingQcHasil = $request->hasil_pengecekan[$index] ?? ($oldDetails[$index]->hasil_pengecekan ?? null);
+            $existingNamaQc = $request->nama_qc[$index] ?? ($oldDetails[$index]->nama_qc ?? null);
+            $existingTtdQc = $request->ttd_qc[$index] ?? ($oldDetails[$index]->ttd_qc ?? null);
 
             LabelStartUpDetail::create([
                 'label_start_up_id' => $header->id,
@@ -265,11 +323,11 @@ class LabelStartUpController extends Controller
                 'label_produk' => $request->label_produk[$index] ?? null,
                 'jam' => $request->jam[$index],
                 'foto_kode_produksi' => $fotoPath,
-                'hasil_pengecekan' => $request->hasil_pengecekan[$index],
-                'nama_operator' => $request->nama_operator[$index],
-                'ttd_operator' => $request->ttd_operator[$index],
-                'nama_qc' => $request->nama_qc[$index],
-                'ttd_qc' => $request->ttd_qc[$index],
+                'hasil_pengecekan' => $existingQcHasil,
+                'nama_operator' => $request->nama_operator[$index] ?? null,
+                'ttd_operator' => $request->ttd_operator[$index] ?? null,
+                'nama_qc' => $existingNamaQc,
+                'ttd_qc' => $existingTtdQc,
                 'tindakan_koreksi' => $request->tindakan_koreksi[$index] ?? null,
             ]);
         }
@@ -469,7 +527,7 @@ class LabelStartUpController extends Controller
                     $query->with('produk');
                 }, 'plan', 'shift', 'user'])
                 ->where('is_audit', $isAudit)
-                ->when($user->role_id != 1, function($q) use ($user) {
+                ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
                 });
 
@@ -567,7 +625,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
                   }
               });
         })
-            ->when($user->role_id != 1, function ($q) use ($user) {
+            ->when($user->role !== 'superadmin', function ($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
             });
 
@@ -584,7 +642,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
             ->paginate($perPage);
 
         // Load shifts and produks for the filter modal
-        if ($user->role_id == 1) { // Superadmin can see all
+        if ($user->role === 'superadmin') { // Superadmin can see all
             $shifts = DataShift::all();
             $produks = JenisProduk::all();
         } else {
@@ -605,7 +663,7 @@ $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
 
             $query = LabelStartUp::with(['plan', 'shift', 'user', 'details.produk'])
                 ->where('is_audit', true)
-                ->when($user->role_id != 1, fn($q) => $q->where('id_plan', $user->id_plan));
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan));
 
             if ($search) {
                 $query->whereHas('details.produk', function ($q) use ($search) {

@@ -707,7 +707,7 @@ class GmpKaryawanController extends Controller
             $items = GmpKaryawan::whereDate('tanggal', $tanggal)
                 ->where('shift_id', $shiftId)
                 ->where('id_area', $areaId)
-                ->where('id_plan', $user->id_plan)
+                ->when($user->role !== 'superadmin', fn($q) => $q->where('id_plan', $user->id_plan))
                 ->get();
 
             if ($items->isEmpty()) {

@@ -11,6 +11,16 @@
                 <span class="badge badge-secondary ml-1">{{ rtrim(rtrim(number_format($item->details->first()->berat, 2), '0'), '.') }} gram</span>
             @endif
         </div>
+        @php
+            $hasUnverified = $item->details->contains(function($d) { return empty($d->hasil_pengecekan); });
+        @endphp
+        <div class="mt-1">
+            @if($hasUnverified)
+                <span class="badge badge-warning" style="font-size: 0.72rem;"><i class="fas fa-clock mr-1"></i>Menunggu Verifikasi QC</span>
+            @else
+                <span class="badge badge-success" style="font-size: 0.72rem;"><i class="fas fa-check-circle mr-1"></i>Terverifikasi QC</span>
+            @endif
+        </div>
     </td>
     <td>
         @if($item->details->first() && $item->details->first()->label_produk)

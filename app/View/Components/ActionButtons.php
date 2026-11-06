@@ -65,7 +65,7 @@ class ActionButtons extends Component
         }
 
         // Auditor (id_role 6 or role 'auditor') or Audit page always has access to action buttons
-        if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor' || $this->isAuditPage || (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing'], true) && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 3, 4, 5], true))) {
+        if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor' || $this->isAuditPage || (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing', 'label-pemeriksaan', 'input-metal-detector'], true) && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 3, 4, 5], true))) {
             return true;
         }
 
@@ -109,10 +109,10 @@ class ActionButtons extends Component
         if (Auth::user()->id_role == 6 || Auth::user()->role === 'auditor') {
             return false;
         }
-        if (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing'], true) && (int) (Auth::user()->id_role ?? 0) === 3) {
+        if (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing', 'label-pemeriksaan', 'input-metal-detector'], true) && (int) (Auth::user()->id_role ?? 0) === 3) {
             return false;
         }
-        if (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing'], true) && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 5], true)) {
+        if (in_array($this->permissionPrefix, ['wizard-proses1', 'wizard-packing', 'label-pemeriksaan', 'input-metal-detector'], true) && in_array((int) (Auth::user()->id_role ?? 0), [1, 2, 5], true)) {
             return true;
         }
 

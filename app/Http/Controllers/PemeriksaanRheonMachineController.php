@@ -75,12 +75,14 @@ class PemeriksaanRheonMachineController extends Controller
     {
         $user = Auth::user();
         
-        // Get shifts filtered by user's plan
-        $shifts = DataShift::where('id_plan', $user->id_plan)->get();
-        
-        // Get products filtered by user's plan
-        $produk = JenisProduk::where('id_plan', $user->id_plan)->get();
-        
+        if ($user->role === 'superadmin') {
+            $shifts = DataShift::all();
+            $produk = JenisProduk::all();
+        } else {
+            $shifts = DataShift::where('id_plan', $user->id_plan)->get();
+            $produk = JenisProduk::where('id_plan', $user->id_plan)->get();
+        }
+
         return view('qc-sistem.pemeriksaan-rheon-machine.create', compact('shifts', 'produk'));
     }
 

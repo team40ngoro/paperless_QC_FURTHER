@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('container')
+@php
+    $canFillTemuan = auth()->user()->isQc() || auth()->user()->role === 'superadmin';
+@endphp
 <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <section class="content-header">
@@ -104,6 +107,7 @@
                                                         <th style="width: 170px;">Kondisi</th>
                                                         <th>Temuan Ketidaksesuaian</th>
                                                         <th>Tindakan Koreksi</th>
+                                                        <th style="width: 140px;" class="text-center">Verifikasi Hasil</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="barang-mudah-pecah-table-body">
@@ -115,7 +119,7 @@
                                                                 @continue
                                                             @endif
                                                             <tr class="table-secondary">
-                                                                <td colspan="6" class="font-weight-bold">
+                                                                <td colspan="7" class="font-weight-bold">
                                                                     {{ $area->area }}
                                                                     <div class="float-right">
                                                                         <div class="form-check form-check-inline mb-0">
@@ -145,10 +149,22 @@
                                                                         </select>
                                                                     </td>
                                                                     <td>
-                                                                        <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="Masukkan temuan (opsional)"></textarea>
+                                                                        <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="{{ $canFillTemuan ? 'Masukkan temuan (opsional)' : 'Hanya QC yang dapat mengisi' }}" @unless($canFillTemuan) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless></textarea>
                                                                     </td>
                                                                     <td>
                                                                         <textarea class="form-control" name="items[{{ $rowIndex }}][tindakan_koreksi]" rows="1" placeholder="Masukkan tindakan (opsional)"></textarea>
+                                                                    </td>
+                                                                    <td class="text-center align-middle">
+                                                                        @if($canFillTemuan)
+                                                                            <select class="form-control form-control-sm verifikasi-hasil-select" name="items[{{ $rowIndex }}][verifikasi_hasil]">
+                                                                                <option value="" selected>-</option>
+                                                                                <option value="OK">OK</option>
+                                                                                <option value="Tidak OK">Tidak OK</option>
+                                                                            </select>
+                                                                        @else
+                                                                            <span class="text-muted">-</span>
+                                                                            <input type="hidden" name="items[{{ $rowIndex }}][verifikasi_hasil]" value="">
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                                 @php $rowIndex++; @endphp
@@ -156,7 +172,7 @@
                                                         @endforeach
                                                     @else
                                                         <tr>
-                                                            <td colspan="6" class="text-center text-muted">
+                                                            <td colspan="7" class="text-center text-muted">
                                                                 Pilih shift terlebih dahulu untuk menampilkan data.
                                                             </td>
                                                         </tr>
@@ -252,7 +268,10 @@
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
                                             <label for="temuan_ketidaksesuaian_manual" class="font-weight-bold">Temuan Ketidaksesuaian Manual</label>
-                                            <textarea class="form-control @error('temuan_ketidaksesuaian_manual') is-invalid @enderror" id="temuan_ketidaksesuaian_manual" name="temuan_ketidaksesuaian_manual" rows="2" placeholder="Masukkan temuan (opsional)">{{ old('temuan_ketidaksesuaian_manual') }}</textarea>
+                                            @unless($canFillTemuan)
+                                                <div class="text-muted small mb-1"><i class="fas fa-lock"></i> Hanya QC yang dapat mengisi kolom ini</div>
+                                            @endunless
+                                            <textarea class="form-control @error('temuan_ketidaksesuaian_manual') is-invalid @enderror" id="temuan_ketidaksesuaian_manual" name="temuan_ketidaksesuaian_manual" rows="2" placeholder="{{ $canFillTemuan ? 'Masukkan temuan (opsional)' : 'Hanya QC yang dapat mengisi' }}" @unless($canFillTemuan) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>{{ old('temuan_ketidaksesuaian_manual') }}</textarea>
                                             @error('temuan_ketidaksesuaian_manual')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -264,6 +283,25 @@
                                             <label for="tindakan_koreksi_manual" class="font-weight-bold">Tindakan Koreksi Manual</label>
                                             <textarea class="form-control @error('tindakan_koreksi_manual') is-invalid @enderror" id="tindakan_koreksi_manual" name="tindakan_koreksi_manual" rows="2" placeholder="Masukkan tindakan (opsional)">{{ old('tindakan_koreksi_manual') }}</textarea>
                                             @error('tindakan_koreksi_manual')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="verifikasi_hasil_manual" class="font-weight-bold">Verifikasi Hasil Manual</label>
+                                            @if($canFillTemuan)
+                                                <select class="form-control @error('verifikasi_hasil_manual') is-invalid @enderror" id="verifikasi_hasil_manual" name="verifikasi_hasil_manual">
+                                                    <option value="">-</option>
+                                                    <option value="OK" {{ old('verifikasi_hasil_manual') == 'OK' ? 'selected' : '' }}>OK</option>
+                                                    <option value="Tidak OK" {{ old('verifikasi_hasil_manual') == 'Tidak OK' ? 'selected' : '' }}>Tidak OK</option>
+                                                </select>
+                                            @else
+                                                <div class="text-muted small mb-1"><i class="fas fa-lock"></i> Hanya QC yang dapat mengisi kolom ini</div>
+                                                <input type="text" class="form-control" value="-" readonly style="background:#f8f9fa;cursor:not-allowed;">
+                                            @endif
+                                            @error('verifikasi_hasil_manual')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
@@ -302,6 +340,11 @@
             allowClear: true
         });
 
+        var canFillTemuan = {{ $canFillTemuan ? 'true' : 'false' }};
+        var temuanAttr = canFillTemuan
+            ? 'placeholder="Masukkan temuan (opsional)"'
+            : 'placeholder="Hanya QC yang dapat mengisi" readonly style="background:#f8f9fa;cursor:not-allowed;"';
+
         function renderTableFromData(areas, barangByArea) {
             var tbody = $('#barang-mudah-pecah-table-body');
             tbody.empty();
@@ -309,7 +352,7 @@
             var index = 0;
             var no = 1;
             if (!Array.isArray(areas) || areas.length === 0) {
-                tbody.append('<tr><td colspan="6" class="text-center text-muted">Tidak ada data</td></tr>');
+                tbody.append('<tr><td colspan="7" class="text-center text-muted">Tidak ada data</td></tr>');
                 return;
             }
 
@@ -320,7 +363,7 @@
                 }
                 tbody.append(
                     '<tr class="table-secondary">' +
-                        '<td colspan="6" class="font-weight-bold">' +
+                        '<td colspan="7" class="font-weight-bold">' +
                             area.area +
                             '<div class="float-right">' +
                                 '<div class="form-check form-check-inline mb-0">' +
@@ -334,6 +377,19 @@
 
                 list.forEach(function(barang) {
                     var jumlah = (barang.jumlah === null || typeof barang.jumlah === 'undefined') ? 0 : barang.jumlah;
+                    var verifCell = canFillTemuan
+                        ? '<td>' +
+                            '<select class="form-control form-control-sm verifikasi-hasil-select" name="items[' + index + '][verifikasi_hasil]">' +
+                                '<option value="" selected>-</option>' +
+                                '<option value="OK">OK</option>' +
+                                '<option value="Tidak OK">Tidak OK</option>' +
+                            '</select>' +
+                          '</td>'
+                        : '<td class="text-center align-middle">' +
+                            '<span class="text-muted">-</span>' +
+                            '<input type="hidden" name="items[' + index + '][verifikasi_hasil]" value="">' +
+                          '</td>';
+
                     tbody.append(
                         '<tr data-area-id="' + area.id + '" data-barang-id="' + barang.id + '" data-index="' + index + '">' +
                             '<td>' + (no++) + '</td>' +
@@ -347,11 +403,12 @@
                                 '</select>' +
                             '</td>' +
                             '<td>' +
-                                '<textarea class="form-control" name="items[' + index + '][temuan_ketidaksesuaian]" rows="1" placeholder="Masukkan temuan (opsional)"></textarea>' +
+                                '<textarea class="form-control" name="items[' + index + '][temuan_ketidaksesuaian]" rows="1" ' + temuanAttr + '></textarea>' +
                             '</td>' +
                             '<td>' +
                                 '<textarea class="form-control" name="items[' + index + '][tindakan_koreksi]" rows="1" placeholder="Masukkan tindakan (opsional)"></textarea>' +
                             '</td>' +
+                            verifCell +
                         '</tr>'
                     );
                     index++;
@@ -479,10 +536,10 @@
         function toggleManualInput() {
             if ($('#is_manual').is(':checked')) {
                 $('#manual-input-container').show();
-                $('#id_area_manual, #id_sub_area_manual, #nama_barang_manual, #jumlah_manual, #kondisi_manual, #nama_karyawan, #temuan_ketidaksesuaian_manual, #tindakan_koreksi_manual').prop('disabled', false);
+                $('#id_area_manual, #id_sub_area_manual, #nama_barang_manual, #jumlah_manual, #kondisi_manual, #nama_karyawan, #temuan_ketidaksesuaian_manual, #tindakan_koreksi_manual, #verifikasi_hasil_manual').prop('disabled', false);
             } else {
                 $('#manual-input-container').hide();
-                $('#id_area_manual, #id_sub_area_manual, #nama_barang_manual, #jumlah_manual, #kondisi_manual, #nama_karyawan, #temuan_ketidaksesuaian_manual, #tindakan_koreksi_manual').prop('disabled', true);
+                $('#id_area_manual, #id_sub_area_manual, #nama_barang_manual, #jumlah_manual, #kondisi_manual, #nama_karyawan, #temuan_ketidaksesuaian_manual, #tindakan_koreksi_manual, #verifikasi_hasil_manual').prop('disabled', true);
             }
         }
 

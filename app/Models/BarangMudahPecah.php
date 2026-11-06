@@ -32,6 +32,8 @@ class BarangMudahPecah extends Model
         'kondisi',
         'kode_form',
         'temuan_ketidaksesuaian',
+        'tindakan_koreksi',
+        'verifikasi_hasil',
         'id_area',
         'id_sub_area',
         'is_manual',

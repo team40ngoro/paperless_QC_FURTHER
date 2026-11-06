@@ -50,9 +50,15 @@
                         <a href="{{ route('label-pemeriksaan.audit') }}" class="btn btn-sm btn-purple mr-1">
                             <i class="fas fa-history"></i>
                         </a>
+                        @php
+                            $userRole = (int) (auth()->user()->id_role ?? 0);
+                            $canCreateLabel = $userRole !== 3 && (in_array($userRole, [1, 2, 5], true) || auth()->user()->hasPermissionTo('create-label-pemeriksaan'));
+                        @endphp
+                        @if($canCreateLabel)
                         <a href="{{ route('label-pemeriksaan.create') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus"></i> Tambah Data
+                            <i class="fas fa-plus"></i> Tambah Data (Produksi)
                         </a>
+                        @endif
                     </div>
                 </div>
 
@@ -81,7 +87,7 @@
                         @endif
                         @if($canApproveSPV)
                             <button type="button" class="btn btn-sm approve-selected-btn" data-type="spv" style="background-color: #ffc107; border: none; color: #333; font-weight: 500; padding: 6px 14px; border-radius: 4px;">
-                                <i class="fas fa-check mr-1"></i> SPV
+                                <i class="fas fa-check mr-1"></i> SPV QC
                             </button>
                         @endif
                     </div>

@@ -1,6 +1,13 @@
 @extends('layouts.app')
 
 @section('container')
+@php
+    $currentUser = auth()->user();
+    $isSuperadmin = $currentUser->role === 'superadmin' || (int) ($currentUser->id_role ?? 0) === 5;
+    $isQcInspector = !$isSuperadmin && ($currentUser->isQcInspector() || (int) ($currentUser->id_role ?? 0) === 3);
+    $canEditTemuan = $isSuperadmin || $currentUser->isQc();
+    $canEditOthers = $isSuperadmin || !$isQcInspector;
+@endphp
 <div class="content-wrapper">
     <div class="content-header">
         <div class="container-fluid">
@@ -40,7 +47,11 @@
 
                                             <input type="date" class="form-control"
                                                 value="{{ $barangMudahPecah->tanggal ? \Carbon\Carbon::parse($barangMudahPecah->tanggal)->format('Y-m-d') : '' }}"
-                                                onchange="this.form.querySelector('input[name=tanggal]').value = this.value + 'T' + '{{ $barangMudahPecah->tanggal ? \Carbon\Carbon::parse($barangMudahPecah->tanggal)->format('H:i:s') : '' }}'">
+                                                @if($canEditOthers)
+                                                    onchange="this.form.querySelector('input[name=tanggal]').value = this.value + 'T' + '{{ $barangMudahPecah->tanggal ? \Carbon\Carbon::parse($barangMudahPecah->tanggal)->format('H:i:s') : '' }}'"
+                                                @else
+                                                    readonly style="background:#f8f9fa;cursor:not-allowed;"
+                                                @endif>
 
                                             <input type="hidden" name="tanggal"
                                                 value="{{ $barangMudahPecah->tanggal ? \Carbon\Carbon::parse($barangMudahPecah->tanggal)->format('Y-m-d\TH:i:s') : '' }}">
@@ -51,7 +62,8 @@
                                         <div class="form-group mb-3">
                                             <label class="font-weight-bold">Jam</label>
                                             <input type="time" class="form-control" name="jam"
-                                                value="{{ $barangMudahPecah->jam ? \Carbon\Carbon::parse($barangMudahPecah->jam)->format('H:i') : '' }}">
+                                                value="{{ $barangMudahPecah->jam ? \Carbon\Carbon::parse($barangMudahPecah->jam)->format('H:i') : '' }}"
+                                                @unless($canEditOthers) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -74,6 +86,7 @@
                                                         <th style="width: 170px;">Kondisi</th>
                                                         <th>Temuan Ketidaksesuaian</th>
                                                         <th>Tindakan Koreksi</th>
+                                                        <th style="width: 140px;" class="text-center">Verifikasi Hasil</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -97,6 +110,7 @@
                                                                         'kondisi' => $jsonRow['kondisi'] ?? '',
                                                                         'temuan_ketidaksesuaian' => $jsonRow['temuan_ketidaksesuaian'] ?? '',
                                                                         'tindakan_koreksi' => $jsonRow['tindakan_koreksi'] ?? '',
+                                                                        'verifikasi_hasil' => $jsonRow['verifikasi_hasil'] ?? '',
                                                                         'is_manual' => false
                                                                     ]);
                                                                 }
@@ -111,6 +125,7 @@
                                                                     'kondisi' => $record->kondisi ?? '',
                                                                     'temuan_ketidaksesuaian' => $record->temuan_ketidaksesuaian ?? '',
                                                                     'tindakan_koreksi' => $record->tindakan_koreksi ?? '',
+                                                                    'verifikasi_hasil' => $record->verifikasi_hasil ?? '',
                                                                     'is_manual' => $record->is_manual,
                                                                     'nama_karyawan' => $record->is_manual ? $record->nama_karyawan : null
                                                                 ]);
@@ -122,8 +137,16 @@
                                                     @forelse($grouped as $areaId => $items)
                                                         @php $areaName = $items->first()->area_name; @endphp
                                                         <tr class="table-secondary">
-                                                            <td colspan="6" class="font-weight-bold">
+                                                            <td colspan="7" class="font-weight-bold">
                                                                 {{ $areaName }}
+                                                                @if($canEditTemuan)
+                                                                    <div class="float-right">
+                                                                        <div class="form-check form-check-inline mb-0">
+                                                                            <input class="form-check-input check-all-verif-ok" type="checkbox" data-area-id="{{ $areaId }}" id="check_all_verif_{{ $areaId }}">
+                                                                            <label class="form-check-label font-weight-bold text-success" for="check_all_verif_{{ $areaId }}">Check All Verifikasi OK</label>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
                                                             </td>
                                                         </tr>
 
@@ -139,7 +162,8 @@
                                                                                    class="form-control form-control-sm" 
                                                                                    name="items[{{ $rowIndex }}][nama_karyawan]" 
                                                                                    value="{{ old("items.$rowIndex.nama_karyawan", $item->nama_karyawan) }}" 
-                                                                                   placeholder="Nama Karyawan">
+                                                                                   placeholder="Nama Karyawan"
+                                                                                   @unless($canEditOthers) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>
                                                                         </div>
                                                                     @endif
                                                                     <input type="hidden" name="items[{{ $rowIndex }}][record_uuid]" value="{{ $item->record_uuid }}">
@@ -151,23 +175,42 @@
                                                                     <input type="number" class="form-control" value="{{ $item->jumlah }}" readonly>
                                                                 </td>
                                                                 <td>
-                                                                    <select class="form-control" name="items[{{ $rowIndex }}][kondisi]" required>
+                                                                    <select class="form-control" name="items[{{ $rowIndex }}][kondisi]" required
+                                                                            @unless($canEditOthers) style="pointer-events: none; background-color: #f8f9fa;" tabindex="-1" @endunless>
                                                                         <option value="OK" {{ old("items.$rowIndex.kondisi", $item->kondisi) == 'OK' ? 'selected' : '' }}>OK</option>
                                                                         <option value="Tidak OK" {{ old("items.$rowIndex.kondisi", $item->kondisi) == 'Tidak OK' ? 'selected' : '' }}>Tidak OK</option>
                                                                     </select>
                                                                 </td>
                                                                 <td>
-                                                                    <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="Masukkan temuan (opsional)">{{ old("items.$rowIndex.temuan_ketidaksesuaian", $item->temuan_ketidaksesuaian) }}</textarea>
+                                                                    <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="{{ $canEditTemuan ? 'Masukkan temuan (opsional)' : 'Hanya QC yang dapat mengisi' }}" @unless($canEditTemuan) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>{{ old("items.$rowIndex.temuan_ketidaksesuaian", $item->temuan_ketidaksesuaian) }}</textarea>
                                                                 </td>
                                                                 <td>
-                                                                    <textarea class="form-control" name="items[{{ $rowIndex }}][tindakan_koreksi]" rows="1" placeholder="Masukkan tindakan (opsional)">{{ old("items.$rowIndex.tindakan_koreksi", $item->tindakan_koreksi) }}</textarea>
+                                                                    <textarea class="form-control" name="items[{{ $rowIndex }}][tindakan_koreksi]" rows="1" placeholder="{{ $canEditOthers ? 'Masukkan tindakan (opsional)' : 'Hanya Produksi yang dapat mengisi' }}" @unless($canEditOthers) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>{{ old("items.$rowIndex.tindakan_koreksi", $item->tindakan_koreksi) }}</textarea>
+                                                                </td>
+                                                                <td class="text-center align-middle">
+                                                                    @if(auth()->user()->isProduksi())
+                                                                        @if($item->verifikasi_hasil === 'OK')
+                                                                            <span class="badge badge-success">OK</span>
+                                                                        @elseif($item->verifikasi_hasil === 'Tidak OK')
+                                                                            <span class="badge badge-danger">Tidak OK</span>
+                                                                        @else
+                                                                            <span class="text-muted">-</span>
+                                                                        @endif
+                                                                        <input type="hidden" name="items[{{ $rowIndex }}][verifikasi_hasil]" value="{{ $item->verifikasi_hasil }}">
+                                                                    @else
+                                                                        <select name="items[{{ $rowIndex }}][verifikasi_hasil]" class="form-control form-control-sm verif-hasil-select" data-area-id="{{ $areaId }}">
+                                                                            <option value="" {{ old("items.$rowIndex.verifikasi_hasil", $item->verifikasi_hasil) === '' ? 'selected' : '' }}>-</option>
+                                                                            <option value="OK" {{ old("items.$rowIndex.verifikasi_hasil", $item->verifikasi_hasil) == 'OK' ? 'selected' : '' }}>OK</option>
+                                                                            <option value="Tidak OK" {{ old("items.$rowIndex.verifikasi_hasil", $item->verifikasi_hasil) == 'Tidak OK' ? 'selected' : '' }}>Tidak OK</option>
+                                                                        </select>
+                                                                    @endif
                                                                 </td>
                                                             </tr>
                                                             @php $rowIndex++; @endphp
                                                         @endforeach
                                                     @empty
                                                         <tr>
-                                                            <td colspan="6" class="text-center text-muted">Data tidak ditemukan.</td>
+                                                            <td colspan="7" class="text-center text-muted">Data tidak ditemukan.</td>
                                                         </tr>
                                                     @endforelse
                                                 </tbody>
@@ -199,6 +242,12 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        $(document).on('change', '.check-all-verif-ok', function() {
+            var areaId = $(this).data('area-id');
+            var isChecked = $(this).is(':checked');
+            var value = isChecked ? 'OK' : '';
+            $('.verif-hasil-select[data-area-id="' + areaId + '"]').val(value);
+        });
     });
 </script>
 @endpush

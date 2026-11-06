@@ -34,6 +34,8 @@ class InputMetalDetector extends Model
         'qc_approved_at' => 'datetime',
         'produksi_approved_at' => 'datetime',
         'spv_approved_at' => 'datetime',
+        'qc_verified_at' => 'datetime',
+        'jumlah_reject' => 'integer',
         'aktual_json_metal' => 'array',
     ];
     protected $fillable = [
@@ -71,6 +73,18 @@ class InputMetalDetector extends Model
         'produksi_approved_at',
         'spv_approved_at',
         'aktual_json_metal',
+        'merk',
+        'waktu_mulai',
+        'waktu_selesai',
+        'gramasi',
+        'jumlah_reject',
+        'nama_operator',
+        'spv_foreman',
+        'keterangan_b',
+        'verifikasi_detail',
+        'verifikasi_hasil_proses',
+        'nama_qc',
+        'qc_verified_at',
     ];
      public function __construct(array $attributes = [])
     {

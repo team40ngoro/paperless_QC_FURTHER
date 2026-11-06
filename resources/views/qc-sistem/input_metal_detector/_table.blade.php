@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Schema;
                 <th class="text-center bg-warning" colspan="3">SUS 316 2.5 mm</th> -->
                 <!-- <th class="text-center align-middle" rowspan="2">Keterangan</th> -->
                 <th class="text-center align-middle" rowspan="2">Dibuat Oleh</th>
+                <th class="text-center align-middle" rowspan="2">Verifikasi QC</th>
                 <th class="text-center align-middle" rowspan="2">Status Appr</th>
                 <th class="text-center align-middle" rowspan="2">Aksi</th>
             </tr>
@@ -97,6 +98,20 @@ use Illuminate\Support\Facades\Schema;
                     <td class="text-center align-middle">{{ data_get($item, 'produk.nama_produk', '-') }} {{ data_get($item, 'berat_produk', '-') }} gram</td>
                     <td class="text-center align-middle">{{ data_get($item, 'kode_produksi', '-') }}</td>
                     <td class="text-center align-middle">{{ data_get($item, 'user.name', '-') }}</td>
+                    <td class="text-center align-middle">
+                        @if(data_get($item, 'verifikasi_detail') && data_get($item, 'verifikasi_hasil_proses'))
+                            <span class="badge badge-success" title="Terverifikasi QC">
+                                <i class="fas fa-check-circle mr-1"></i> Terverifikasi
+                            </span>
+                            @if(data_get($item, 'nama_qc'))
+                                <br><small class="text-muted">{{ data_get($item, 'nama_qc') }}</small>
+                            @endif
+                        @else
+                            <span class="badge badge-warning" title="Menunggu Uji Spesimen & Verifikasi QC">
+                                <i class="fas fa-hourglass-half mr-1"></i> Menunggu QC
+                            </span>
+                        @endif
+                    </td>
                     <td class="align-middle">
                         <div class="status-badges d-flex flex-column align-items-center">
                             <span class="badge {{ data_get($item, 'approved_by_qc') ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
@@ -121,7 +136,7 @@ use Illuminate\Support\Facades\Schema;
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ isset($isAuditPage) && $isAuditPage ? 10 : 11 }}" class="text-center align-middle py-4">
+                    <td colspan="{{ isset($isAuditPage) && $isAuditPage ? 11 : 12 }}" class="text-center align-middle py-4">
                         <em class="text-muted">Tidak ada data</em>
                     </td>
                 </tr>

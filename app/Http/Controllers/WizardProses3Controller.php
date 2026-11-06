@@ -177,8 +177,13 @@ class WizardProses3Controller extends Controller
             $draftData = InputRoasting::where('uuid', $continueUuid)->first();
         }
 
-        $produk = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
-        $shift = DataShift::where('id_plan', $user->id_plan)->get();
+        if ($user->role === 'superadmin') {
+            $produk = JenisProduk::orderBy('nama_produk', 'asc')->get();
+            $shift  = DataShift::all();
+        } else {
+            $produk = JenisProduk::where('id_plan', $user->id_plan)->orderBy('nama_produk', 'asc')->get();
+            $shift  = DataShift::where('id_plan', $user->id_plan)->get();
+        }
         $suhuBlok = SuhuBlok::all();
         $stdFan = StdFan::all();
         $stdSuhuPusat = StdSuhuPusatRoasting::all();
@@ -204,7 +209,7 @@ class WizardProses3Controller extends Controller
 
             $record = InputRoasting::create([
                 'uuid'                => (string) Str::uuid(),
-                'id_plan'             => $user->id_plan,
+                'id_plan'             => $this->resolvePlanId($user, $request->id_produk),
                 'shift_id'            => $request->id_shift, // Sesuai Model
                 'user_id'             => $user->id,
                 'id_produk'           => $request->id_produk,
@@ -325,7 +330,7 @@ class WizardProses3Controller extends Controller
 
             $record = ProsesRoastingFan::create([
                 'uuid'                => Str::uuid(),
-                'id_plan'             => $user->id_plan,
+                'id_plan'             => $this->resolvePlanId($user, $validated['id_produk'], $inputRoasting?->id_plan),
                 'user_id'             => $user->id,
                 'id_produk'           => $validated['id_produk'],
                 'id_shift'            => $inputRoasting ? $inputRoasting->shift_id : null,
@@ -394,7 +399,7 @@ class WizardProses3Controller extends Controller
 
             $record = HasilProsesRoasting::create([
                 'uuid'                     => Str::uuid(),
-                'id_plan'                  => $user->id_plan,
+                'id_plan'                  => $this->resolvePlanId($user, $request->id_produk, $roastingFan?->id_plan),
                 'id_shift'                 => $roastingFan?->id_shift,
                 'user_id'                  => $user->id,
                 'id_produk'                => $request->id_produk,
@@ -440,7 +445,7 @@ class WizardProses3Controller extends Controller
 
             $record = PembekuanIqfRoasting::create([
                 'uuid'                       => Str::uuid(),
-                'id_plan'                    => $user->id_plan,
+                'id_plan'                    => $this->resolvePlanId($user, $hasilRoasting?->id_produk, $hasilRoasting?->id_plan),
                 'shift_id'                   => $hasilRoasting?->id_shift,
                 'user_id'                    => $user->id,
                 'id_produk'                  => $hasilRoasting?->id_produk,

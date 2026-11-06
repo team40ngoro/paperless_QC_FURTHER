@@ -330,7 +330,7 @@ class WizardPackingController extends Controller
             $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanProduk::create([
                 'uuid'             => Str::uuid(),
-                'id_plan'          => $user->id_plan,
+                'id_plan'          => $this->resolvePlanId($user, $request->id_produk),
                 'user_id'          => $user->id,
                 'id_produk'        => $request->id_produk,
                 'id_shift'         => $request->id_shift,
@@ -380,7 +380,7 @@ class WizardPackingController extends Controller
             $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanPlastik::create([
                 'uuid' => Str::uuid(),
-                'id_plan' => $user->id_plan,
+                'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                 'user_id' => $user->id,
                 'id_pengemasan_produk' => $request->id_pengemasan_produk,
                 'id_shift' => $id_shift,
@@ -415,7 +415,7 @@ class WizardPackingController extends Controller
             if ($deny = $this->denyUnless(['all'])) return $deny;
             foreach ($request->line as $index => $line) {
                 $record = BeratProdukBag::create([
-                    'id_plan' => $user->id_plan,
+                    'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                     'user_id' => $user->id,
                     'id_pengemasan_produk' => $request->id_pengemasan_produk,
                     'id_pengemasan_plastik' => $request->id_pengemasan_plastik,
@@ -460,7 +460,7 @@ class WizardPackingController extends Controller
 
             if ($deny = $this->denyUnless(['all'])) return $deny;
             $record = BeratProdukBox::create([
-                'id_plan' => $user->id_plan,
+                'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                 'user_id' => $user->id,
                 'id_pengemasan_produk' => $request->id_pengemasan_produk,
                 'id_pengemasan_plastik' => $request->id_pengemasan_plastik,
@@ -487,7 +487,7 @@ class WizardPackingController extends Controller
             $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanKarton::create([
                 'uuid' => Str::uuid(),
-                'id_plan' => $user->id_plan,
+                'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                 'user_id' => $user->id,
                 'id_pengemasan_produk' => $request->id_pengemasan_produk,
                 'id_pengemasan_plastik' => $request->id_pengemasan_plastik,
@@ -590,7 +590,7 @@ class WizardPackingController extends Controller
 
             $record = Dokumentasi::create([
                 'uuid' => Str::uuid(),
-                'id_plan' => $user->id_plan,
+                'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                 'user_id' => $user->id,
                 'id_pengemasan_produk' => $request->id_pengemasan_produk,
                 'id_pengemasan_plastik' => $request->id_pengemasan_plastik,

@@ -201,7 +201,10 @@
     <!-- Brand Logo -->
     <a href="#" class="brand-link">
         <img src="{{ asset($assetPath . 'dist/img/cpi-logo.png') }}" alt="Paperless Future Logo" class="brand-image elevation-3" style="opacity: .8">
-        <span class="brand-text font-weight-bold" >Paperless Further</span>
+        <span class="brand-text font-weight-bold" style="line-height: 1.2;">
+            <span>Paperless Further</span>
+            <small style="display: block; font-size: 0.68rem !important; font-weight: 600; color: #64748b !important; letter-spacing: 0.2px;">Plant Ngoro - Mojokerto</small>
+        </span>
     </a>
 
     <!-- Sidebar -->
