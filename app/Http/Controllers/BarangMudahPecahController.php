@@ -275,6 +275,8 @@ class BarangMudahPecahController extends Controller
 
         $effectivePlanId = ($user->role === 'superadmin') ? $selectedShift->id_plan : $user->id_plan;
 
+        $canFillTemuan = $user->isQc() || $user->role === 'superadmin' || (int) ($user->id_role ?? 0) === 5;
+
         $itemsData = [];
         $mapping = json_decode($request->items_mapping, true) ?? [];
         foreach ((array) $request->items as $idx => $row) {
@@ -299,7 +301,7 @@ class BarangMudahPecahController extends Controller
                 'nama_barang' => $barang->nama_barang,
                 'jumlah' => $row['jumlah'],
                 'kondisi' => $kondisi,
-                'temuan_ketidaksesuaian' => $row['temuan_ketidaksesuaian'] ?? null,
+                'temuan_ketidaksesuaian' => $canFillTemuan ? ($row['temuan_ketidaksesuaian'] ?? null) : null,
                 'tindakan_koreksi' => $row['tindakan_koreksi'] ?? null,
             ];
         }
@@ -344,7 +346,7 @@ class BarangMudahPecahController extends Controller
                 'jumlah' => $request->jumlah_manual,
                 'nama_karyawan' => $request->nama_karyawan,
                 'kondisi' => $request->kondisi_manual,
-                'temuan_ketidaksesuaian' => $request->temuan_ketidaksesuaian_manual,
+                'temuan_ketidaksesuaian' => $canFillTemuan ? $request->temuan_ketidaksesuaian_manual : null,
                 'tindakan_koreksi' => $request->tindakan_koreksi_manual,
             ]);
         }
@@ -431,41 +433,66 @@ class BarangMudahPecahController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
         }
 
+        $isSuperadmin = $user->role === 'superadmin' || (int) ($user->id_role ?? 0) === 5;
+        $isQcInspector = !$isSuperadmin && ($user->isQcInspector() || (int) ($user->id_role ?? 0) === 3);
+        $canEditTemuan = $isSuperadmin || $user->isQc();
+        $canEditOthers = $isSuperadmin || !$isQcInspector;
+
         // Jika edit via tabel (seperti create): update massal kondisi per item
         if ($request->has('items')) {
-            $request->validate([
+            $rules = [
                 'items' => 'required|array|min:1',
                 'items.*.record_uuid' => 'required|exists:barang_mudah_pecah,uuid',
-                'items.*.kondisi' => 'required|in:OK,Tidak OK',
+                'items.*.kondisi' => $canEditOthers ? 'required|in:OK,Tidak OK' : 'nullable|in:OK,Tidak OK',
                 'items.*.temuan_ketidaksesuaian' => 'nullable|string|max:1000',
                 'items.*.tindakan_koreksi' => 'nullable|string|max:1000',
                 'items.*.nama_karyawan' => 'nullable|string|max:255',
-            ]);
+            ];
+            $request->validate($rules);
 
             foreach ((array) $request->items as $idx => $row) {
                 $record = BarangMudahPecah::where('uuid', $row['record_uuid'])->firstOrFail();
 
-                // update record tanggal dan jam apakah disini?
-                $record->tanggal = Carbon::parse(str_replace('T', ' ', $request->tanggal));
-                $record->jam = Carbon::parse($request->jam)->format('H:i');
                 if ($user->role !== 'superadmin' && (int) $record->id_plan !== (int) $user->id_plan) {
                     abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
+                }
+
+                // Hanya role selain QC Inspector yang boleh update tanggal dan jam
+                if ($canEditOthers && $request->filled('tanggal') && $request->filled('jam')) {
+                    $record->tanggal = Carbon::parse(str_replace('T', ' ', $request->tanggal));
+                    $record->jam = Carbon::parse($request->jam)->format('H:i');
                 }
 
                 if (isset($row['json_index'])) {
                     $itemsJson = $record->items_json;
                     if (isset($itemsJson[$row['json_index']])) {
-                        $itemsJson[$row['json_index']]['kondisi'] = $row['kondisi'];
-                        $itemsJson[$row['json_index']]['temuan_ketidaksesuaian'] = $row['temuan_ketidaksesuaian'] ?? null;
-                        $itemsJson[$row['json_index']]['tindakan_koreksi'] = $row['tindakan_koreksi'] ?? null;
+                        // Jika berhak edit field umum (Produksi / SPV QC / Superadmin)
+                        if ($canEditOthers && isset($row['kondisi'])) {
+                            $itemsJson[$row['json_index']]['kondisi'] = $row['kondisi'];
+                            $itemsJson[$row['json_index']]['tindakan_koreksi'] = $row['tindakan_koreksi'] ?? null;
+                        }
+
+                        // Jika berhak edit temuan (QC Inspector / SPV QC / Superadmin)
+                        if ($canEditTemuan) {
+                            $itemsJson[$row['json_index']]['temuan_ketidaksesuaian'] = $row['temuan_ketidaksesuaian'] ?? null;
+                        }
+
                         $record->items_json = $itemsJson;
                     }
                 } else {
-                    $record->kondisi = $row['kondisi'];
-                    $record->temuan_ketidaksesuaian = $row['temuan_ketidaksesuaian'] ?? null;
-                    $record->tindakan_koreksi = $row['tindakan_koreksi'] ?? null;
-                    if (isset($row['nama_karyawan'])) {
-                        $record->nama_karyawan = $row['nama_karyawan'];
+                    // Non-json row (misal manual item)
+                    if ($canEditOthers) {
+                        if (isset($row['kondisi'])) {
+                            $record->kondisi = $row['kondisi'];
+                        }
+                        $record->tindakan_koreksi = $row['tindakan_koreksi'] ?? null;
+                        if (array_key_exists('nama_karyawan', $row)) {
+                            $record->nama_karyawan = $row['nama_karyawan'];
+                        }
+                    }
+
+                    if ($canEditTemuan) {
+                        $record->temuan_ketidaksesuaian = $row['temuan_ketidaksesuaian'] ?? null;
                     }
                 }
 
@@ -529,21 +556,26 @@ class BarangMudahPecahController extends Controller
             }
         }
 
-        $barangMudahPecah->update([
-            'id_plan' => $effectivePlanId,
-            'shift_id' => $request->shift_id,
-            'tanggal' => $request->tanggal,
-            'id_area' => $request->id_area,
-            'id_sub_area' => $request->id_sub_area,
-            'is_manual' => $isManual,
-            'id_nama_barang' => ! $isManual ? $request->id_nama_barang : null,
-            'nama_barang_manual' => $isManual ? $request->nama_barang_manual : null,
-            'jumlah' => $request->jumlah,
-            'nama_karyawan' => $isManual ? $request->nama_karyawan : null,
-            'kondisi' => $request->kondisi,
-            'temuan_ketidaksesuaian' => $request->temuan_ketidaksesuaian,
-            'tindakan_koreksi' => $request->tindakan_koreksi,
-        ]);
+        $updateData = [];
+        if ($canEditOthers) {
+            $updateData['id_plan'] = $effectivePlanId;
+            $updateData['shift_id'] = $request->shift_id;
+            $updateData['tanggal'] = $request->tanggal;
+            $updateData['id_area'] = $request->id_area;
+            $updateData['id_sub_area'] = $request->id_sub_area;
+            $updateData['is_manual'] = $isManual;
+            $updateData['id_nama_barang'] = ! $isManual ? $request->id_nama_barang : null;
+            $updateData['nama_barang_manual'] = $isManual ? $request->nama_barang_manual : null;
+            $updateData['jumlah'] = $request->jumlah;
+            $updateData['nama_karyawan'] = $isManual ? $request->nama_karyawan : null;
+            $updateData['kondisi'] = $request->kondisi;
+            $updateData['tindakan_koreksi'] = $request->tindakan_koreksi;
+        }
+        if ($canEditTemuan) {
+            $updateData['temuan_ketidaksesuaian'] = $request->temuan_ketidaksesuaian;
+        }
+
+        $barangMudahPecah->update($updateData);
 
         return redirect()->route($barangMudahPecah->is_audit ? 'barang-mudah-pecah.audit' : 'barang-mudah-pecah.index')
             ->with('success', 'Data barang mudah pecah berhasil diperbarui.');

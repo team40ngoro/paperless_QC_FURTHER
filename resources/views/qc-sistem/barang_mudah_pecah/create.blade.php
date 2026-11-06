@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('container')
+@php
+    $canFillTemuan = auth()->user()->isQc() || auth()->user()->role === 'superadmin';
+@endphp
 <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <section class="content-header">
@@ -145,7 +148,7 @@
                                                                         </select>
                                                                     </td>
                                                                     <td>
-                                                                        <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="Masukkan temuan (opsional)"></textarea>
+                                                                        <textarea class="form-control" name="items[{{ $rowIndex }}][temuan_ketidaksesuaian]" rows="1" placeholder="{{ $canFillTemuan ? 'Masukkan temuan (opsional)' : 'Hanya QC yang dapat mengisi' }}" @unless($canFillTemuan) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless></textarea>
                                                                     </td>
                                                                     <td>
                                                                         <textarea class="form-control" name="items[{{ $rowIndex }}][tindakan_koreksi]" rows="1" placeholder="Masukkan tindakan (opsional)"></textarea>
@@ -252,7 +255,10 @@
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
                                             <label for="temuan_ketidaksesuaian_manual" class="font-weight-bold">Temuan Ketidaksesuaian Manual</label>
-                                            <textarea class="form-control @error('temuan_ketidaksesuaian_manual') is-invalid @enderror" id="temuan_ketidaksesuaian_manual" name="temuan_ketidaksesuaian_manual" rows="2" placeholder="Masukkan temuan (opsional)">{{ old('temuan_ketidaksesuaian_manual') }}</textarea>
+                                            @unless($canFillTemuan)
+                                                <div class="text-muted small mb-1"><i class="fas fa-lock"></i> Hanya QC yang dapat mengisi kolom ini</div>
+                                            @endunless
+                                            <textarea class="form-control @error('temuan_ketidaksesuaian_manual') is-invalid @enderror" id="temuan_ketidaksesuaian_manual" name="temuan_ketidaksesuaian_manual" rows="2" placeholder="{{ $canFillTemuan ? 'Masukkan temuan (opsional)' : 'Hanya QC yang dapat mengisi' }}" @unless($canFillTemuan) readonly style="background:#f8f9fa;cursor:not-allowed;" @endunless>{{ old('temuan_ketidaksesuaian_manual') }}</textarea>
                                             @error('temuan_ketidaksesuaian_manual')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -302,6 +308,11 @@
             allowClear: true
         });
 
+        var canFillTemuan = {{ $canFillTemuan ? 'true' : 'false' }};
+        var temuanAttr = canFillTemuan
+            ? 'placeholder="Masukkan temuan (opsional)"'
+            : 'placeholder="Hanya QC yang dapat mengisi" readonly style="background:#f8f9fa;cursor:not-allowed;"';
+
         function renderTableFromData(areas, barangByArea) {
             var tbody = $('#barang-mudah-pecah-table-body');
             tbody.empty();
@@ -347,7 +358,7 @@
                                 '</select>' +
                             '</td>' +
                             '<td>' +
-                                '<textarea class="form-control" name="items[' + index + '][temuan_ketidaksesuaian]" rows="1" placeholder="Masukkan temuan (opsional)"></textarea>' +
+                                '<textarea class="form-control" name="items[' + index + '][temuan_ketidaksesuaian]" rows="1" ' + temuanAttr + '></textarea>' +
                             '</td>' +
                             '<td>' +
                                 '<textarea class="form-control" name="items[' + index + '][tindakan_koreksi]" rows="1" placeholder="Masukkan tindakan (opsional)"></textarea>' +
