@@ -146,6 +146,7 @@
                             'kondisi' => $jsonRow['kondisi'] ?? '-',
                             'temuan' => $jsonRow['temuan_ketidaksesuaian'] ?? '',
                             'tindakan' => $jsonRow['tindakan_koreksi'] ?? '',
+                            'verifikasi_hasil' => $jsonRow['verifikasi_hasil'] ?? null,
                             'is_manual' => false,
                             'nama_karyawan' => null
                         ]);
@@ -159,6 +160,7 @@
                         'kondisi' => $record->kondisi ?? '-',
                         'temuan' => $record->temuan_ketidaksesuaian ?? '',
                         'tindakan' => $record->tindakan_koreksi ?? '',
+                        'verifikasi_hasil' => $record->verifikasi_hasil ?? null,
                         'is_manual' => $record->is_manual,
                         'nama_karyawan' => $record->is_manual ? $record->nama_karyawan : null
                     ]);
@@ -186,17 +188,18 @@
             <thead>
                 <tr>
                     <th style="width: 5%;">No</th>
-                    <th style="width: 35%;">Nama Barang</th>
-                    <th style="width: 10%;">Jumlah</th>
-                    <th style="width: 10%;">Kondisi</th>
-                    <th style="width: 20%;">Temuan Ketidaksesuaian</th>
-                    <th style="width: 20%;">Tindakan Koreksi</th>
+                    <th style="width: 25%;">Nama Barang</th>
+                    <th style="width: 8%;">Jumlah</th>
+                    <th style="width: 8%;">Kondisi</th>
+                    <th style="width: 18%;">Temuan Ketidaksesuaian</th>
+                    <th style="width: 18%;">Tindakan Koreksi</th>
+                    <th style="width: 18%;">Verifikasi Hasil</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($groupedByArea as $areaId => $items)
                     <tr>
-                        <td colspan="6" style="text-align: left; font-weight: bold; background-color: #e9ecef;">
+                        <td colspan="7" style="text-align: left; font-weight: bold; background-color: #e9ecef;">
                             {{ $items->first()->area_name }}
                         </td>
                     </tr>
@@ -224,6 +227,15 @@
                             </td>
                             <td style="text-align: left;">
                                 {{ $item->tindakan ?: '-' }}
+                            </td>
+                            <td>
+                                @if($item->verifikasi_hasil == 'OK')
+                                    <span class="status-ok">OK</span>
+                                @elseif($item->verifikasi_hasil == 'Tidak OK')
+                                    <span class="status-not-ok">Tidak OK</span>
+                                @else
+                                    -
+                                @endif
                             </td>
                         </tr>
                     @endforeach

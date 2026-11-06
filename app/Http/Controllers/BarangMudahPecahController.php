@@ -251,6 +251,7 @@ class BarangMudahPecahController extends Controller
             'items' => 'required|array|min:1',
             'items.*.jumlah' => 'required|integer',
             'items.*.kondisi' => 'nullable|in:OK,Tidak OK',
+            'items.*.verifikasi_hasil' => 'nullable|in:OK,Tidak OK',
             'items_mapping' => 'required|json',
             'is_manual' => 'nullable|boolean',
             'id_area_manual' => 'required_if:is_manual,1|exists:input_area,id',
@@ -261,6 +262,7 @@ class BarangMudahPecahController extends Controller
             'kondisi_manual' => 'required_if:is_manual,1|in:OK,Tidak OK',
             'temuan_ketidaksesuaian_manual' => 'nullable|string|max:1000',
             'tindakan_koreksi_manual' => 'nullable|string|max:1000',
+            'verifikasi_hasil_manual' => 'nullable|in:OK,Tidak OK',
         ]);
 
         // Get the selected shift to validate plan access and get plan_id
@@ -303,6 +305,7 @@ class BarangMudahPecahController extends Controller
                 'kondisi' => $kondisi,
                 'temuan_ketidaksesuaian' => $canFillTemuan ? ($row['temuan_ketidaksesuaian'] ?? null) : null,
                 'tindakan_koreksi' => $row['tindakan_koreksi'] ?? null,
+                'verifikasi_hasil' => $canFillTemuan ? ($row['verifikasi_hasil'] ?? null) : null,
             ];
         }
 
@@ -348,6 +351,7 @@ class BarangMudahPecahController extends Controller
                 'kondisi' => $request->kondisi_manual,
                 'temuan_ketidaksesuaian' => $canFillTemuan ? $request->temuan_ketidaksesuaian_manual : null,
                 'tindakan_koreksi' => $request->tindakan_koreksi_manual,
+                'verifikasi_hasil' => $canFillTemuan ? ($request->verifikasi_hasil_manual ?? null) : null,
             ]);
         }
 
@@ -434,9 +438,9 @@ class BarangMudahPecahController extends Controller
         }
 
         $isSuperadmin = $user->role === 'superadmin' || (int) ($user->id_role ?? 0) === 5;
-        $isQcInspector = !$isSuperadmin && ($user->isQcInspector() || (int) ($user->id_role ?? 0) === 3);
+        $isQcInspector = ! $isSuperadmin && ($user->isQcInspector() || (int) ($user->id_role ?? 0) === 3);
         $canEditTemuan = $isSuperadmin || $user->isQc();
-        $canEditOthers = $isSuperadmin || !$isQcInspector;
+        $canEditOthers = $isSuperadmin || ! $isQcInspector;
 
         // Jika edit via tabel (seperti create): update massal kondisi per item
         if ($request->has('items')) {
@@ -447,6 +451,7 @@ class BarangMudahPecahController extends Controller
                 'items.*.temuan_ketidaksesuaian' => 'nullable|string|max:1000',
                 'items.*.tindakan_koreksi' => 'nullable|string|max:1000',
                 'items.*.nama_karyawan' => 'nullable|string|max:255',
+                'items.*.verifikasi_hasil' => 'nullable|in:OK,Tidak OK',
             ];
             $request->validate($rules);
 
@@ -472,9 +477,10 @@ class BarangMudahPecahController extends Controller
                             $itemsJson[$row['json_index']]['tindakan_koreksi'] = $row['tindakan_koreksi'] ?? null;
                         }
 
-                        // Jika berhak edit temuan (QC Inspector / SPV QC / Superadmin)
+                        // Jika berhak edit temuan & verifikasi hasil (QC Inspector / SPV QC / Superadmin)
                         if ($canEditTemuan) {
                             $itemsJson[$row['json_index']]['temuan_ketidaksesuaian'] = $row['temuan_ketidaksesuaian'] ?? null;
+                            $itemsJson[$row['json_index']]['verifikasi_hasil'] = $row['verifikasi_hasil'] ?? null;
                         }
 
                         $record->items_json = $itemsJson;
@@ -493,6 +499,7 @@ class BarangMudahPecahController extends Controller
 
                     if ($canEditTemuan) {
                         $record->temuan_ketidaksesuaian = $row['temuan_ketidaksesuaian'] ?? null;
+                        $record->verifikasi_hasil = $row['verifikasi_hasil'] ?? null;
                     }
                 }
 
@@ -573,6 +580,7 @@ class BarangMudahPecahController extends Controller
         }
         if ($canEditTemuan) {
             $updateData['temuan_ketidaksesuaian'] = $request->temuan_ketidaksesuaian;
+            $updateData['verifikasi_hasil'] = $request->verifikasi_hasil;
         }
 
         $barangMudahPecah->update($updateData);

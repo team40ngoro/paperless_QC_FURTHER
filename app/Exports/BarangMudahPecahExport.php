@@ -26,8 +26,8 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
  */
 class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWidths
 {
-    /** No, Nama Barang, Jumlah, Kondisi, Temuan Ketidaksesuaian, Tindakan Koreksi */
-    protected const TOTAL_COLUMNS = 6;
+    /** No, Nama Barang, Jumlah, Kondisi, Temuan Ketidaksesuaian, Tindakan Koreksi, Verifikasi Hasil */
+    protected const TOTAL_COLUMNS = 7;
 
     protected Collection $records;
     protected string $kodeForm;
@@ -51,11 +51,12 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
     {
         return [
             'A' => 5,   // No
-            'B' => 32,  // Nama Barang
+            'B' => 30,  // Nama Barang
             'C' => 10,  // Jumlah
             'D' => 12,  // Kondisi
-            'E' => 28,  // Temuan Ketidaksesuaian
-            'F' => 28,  // Tindakan Koreksi
+            'E' => 25,  // Temuan Ketidaksesuaian
+            'F' => 25,  // Tindakan Koreksi
+            'G' => 16,  // Verifikasi Hasil
         ];
     }
 
@@ -170,6 +171,7 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
                         'kondisi' => $jsonRow['kondisi'] ?? '-',
                         'temuan' => $jsonRow['temuan_ketidaksesuaian'] ?? '',
                         'tindakan' => $jsonRow['tindakan_koreksi'] ?? '',
+                        'verifikasi_hasil' => $jsonRow['verifikasi_hasil'] ?? '',
                         'nama_karyawan' => null,
                     ]);
                 }
@@ -184,6 +186,7 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
                     'kondisi' => $record->kondisi ?? '-',
                     'temuan' => $record->temuan_ketidaksesuaian ?? '',
                     'tindakan' => $record->tindakan_koreksi ?? '',
+                    'verifikasi_hasil' => $record->verifikasi_hasil ?? '',
                     'nama_karyawan' => $record->is_manual ? $record->nama_karyawan : null,
                 ]);
             }
@@ -199,7 +202,7 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
      */
     protected function writeMainTable($sheet, int $row, string $lastColumn): int
     {
-        $headings = ['No', 'Nama Barang', 'Jumlah', 'Kondisi', 'Temuan Ketidaksesuaian', 'Tindakan Koreksi'];
+        $headings = ['No', 'Nama Barang', 'Jumlah', 'Kondisi', 'Temuan Ketidaksesuaian', 'Tindakan Koreksi', 'Verifikasi Hasil'];
         $headingRow = $row;
         $sheet->fromArray($headings, null, "A{$headingRow}");
         $this->styleHeadingRow($sheet, $headingRow, $lastColumn);
@@ -229,6 +232,7 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
                     $item->kondisi,
                     $item->temuan !== '' ? $item->temuan : '-',
                     $item->tindakan !== '' ? $item->tindakan : '-',
+                    $item->verifikasi_hasil !== '' && $item->verifikasi_hasil !== null ? $item->verifikasi_hasil : '-',
                 ], null, "A{$row}");
 
                 $sheet->getStyle("B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setWrapText(true);
@@ -239,6 +243,12 @@ class BarangMudahPecahExport implements FromCollection, WithEvents, WithColumnWi
                     $sheet->getStyle("D{$row}")->getFont()->setBold(true)->getColor()->setRGB('28A745');
                 } elseif ($item->kondisi === 'Tidak OK') {
                     $sheet->getStyle("D{$row}")->getFont()->setBold(true)->getColor()->setRGB('DC3545');
+                }
+
+                if ($item->verifikasi_hasil === 'OK') {
+                    $sheet->getStyle("G{$row}")->getFont()->setBold(true)->getColor()->setRGB('28A745');
+                } elseif ($item->verifikasi_hasil === 'Tidak OK') {
+                    $sheet->getStyle("G{$row}")->getFont()->setBold(true)->getColor()->setRGB('DC3545');
                 }
 
                 $row++;
