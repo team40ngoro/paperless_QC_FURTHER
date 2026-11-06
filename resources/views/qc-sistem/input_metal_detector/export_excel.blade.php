@@ -30,21 +30,21 @@
 <table>
     {{-- HEADER PERUSAHAAN --}}
     <tr>
-        <td colspan="15" style="text-align:center; font-size:14px; font-weight:bold;">PT. CHAROEN POKPHAND INDONESIA</td>
+        <td colspan="19" style="text-align:center; font-size:14px; font-weight:bold;">PT. CHAROEN POKPHAND INDONESIA</td>
     </tr>
     <tr>
-        <td colspan="15" style="text-align:center; font-size:11px;">FOOD DIVISION {{ strtoupper(auth()->user()->plan->nama_plan ?? 'UNKNOWN') }}</td>
+        <td colspan="19" style="text-align:center; font-size:11px;">FOOD DIVISION {{ strtoupper(auth()->user()->plan->nama_plan ?? 'UNKNOWN') }}</td>
     </tr>
     <tr>
-        <td colspan="15" style="text-align:center; font-size:11px;">{{ strtoupper(auth()->user()->plan->nama_plan ?? 'UNKNOWN') }} - INDONESIA</td>
+        <td colspan="19" style="text-align:center; font-size:11px;">{{ strtoupper(auth()->user()->plan->nama_plan ?? 'UNKNOWN') }} - INDONESIA</td>
     </tr>
-    <tr><td colspan="15">&nbsp;</td></tr>
+    <tr><td colspan="19">&nbsp;</td></tr>
 
     {{-- JUDUL --}}
     <tr>
-        <td colspan="15" style="text-align:center; font-size:13px; font-weight:bold;">PEMERIKSAAN METAL DETECTOR</td>
+        <td colspan="19" style="text-align:center; font-size:13px; font-weight:bold;">PEMERIKSAAN METAL DETECTOR</td>
     </tr>
-    <tr><td colspan="15">&nbsp;</td></tr>
+    <tr><td colspan="19">&nbsp;</td></tr>
 
     {{-- INFO FILTER --}}
     <tr>
@@ -61,7 +61,7 @@
         <td colspan="2" style="{{ $lbl }}">Kode Form</td>
         <td colspan="8" style="{{ $tdL }}">: {{ $filterInfo['kode_form'] }}</td>
     </tr>
-    <tr><td colspan="15">&nbsp;</td></tr>
+    <tr><td colspan="19">&nbsp;</td></tr>
 
 @if(count($data) > 0)
     {{-- HEADER TABEL UTAMA --}}
@@ -71,9 +71,14 @@
         <td rowspan="2" style="{{ $th }}">Nama Produk</td>
         <td rowspan="2" style="{{ $th }}">Kode Produksi</td>
         <td rowspan="2" style="{{ $th }}">Line</td>
+        <td rowspan="2" style="{{ $th }}">Merk</td>
+        <td rowspan="2" style="{{ $th }}">Waktu</td>
         <td colspan="3" style="{{ $feBg }}">Fe 1.5 mm</td>
         <td colspan="3" style="{{ $nfBg }}">Non Fe 2 mm</td>
         <td colspan="3" style="{{ $susBg }}">SUS 316 2.5 mm</td>
+        <td rowspan="2" style="{{ $th }}">Reject</td>
+        <td rowspan="2" style="{{ $th }}">Operator / SPV</td>
+        <td colspan="2" style="{{ $th }}background-color:#E2E3E5;">Verifikasi QC</td>
         <td rowspan="2" style="{{ $th }}">Keterangan</td>
     </tr>
     <tr>
@@ -86,6 +91,8 @@
         <td style="{{ $susBg }}">Depan</td>
         <td style="{{ $susBg }}">Tengah</td>
         <td style="{{ $susBg }}">Belakang</td>
+        <td style="{{ $th }}background-color:#E2E3E5;">Detail</td>
+        <td style="{{ $th }}background-color:#E2E3E5;">Proses</td>
     </tr>
     @foreach($data as $index => $item)
     <tr>
@@ -94,6 +101,8 @@
         <td style="{{ $tdL }}">{{ $item->produk->nama_produk ?? '-' }} {{ $item->berat_produk ?? '-' }}g</td>
         <td style="{{ $td }}">{{ $item->kode_produksi }}</td>
         <td style="{{ $td }}">{{ $item->line ?? '-' }}</td>
+        <td style="{{ $td }}">{{ $item->merk ?? '-' }}</td>
+        <td style="{{ $td }}">{{ $item->waktu_mulai ? \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') : '-' }}-{{ $item->waktu_selesai ? \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') : '-' }}</td>
         <td style="{{ $feCell }}">{{ $mdCek($item->fe_depan_aktual) }}</td>
         <td style="{{ $feCell }}">{{ $mdCek($item->fe_tengah_aktual) }}</td>
         <td style="{{ $feCell }}">{{ $mdCek($item->fe_belakang_aktual) }}</td>
@@ -103,18 +112,22 @@
         <td style="{{ $susCell }}">{{ $mdCek($item->sus_depan_aktual) }}</td>
         <td style="{{ $susCell }}">{{ $mdCek($item->sus_tengah_aktual) }}</td>
         <td style="{{ $susCell }}">{{ $mdCek($item->sus_belakang_aktual) }}</td>
-        <td style="{{ $tdL }}">{{ $item->keterangan ?? '-' }}</td>
+        <td style="{{ $td }}">{{ $item->jumlah_reject ?? 0 }}</td>
+        <td style="{{ $tdL }}">{{ $item->nama_operator ?? '-' }} / {{ $item->spv_foreman ?? '-' }}</td>
+        <td style="{{ $td }}">{{ $mdCek($item->verifikasi_detail) }}</td>
+        <td style="{{ $td }}">{{ $mdCek($item->verifikasi_hasil_proses) }}</td>
+        <td style="{{ $tdL }}">{{ $item->keterangan ?: ($item->keterangan_b ?? '-') }}</td>
     </tr>
     @endforeach
 
     {{-- KODE FORM --}}
-    <tr><td colspan="15">&nbsp;</td></tr>
+    <tr><td colspan="19">&nbsp;</td></tr>
     <tr>
-        <td colspan="15" style="text-align:right; font-size:10px; font-weight:bold;">{{ $filterInfo['kode_form'] }}</td>
+        <td colspan="19" style="text-align:right; font-size:10px; font-weight:bold;">{{ $filterInfo['kode_form'] }}</td>
     </tr>
 @else
     <tr>
-        <td colspan="15" style="text-align:center; padding:20px; font-size:11px;">Tidak ada data Metal Detector yang sesuai dengan filter yang dipilih.</td>
+        <td colspan="19" style="text-align:center; padding:20px; font-size:11px;">Tidak ada data Metal Detector yang sesuai dengan filter yang dipilih.</td>
     </tr>
 @endif
 </table>
