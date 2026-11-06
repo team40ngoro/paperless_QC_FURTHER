@@ -237,6 +237,74 @@
                 </form>
             </div>
             @endif
+
+            <!-- Verifikasi Kedatangan Bahan Kemas -->
+            <div class="card card-success card-outline mt-4 shadow-sm mb-4">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-box-open text-success mr-2"></i>
+                        Verifikasi Kedatangan Bahan Kemas
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Status:</strong>
+                        @if($item->verifikasi_bahan_kemas === 'OK')
+                            <span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> v - Oke</span>
+                        @elseif($item->verifikasi_bahan_kemas === 'NOT_OK')
+                            <span class="badge badge-danger"><i class="fas fa-times-circle mr-1"></i> x - Tidak Oke</span>
+                        @else
+                            <span class="badge badge-light border">Belum diverifikasi</span>
+                        @endif
+                    </div>
+
+                    <div class="small text-muted mb-3">
+                        <div><strong>v = Oke:</strong> sesuai spesifikasi.</div>
+                        <div><strong>x = Tidak Oke:</strong> tidak sesuai spesifikasi.</div>
+                    </div>
+
+                    @if($canVerifyBahanKemas)
+                        <form action="{{ route('label-pemeriksaan.verifikasi-bahan-kemas.store', $item->uuid) }}" method="POST">
+                            @csrf
+                            <div class="d-flex flex-wrap align-items-center mb-2">
+                                <div class="custom-control custom-checkbox mr-4">
+                                    <input type="checkbox" class="custom-control-input" id="verifikasiBahanKemasOk" data-target="verifikasiBahanKemas"
+                                        data-value="OK" {{ old('verifikasi_bahan_kemas', $item->verifikasi_bahan_kemas) === 'OK' ? 'checked' : '' }}>
+                                    <label class="custom-control-label text-success font-weight-bold" for="verifikasiBahanKemasOk">
+                                        v - Oke
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="verifikasiBahanKemasNotOk" data-target="verifikasiBahanKemas"
+                                        data-value="NOT_OK" {{ old('verifikasi_bahan_kemas', $item->verifikasi_bahan_kemas) === 'NOT_OK' ? 'checked' : '' }}>
+                                    <label class="custom-control-label text-danger font-weight-bold" for="verifikasiBahanKemasNotOk">
+                                        x - Tidak Oke
+                                    </label>
+                                </div>
+                            </div>
+                            <input type="hidden" name="verifikasi_bahan_kemas" id="verifikasiBahanKemasValue"
+                                value="{{ old('verifikasi_bahan_kemas', $item->verifikasi_bahan_kemas) }}">
+                            @error('verifikasi_bahan_kemas')
+                                <small class="text-danger d-block mb-2">{{ $message }}</small>
+                            @enderror
+                            <button type="submit" class="btn btn-success btn-sm shadow-sm">
+                                <i class="fas fa-save mr-1"></i> Simpan Verifikasi
+                            </button>
+                        </form>
+                    @else
+                        <div class="alert alert-light border mb-0">
+                            <i class="fas fa-lock mr-1"></i> Hanya role QC yang dapat mengubah verifikasi ini.
+                        </div>
+                    @endif
+
+                    @if($item->verifikasi_bahan_kemas)
+                        <div class="small text-muted mt-3">
+                            Diverifikasi oleh <strong>{{ $item->bahanKemasVerifier->name ?? '-' }}</strong>
+                            pada {{ $item->verifikasi_bahan_kemas_at ? $item->verifikasi_bahan_kemas_at->format('d/m/Y H:i') : '-' }}.
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
     </section>
 
