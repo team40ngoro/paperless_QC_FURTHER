@@ -135,6 +135,10 @@ class MetalDetectorController extends Controller
     public function create()
     {
         $user = Auth::user();
+        if ((int) ($user->id_role ?? 0) === 3) {
+            abort(403, 'Role QC Inspector tidak diizinkan membuat data baru. Input spesimen & verifikasi dilakukan melalui icon mata (Detail) pada data yang diinput Produksi.');
+        }
+
         if ($user->role === 'superadmin') {
             $produks = JenisProduk::all();
             $plans = Plan::all();
@@ -146,11 +150,16 @@ class MetalDetectorController extends Controller
         }
         return view('qc-sistem.input_metal_detector.create', compact('produks', 'plans','shifts'));
     }
+
     public function store(Request $request)
     {
         $user = Auth::user();
 
-        // Validasi unified untuk semua role
+        if ((int) ($user->id_role ?? 0) === 3) {
+            abort(403, 'Role QC Inspector tidak diizinkan membuat data baru. Input spesimen & verifikasi dilakukan melalui icon mata (Detail) pada data yang diinput Produksi.');
+        }
+
+        // Validasi Produksi (Bagian A & Bagian B)
         $request->validate([
             'id_shift.*'              => 'required|exists:data_shift,id',
             'line.*'                  => 'required|in:1,2,3,4,5,6,7,8',
@@ -158,82 +167,88 @@ class MetalDetectorController extends Controller
             'jam.*'                   => 'required',
             'id_produk.*'             => 'required|exists:jenis_produk,id',
             'kode_produksi.*'         => 'required|string|max:255',
-            'berat_produk.*'          => 'required|string|max:255',
-            'fe_depan_aktual.*'       => 'required|in:✔,✘',
-            'fe_tengah_aktual.*'      => 'required|in:✔,✘',
-            'fe_belakang_aktual.*'    => 'required|in:✔,✘',
-            'non_fe_depan_aktual.*'   => 'required|in:✔,✘',
-            'non_fe_tengah_aktual.*'  => 'required|in:✔,✘',
-            'non_fe_belakang_aktual.*' => 'required|in:✔,✘',
-            'sus_depan_aktual.*'      => 'required|in:✔,✘',
-            'sus_tengah_aktual.*'     => 'required|in:✔,✘',
-            'sus_belakang_aktual.*'   => 'required|in:✔,✘',
+            'berat_produk.*'          => 'nullable|string|max:255',
             'keterangan.*'            => 'nullable|string|max:255',
+
+            // Bagian B (Hasil Pengecekan)
+            'merk.*'                  => 'nullable|string|max:255',
+            'waktu_mulai.*'           => 'nullable',
+            'waktu_selesai.*'         => 'nullable',
+            'gramasi.*'               => 'nullable|string|max:255',
+            'jumlah_reject.*'         => 'nullable|integer|min:0',
+            'nama_operator.*'         => 'nullable|string|max:255',
+            'spv_foreman.*'           => 'nullable|string|max:255',
+            'keterangan_b.*'          => 'nullable|string',
         ]);
 
-    $shiftIds = Arr::wrap($request->input('id_shift'));
-    $lines = Arr::wrap($request->input('line'));
-    $jams = Arr::wrap($request->input('jam'));
-    $tanggalArr = Arr::wrap($request->input('tanggal'));
-    $produkIds = Arr::wrap($request->input('id_produk'));
-    $kodeProduksiArr = Arr::wrap($request->input('kode_produksi'));
-    $beratProdukArr = Arr::wrap($request->input('berat_produk'));
-    $feDepanArr = Arr::wrap($request->input('fe_depan_aktual'));
-    $feTengahArr = Arr::wrap($request->input('fe_tengah_aktual'));
-    $feBelakangArr = Arr::wrap($request->input('fe_belakang_aktual'));
-    $nonFeDepanArr = Arr::wrap($request->input('non_fe_depan_aktual'));
-    $nonFeTengahArr = Arr::wrap($request->input('non_fe_tengah_aktual'));
-    $nonFeBelakangArr = Arr::wrap($request->input('non_fe_belakang_aktual'));
-    $susDepanArr = Arr::wrap($request->input('sus_depan_aktual'));
-    $susTengahArr = Arr::wrap($request->input('sus_tengah_aktual'));
-    $susBelakangArr = Arr::wrap($request->input('sus_belakang_aktual'));
-    $keteranganArr = Arr::wrap($request->input('keterangan'));
+        $shiftIds = Arr::wrap($request->input('id_shift'));
+        $lines = Arr::wrap($request->input('line'));
+        $jams = Arr::wrap($request->input('jam'));
+        $tanggalArr = Arr::wrap($request->input('tanggal'));
+        $produkIds = Arr::wrap($request->input('id_produk'));
+        $kodeProduksiArr = Arr::wrap($request->input('kode_produksi'));
+        $beratProdukArr = Arr::wrap($request->input('berat_produk'));
+        $keteranganArr = Arr::wrap($request->input('keterangan'));
 
-    $count = count($shiftIds);
-    $savedCount = 0;
+        $merkArr = Arr::wrap($request->input('merk'));
+        $waktuMulaiArr = Arr::wrap($request->input('waktu_mulai'));
+        $waktuSelesaiArr = Arr::wrap($request->input('waktu_selesai'));
+        $gramasiArr = Arr::wrap($request->input('gramasi'));
+        $jumlahRejectArr = Arr::wrap($request->input('jumlah_reject'));
+        $namaOperatorArr = Arr::wrap($request->input('nama_operator'));
+        $spvForemanArr = Arr::wrap($request->input('spv_foreman'));
+        $keteranganBArr = Arr::wrap($request->input('keterangan_b'));
 
-    for ($i = 0; $i < $count; $i++) {
-        $tanggal = Carbon::parse($tanggalArr[$i])->setTimeFrom(now());
+        $count = count($shiftIds);
+        $savedCount = 0;
 
-        $data = [
-            'id_plan' => $user->id_plan,
-            'user_id' => $user->id,
-            'uuid' => Str::uuid(),
-            'id_shift' => $shiftIds[$i] ?? null,
-            'line' => $lines[$i] ?? null,
-            'tanggal' => $tanggal,
-            'jam' => $jams[$i] ?? null,
-            'id_produk' => $produkIds[$i] ?? null,
-            'kode_produksi' => $kodeProduksiArr[$i] ?? null,
-            'berat_produk' => $beratProdukArr[$i] ?? null,
-            'keterangan' => $keteranganArr[$i] ?? null,
-            'aktual_json_metal' => [
-                'fe_depan_aktual' => $feDepanArr[$i] ?? null,
-                'fe_tengah_aktual' => $feTengahArr[$i] ?? null,
-                'fe_belakang_aktual' => $feBelakangArr[$i] ?? null,
-                'non_fe_depan_aktual' => $nonFeDepanArr[$i] ?? null,
-                'non_fe_tengah_aktual' => $nonFeTengahArr[$i] ?? null,
-                'non_fe_belakang_aktual' => $nonFeBelakangArr[$i] ?? null,
-                'sus_depan_aktual' => $susDepanArr[$i] ?? null,
-                'sus_tengah_aktual' => $susTengahArr[$i] ?? null,
-                'sus_belakang_aktual' => $susBelakangArr[$i] ?? null,
-            ],
-            // old columns left null for new data
-            'fe_depan_aktual' => null,
-            'fe_tengah_aktual' => null,
-            'fe_belakang_aktual' => null,
-            'non_fe_depan_aktual' => null,
-            'non_fe_tengah_aktual' => null,
-            'non_fe_belakang_aktual' => null,
-            'sus_depan_aktual' => null,
-            'sus_tengah_aktual' => null,
-            'sus_belakang_aktual' => null,
-        ];
+        for ($i = 0; $i < $count; $i++) {
+            $tanggal = Carbon::parse($tanggalArr[$i])->setTimeFrom(now());
+            $berat = $beratProdukArr[$i] ?? ($gramasiArr[$i] ?? null);
 
-        InputMetalDetector::create($data);
-        $savedCount++;
-    }
+            $data = [
+                'id_plan' => $user->id_plan,
+                'user_id' => $user->id,
+                'uuid' => Str::uuid(),
+                'id_shift' => $shiftIds[$i] ?? null,
+                'line' => $lines[$i] ?? null,
+                'tanggal' => $tanggal,
+                'jam' => $jams[$i] ?? null,
+                'id_produk' => $produkIds[$i] ?? null,
+                'kode_produksi' => $kodeProduksiArr[$i] ?? null,
+                'berat_produk' => $berat,
+                'keterangan' => $keteranganArr[$i] ?? null,
 
+                // Bagian B
+                'merk' => $merkArr[$i] ?? null,
+                'waktu_mulai' => $waktuMulaiArr[$i] ?? null,
+                'waktu_selesai' => $waktuSelesaiArr[$i] ?? null,
+                'gramasi' => $gramasiArr[$i] ?? $berat,
+                'jumlah_reject' => isset($jumlahRejectArr[$i]) && $jumlahRejectArr[$i] !== '' ? (int) $jumlahRejectArr[$i] : 0,
+                'nama_operator' => $namaOperatorArr[$i] ?? null,
+                'spv_foreman' => $spvForemanArr[$i] ?? null,
+                'keterangan_b' => $keteranganBArr[$i] ?? null,
+
+                // QC verifikasi dan spesimen diisi oleh QC lewat show (icon mata)
+                'aktual_json_metal' => null,
+                'fe_depan_aktual' => null,
+                'fe_tengah_aktual' => null,
+                'fe_belakang_aktual' => null,
+                'non_fe_depan_aktual' => null,
+                'non_fe_tengah_aktual' => null,
+                'non_fe_belakang_aktual' => null,
+                'sus_depan_aktual' => null,
+                'sus_tengah_aktual' => null,
+                'sus_belakang_aktual' => null,
+                'verifikasi_detail' => null,
+                'verifikasi_hasil_proses' => null,
+                'nama_qc' => null,
+                'qc_verified_at' => null,
+            ];
+
+            InputMetalDetector::create($data);
+            $savedCount++;
+        }
 
         return redirect()->route('input-metal-detector.index')->with('success', "$savedCount Data Metal Detector berhasil disimpan.");
     }
@@ -242,6 +257,11 @@ class MetalDetectorController extends Controller
     {
         $metalDetector = InputMetalDetector::where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
+
+        if ((int) ($user->id_role ?? 0) === 3) {
+            return redirect()->route('input-metal-detector.show', $uuid)
+                ->with('info', 'Role QC Inspector melakukan input spesimen & verifikasi melalui halaman detail ini.');
+        }
 
         if ($user->role !== 'superadmin' && $metalDetector->id_plan !== $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit data ini.');
@@ -292,6 +312,11 @@ class MetalDetectorController extends Controller
         $metalDetector = InputMetalDetector::where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
 
+        if ((int) ($user->id_role ?? 0) === 3) {
+            return redirect()->route('input-metal-detector.show', $uuid)
+                ->with('info', 'Role QC Inspector melakukan input spesimen & verifikasi melalui halaman detail ini.');
+        }
+
         if ($user->role !== 'superadmin' && $metalDetector->id_plan !== $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses untuk memperbarui data ini.');
         }
@@ -307,8 +332,6 @@ class MetalDetectorController extends Controller
             }
         }
 
-        $isSpecialRole = ($user->id_role == 2 || $user->id_role == 3);
-        
         $rules = [
             'id_shift' => 'required|exists:data_shift,id',
             'line' => 'required|in:1,2,3,4,5,6,7,8',
@@ -316,21 +339,21 @@ class MetalDetectorController extends Controller
             'jam' => 'required',
             'id_produk' => 'required|exists:jenis_produk,id',
             'kode_produksi' => 'required|string|max:255',
-            'berat_produk' => 'required|string|max:255',
-            'fe_depan_aktual' => 'required|in:✔,✘',
-            'fe_tengah_aktual' => 'required|in:✔,✘',
-            'fe_belakang_aktual' => 'required|in:✔,✘',
-            'non_fe_depan_aktual' => 'required|in:✔,✘',
-            'non_fe_tengah_aktual' => 'required|in:✔,✘',
-            'non_fe_belakang_aktual' => 'required|in:✔,✘',
-            'sus_depan_aktual' => 'required|in:✔,✘',
-            'sus_tengah_aktual' => 'required|in:✔,✘',
-            'sus_belakang_aktual' => 'required|in:✔,✘',
+            'berat_produk' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string|max:255',
+
+            // Bagian B
+            'merk' => 'nullable|string|max:255',
+            'waktu_mulai' => 'nullable',
+            'waktu_selesai' => 'nullable',
+            'gramasi' => 'nullable|string|max:255',
+            'jumlah_reject' => 'nullable|integer|min:0',
+            'nama_operator' => 'nullable|string|max:255',
+            'spv_foreman' => 'nullable|string|max:255',
+            'keterangan_b' => 'nullable|string',
         ];
 
         $validatedData = $request->validate($rules);
-
         $validatedData['id_plan'] = $user->id_plan;
         
         $dateOnly = $validatedData['tanggal'];
@@ -338,28 +361,9 @@ class MetalDetectorController extends Controller
             $metalDetector->tanggal ? Carbon::parse($metalDetector->tanggal) : now()
         );
 
-        $validatedData['aktual_json_metal'] = [
-            'fe_depan_aktual' => $validatedData['fe_depan_aktual'] ?? null,
-            'fe_tengah_aktual' => $validatedData['fe_tengah_aktual'] ?? null,
-            'fe_belakang_aktual' => $validatedData['fe_belakang_aktual'] ?? null,
-            'non_fe_depan_aktual' => $validatedData['non_fe_depan_aktual'] ?? null,
-            'non_fe_tengah_aktual' => $validatedData['non_fe_tengah_aktual'] ?? null,
-            'non_fe_belakang_aktual' => $validatedData['non_fe_belakang_aktual'] ?? null,
-            'sus_depan_aktual' => $validatedData['sus_depan_aktual'] ?? null,
-            'sus_tengah_aktual' => $validatedData['sus_tengah_aktual'] ?? null,
-            'sus_belakang_aktual' => $validatedData['sus_belakang_aktual'] ?? null,
-        ];
-
-        // Unset old columns so they remain completely untouched
-        unset($validatedData['fe_depan_aktual']);
-        unset($validatedData['fe_tengah_aktual']);
-        unset($validatedData['fe_belakang_aktual']);
-        unset($validatedData['non_fe_depan_aktual']);
-        unset($validatedData['non_fe_tengah_aktual']);
-        unset($validatedData['non_fe_belakang_aktual']);
-        unset($validatedData['sus_depan_aktual']);
-        unset($validatedData['sus_tengah_aktual']);
-        unset($validatedData['sus_belakang_aktual']);
+        if (!empty($validatedData['gramasi']) && empty($validatedData['berat_produk'])) {
+            $validatedData['berat_produk'] = $validatedData['gramasi'];
+        }
 
         $metalDetector->update($validatedData);
 
@@ -368,7 +372,7 @@ class MetalDetectorController extends Controller
 
     public function show($uuid)
     {
-        $item = InputMetalDetector::where('uuid', $uuid)->firstOrFail();
+        $item = InputMetalDetector::with(['plan', 'user', 'shift', 'produk', 'qcApprover', 'produksiApprover', 'spvApprover'])->where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
 
         if ($user->role !== 'superadmin' && $item->id_plan !== $user->id_plan) {
@@ -379,7 +383,74 @@ class MetalDetectorController extends Controller
             return $redirect;
         }
 
-        return view('qc-sistem.input_metal_detector.show', compact('item'));
+        $userRole = (int) ($user->id_role ?? 0);
+        $canEditQcVerification = in_array($userRole, [1, 3, 5], true);
+
+        return view('qc-sistem.input_metal_detector.show', compact('item', 'canEditQcVerification'));
+    }
+
+    public function updateQcVerification(Request $request, $uuid)
+    {
+        $user = Auth::user();
+        $userRole = (int) ($user->id_role ?? 0);
+
+        if (!in_array($userRole, [1, 3, 5], true)) {
+            abort(403, 'Hanya QC Inspector yang diizinkan menginput spesimen dan verifikasi QC.');
+        }
+
+        $metalDetector = InputMetalDetector::where('uuid', $uuid)->firstOrFail();
+
+        if ($user->role !== 'superadmin' && !$metalDetector->is_audit && $metalDetector->id_plan !== $user->id_plan) {
+            abort(403, 'Anda tidak memiliki akses ke data plant ini.');
+        }
+
+        $request->validate([
+            'fe_depan_aktual'        => 'required|in:✔,✘',
+            'fe_tengah_aktual'       => 'required|in:✔,✘',
+            'fe_belakang_aktual'     => 'required|in:✔,✘',
+            'non_fe_depan_aktual'    => 'required|in:✔,✘',
+            'non_fe_tengah_aktual'   => 'required|in:✔,✘',
+            'non_fe_belakang_aktual' => 'required|in:✔,✘',
+            'sus_depan_aktual'       => 'required|in:✔,✘',
+            'sus_tengah_aktual'      => 'required|in:✔,✘',
+            'sus_belakang_aktual'    => 'required|in:✔,✘',
+            'verifikasi_detail'      => 'required|in:✔,✘',
+            'verifikasi_hasil_proses'=> 'required|in:✔,✘',
+        ], [
+            'fe_depan_aktual.required'        => 'Uji spesimen Fe Depan wajib diisi.',
+            'fe_tengah_aktual.required'       => 'Uji spesimen Fe Tengah wajib diisi.',
+            'fe_belakang_aktual.required'     => 'Uji spesimen Fe Belakang wajib diisi.',
+            'non_fe_depan_aktual.required'    => 'Uji spesimen Non-Fe Depan wajib diisi.',
+            'non_fe_tengah_aktual.required'   => 'Uji spesimen Non-Fe Tengah wajib diisi.',
+            'non_fe_belakang_aktual.required' => 'Uji spesimen Non-Fe Belakang wajib diisi.',
+            'sus_depan_aktual.required'       => 'Uji spesimen SUS Depan wajib diisi.',
+            'sus_tengah_aktual.required'      => 'Uji spesimen SUS Tengah wajib diisi.',
+            'sus_belakang_aktual.required'    => 'Uji spesimen SUS Belakang wajib diisi.',
+            'verifikasi_detail.required'      => 'Verifikasi Detail pemeriksaan wajib dipilih (✔ / ✘).',
+            'verifikasi_hasil_proses.required'=> 'Verifikasi Hasil Proses Metal Detector wajib dipilih (✔ / ✘).',
+        ]);
+
+        $aktualJson = [
+            'fe_depan_aktual' => $request->fe_depan_aktual,
+            'fe_tengah_aktual' => $request->fe_tengah_aktual,
+            'fe_belakang_aktual' => $request->fe_belakang_aktual,
+            'non_fe_depan_aktual' => $request->non_fe_depan_aktual,
+            'non_fe_tengah_aktual' => $request->non_fe_tengah_aktual,
+            'non_fe_belakang_aktual' => $request->non_fe_belakang_aktual,
+            'sus_depan_aktual' => $request->sus_depan_aktual,
+            'sus_tengah_aktual' => $request->sus_tengah_aktual,
+            'sus_belakang_aktual' => $request->sus_belakang_aktual,
+        ];
+
+        $metalDetector->update([
+            'aktual_json_metal' => $aktualJson,
+            'verifikasi_detail' => $request->verifikasi_detail,
+            'verifikasi_hasil_proses' => $request->verifikasi_hasil_proses,
+            'nama_qc' => $user->name,
+            'qc_verified_at' => now(),
+        ]);
+
+        return redirect()->route('input-metal-detector.show', $uuid)->with('success', 'Uji spesimen dan verifikasi QC Inspector berhasil disimpan.');
     }
 
     public function destroy($uuid)

@@ -181,7 +181,7 @@ class CheckQcPermission
             }
 
             // E-QF 36 Label Start Up: Produksi (2) membuat/edit form produksi, QC (3) hanya verifikasi lewat show
-            if ($module === 'label-pemeriksaan' && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) {
+            if (in_array($module, ['label-pemeriksaan', 'input-metal-detector'], true) && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) {
                 return $next($request);
             }
 

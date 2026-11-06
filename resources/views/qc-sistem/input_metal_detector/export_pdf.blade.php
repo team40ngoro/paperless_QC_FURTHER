@@ -142,13 +142,18 @@
             <thead>
                 <tr>
                     <th rowspan="2">No</th>
-                       <th rowspan="2">Jam</th>
+                    <th rowspan="2">Jam</th>
                     <th rowspan="2">Nama Produk</th>
                     <th rowspan="2">Kode Produksi</th>
                     <th rowspan="2">Line</th>
+                    <th rowspan="2">Merk</th>
+                    <th rowspan="2">Waktu</th>
                     <th colspan="3" class="bg-info">Fe 1.5 mm</th>
                     <th colspan="3" class="bg-success">Non Fe 2 mm</th>
                     <th colspan="3" class="bg-warning">SUS 316 2.5 mm</th>
+                    <th rowspan="2">Reject</th>
+                    <th rowspan="2">Operator / SPV</th>
+                    <th colspan="2" style="background-color: #e2e3e5 !important;">Verifikasi QC</th>
                     <th rowspan="2">Keterangan</th>
                 </tr>
                 <tr>
@@ -161,6 +166,8 @@
                     <th class="bg-warning">Depan</th>
                     <th class="bg-warning">Tengah</th>
                     <th class="bg-warning">Belakang</th>
+                    <th style="background-color: #e2e3e5 !important;">Detail</th>
+                    <th style="background-color: #e2e3e5 !important;">Proses</th>
                 </tr>
             </thead>
             <tbody>
@@ -171,6 +178,8 @@
                     <td>{{ $item->produk->nama_produk ?? '-' }} {{ $item->berat_produk ?? '-' }}g</td>
                     <td>{{ $item->kode_produksi }}</td>
                     <td>{{ $item->line ?? '-' }}</td>
+                    <td>{{ $item->merk ?? '-' }}</td>
+                    <td>{{ $item->waktu_mulai ? \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') : '-' }}-{{ $item->waktu_selesai ? \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') : '-' }}</td>
                     <td class="bg-info">
                         @if($item->fe_depan_aktual == '✔' || $item->fe_depan_aktual == '&#10004;')
                             OK
@@ -252,7 +261,11 @@
                             {{ $item->sus_belakang_aktual ?? '-' }}
                         @endif
                     </td>
-                    <td>{{ $item->keterangan ?? '-' }}</td>
+                    <td>{{ $item->jumlah_reject ?? 0 }}</td>
+                    <td>{{ $item->nama_operator ?? '-' }} / {{ $item->spv_foreman ?? '-' }}</td>
+                    <td>{{ $item->verifikasi_detail == '✔' ? 'OK' : ($item->verifikasi_detail == '✘' ? 'Tidak OK' : ($item->verifikasi_detail ?? '-')) }}</td>
+                    <td>{{ $item->verifikasi_hasil_proses == '✔' ? 'OK' : ($item->verifikasi_hasil_proses == '✘' ? 'Tidak OK' : ($item->verifikasi_hasil_proses ?? '-')) }}</td>
+                    <td>{{ $item->keterangan ?: ($item->keterangan_b ?? '-') }}</td>
                 </tr>
                 @endforeach
             </tbody>

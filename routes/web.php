@@ -1374,6 +1374,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('pembuatan-sample', PembuatanSampleController::class, [
             'parameters' => ['pembuatan-sample' => 'uuid'],
         ]);
+        Route::put('input-metal-detector/{uuid}/qc-verification', [MetalDetectorController::class, 'updateQcVerification'])->name('input-metal-detector.qc-verification');
         Route::resource('input-metal-detector', MetalDetectorController::class, [
             'parameters' => ['input-metal-detector' => 'uuid'],
         ]);
