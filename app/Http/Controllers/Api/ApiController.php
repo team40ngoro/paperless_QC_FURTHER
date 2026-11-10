@@ -41,16 +41,16 @@ class ApiController extends Controller
          
 
 
-            $roleData = $this->mapRole($user['project_role']['role'] ?? '');
-            
+            $role = $this->resolveRole($user['project_role']['role'] ?? null);
+
             $userData = [
                 'name'            => $user['name'] ?? null,
                 'email'           => $user['email'] ?? null,
                 'username'        => $user['username'] ?? null,
                 'password'        => $user['password'] ?? null,
                 'id_plan'         => Plan::where('nama_plan', 'like', '%' . $user['department']['plant'] . '%')->value('id'),
-                'id_role'         => Role::where('role', 'like', '%' . $user['project_role']['role'] . '%')->value('id'),
-                'role'            => Role::where('role', 'like', '%' . $user['project_role']['role'] . '%')->value('role'),
+                'id_role'         => $role->id ?? null,
+                'role'            => $role->role ?? null,
 
             ];
             // Set email_verified_at based on activation status
@@ -282,20 +282,35 @@ class ApiController extends Controller
 
 
     /**
-     * Map role name to role data (ID and name)
-     *
-     * @param string $roleName
-     * @return array
+     * Resolve role dari SSO ke role lokal.
      */
-    private function mapRole($roleName)
+    private function resolveRole(?string $roleName): ?Role
     {
+        if (empty($roleName)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($roleName));
+
         $roleMapping = [
-            'Admin' => 1,
-            'Fm/fl' => 2,
-            'QC' => 3,
-            'Spv' => 4,
+            'admin'         => 'admin',
+            'fm/fl'         => 'produksi',
+            'produksi'      => 'produksi',
+            'produksi spv'  => 'Produksi SPV',
+            'qc'            => 'QC Inspector',
+            'qc inspector'  => 'QC Inspector',
+            'spv'           => 'SPV QC',
+            'spv qc'        => 'SPV QC',
         ];
 
-        return $roleMapping[$roleName] ?? null; // default to petugas_isi if no match
+        $targetRole = $roleMapping[$normalized] ?? $roleName;
+
+        $role = Role::whereRaw('LOWER(role) = ?', [strtolower($targetRole)])->first();
+
+        if (! $role && $targetRole === 'Produksi SPV') {
+            $role = Role::firstOrCreate(['role' => 'Produksi SPV']);
+        }
+
+        return $role;
     }
 }

@@ -27,5 +27,8 @@ class RoleSeeder extends Seeder
         foreach ($roles as $id => $role) {
             Role::updateOrCreate(['id' => $id], ['role' => $role]);
         }
+
+        // Role tambahan untuk user yang datang dari integrasi SSO kepegawaian.
+        Role::firstOrCreate(['role' => 'Produksi SPV']);
     }
 }
