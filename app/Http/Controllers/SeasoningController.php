@@ -41,7 +41,7 @@ class SeasoningController extends Controller
 
     protected function auditRelations(): array
     {
-        return ['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'originalVersion'];
+        return ['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'originalVersion', 'latestQcVerification'];
     }
 
     protected function auditSearchColumns(): array
@@ -81,7 +81,7 @@ class SeasoningController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+        $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion', 'latestQcVerification'])
             ->operasional() // filter is_audit = false via HasAudit scope
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -126,7 +126,7 @@ class SeasoningController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+            $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion', 'latestQcVerification'])
                 ->operasional() // filter is_audit = false via HasAudit scope
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
