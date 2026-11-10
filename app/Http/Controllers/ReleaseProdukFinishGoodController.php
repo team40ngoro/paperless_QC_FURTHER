@@ -343,8 +343,8 @@ class ReleaseProdukFinishGoodController extends Controller
 
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [2],
-                'spv' => [4]
+                'produksi' => [2, 5],
+                'spv' => [4, 5]
             ];
 
             if (!in_array($userRole, $allowedRoles[$type])) {

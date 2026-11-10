@@ -410,7 +410,7 @@ class SeasoningController extends Controller
         $item = Seasoning::where('uuid', $uuid)->firstOrFail();
         $user = auth()->user();
 
-        if (! $user || ! $user->isQcInspector()) {
+        if (! $user || (! $user->isQcInspector() && ! $user->isSuperAdmin())) {
             abort(403, 'Hanya role QC Inspector yang dapat melakukan verifikasi ini.');
         }
 
@@ -670,7 +670,7 @@ class SeasoningController extends Controller
 
             // Approval SPV dilakukan di halaman detail (show).
             $allowedRoles = [
-                'spv' => [4]
+                'spv' => [4, 5]
             ];
 
             if (!in_array($userRole, $allowedRoles[$type] ?? [])) {

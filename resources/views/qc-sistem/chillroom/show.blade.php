@@ -189,7 +189,7 @@
 
             @php
                 $latestQcVerification = $chillroom->qcVerifications->first();
-                $isQcUser = auth()->check() && auth()->user()->isQc();
+                $isQcUser = auth()->check() && (auth()->user()->isQc() || auth()->user()->isSuperAdmin());
             @endphp
 
             <div class="row mt-3">

@@ -3,8 +3,8 @@
 @section('container')
 @php
     $latestQcVerification = $seasoning->latestQcVerification;
-    $isQcUser = auth()->check() && auth()->user()->isQcInspector();
-    $isSpvUser = auth()->check() && (int) auth()->user()->id_role === 4;
+    $isQcUser = auth()->check() && (auth()->user()->isQcInspector() || auth()->user()->isSuperAdmin());
+    $isSpvUser = auth()->check() && ((int) auth()->user()->id_role === 4 || auth()->user()->isSuperAdmin());
 @endphp
 <div class="content-wrapper">
     <section class="content-header">

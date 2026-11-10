@@ -93,6 +93,20 @@ class User extends Authenticatable
     }
 
     /**
+     * LOGIKA: Cek apakah user memiliki role Superadmin
+     */
+    public function isSuperAdmin(): bool
+    {
+        if ((int) ($this->attributes['id_role'] ?? 0) === 5) {
+            return true;
+        }
+
+        $roleName = $this->roleModel->role ?? $this->attributes['role'] ?? '';
+
+        return strtolower(trim($roleName)) === 'superadmin';
+    }
+
+    /**
      * LOGIKA: Cek apakah user memiliki role Manager
      */
     public function isManager(): bool
@@ -247,10 +261,10 @@ class User extends Authenticatable
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        // Removed hardcoded Superadmin bypass, so checkboxes take full control
-        // if (strtolower($this->role) === 'superadmin') {
-        //     return true;
-        // }
+        // Superadmin memiliki seluruh permission tanpa perlu diatur lewat checkbox akses kontrol
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
 
         if (! $this->roleModel) {
             return false;
