@@ -518,7 +518,7 @@ class VerifikasiBeratProdukController extends Controller
         $user = Auth::user();
 
         // Otorisasi: hanya superadmin atau data dengan plan yang sama
-        if (!$user->hasRole('superadmin') && $item->id_plan !== $user->id_plan) {
+        if (!$user->isSuperAdmin() && $item->id_plan !== $user->id_plan) {
             abort(403, 'Unauthorized action.');
         }
 

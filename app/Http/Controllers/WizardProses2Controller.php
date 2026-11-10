@@ -138,13 +138,13 @@ class WizardProses2Controller extends Controller
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
             ->paginate(15);
-        
+
         $groupedData = $pembekuanData->getCollection()->groupBy(function($item) {
             $date = $item->tanggal ? $item->tanggal->format('Y-m-d') : 'no_date';
             $shiftId = $item->shift_id ?? 'no_shift';
             return $date . '_' . $shiftId;
         });
-        
+
         $pembekuanData->setCollection($groupedData);
 
         return view('qc-sistem.wizard_proses2.index', compact('pembekuanData'));
@@ -644,7 +644,7 @@ class WizardProses2Controller extends Controller
             ];
 
             // Karena database kolom 'aktual_suhu_pusat' adalah JSON, simpan sebagai array
-            $aktualSuhuPusat = is_array($request->aktual_suhu_pusat) 
+            $aktualSuhuPusat = is_array($request->aktual_suhu_pusat)
                 ? array_values(array_filter(array_map('trim', $request->aktual_suhu_pusat), fn($v) => $v !== '' && !is_null($v)))
                 : (is_string($request->aktual_suhu_pusat) ? array_values(array_filter(array_map('trim', explode(',', $request->aktual_suhu_pusat)), fn($v) => $v !== '' && !is_null($v))) : [$request->aktual_suhu_pusat]);
 
@@ -1093,39 +1093,39 @@ class WizardProses2Controller extends Controller
         try {
             $user = Auth::user();
             $type = $request->input('type');
-            
+
             // Validate approval type
             if (!in_array($type, ['qc', 'produksi', 'spv'])) {
                 return response()->json(['success' => false, 'message' => 'Tipe approval tidak valid'], 400);
             }
-            
+
             // Find the record
             $pembekuan = PembekuanIqfRoasting::where('uuid', $uuid)->firstOrFail();
-            
+
             // Check role permissions based on type
             $userRole = $user->id_role;
-            
+
             if ($type === 'qc' && !in_array($userRole, [1, 3, 5])) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval QC'], 403);
             }
-            
+
             if ($type === 'produksi' && !in_array($userRole, [1, 2, 5])) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval Produksi'], 403);
             }
-            
+
             if ($type === 'spv' && !in_array($userRole, [1, 4, 5])) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval SPV'], 403);
             }
-            
+
             // Check sequential approval requirements
             if ($type === 'produksi' && !$pembekuan->approved_by_qc) {
                 return response()->json(['success' => false, 'message' => 'Menunggu approval QC terlebih dahulu'], 403);
             }
-            
+
             if ($type === 'spv' && !$pembekuan->approved_by_produksi) {
                 return response()->json(['success' => false, 'message' => 'Menunggu approval Produksi terlebih dahulu'], 403);
             }
-            
+
             // Update approval fields based on type
             switch ($type) {
                 case 'qc':
@@ -1136,7 +1136,7 @@ class WizardProses2Controller extends Controller
                     $pembekuan->qc_approved_by = $user->id;
                     $pembekuan->qc_approved_at = now();
                     break;
-                    
+
                 case 'produksi':
                     if ($pembekuan->approved_by_produksi) {
                         return response()->json(['success' => false, 'message' => 'Data sudah di-approve oleh Produksi'], 400);
@@ -1145,7 +1145,7 @@ class WizardProses2Controller extends Controller
                     $pembekuan->produksi_approved_by = $user->id;
                     $pembekuan->produksi_approved_at = now();
                     break;
-                    
+
                 case 'spv':
                     if ($pembekuan->approved_by_spv) {
                         return response()->json(['success' => false, 'message' => 'Data sudah di-approve oleh SPV'], 400);
@@ -1155,14 +1155,14 @@ class WizardProses2Controller extends Controller
                     $pembekuan->spv_approved_at = now();
                     break;
             }
-            
+
             $pembekuan->save();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data berhasil di-approve oleh ' . ucfirst($type)
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
@@ -1280,7 +1280,7 @@ class WizardProses2Controller extends Controller
         // Get Master Data
         // Jika audit: filter by audit record's plant, bukan user's plant
         $targetPlan = $pembekuan->is_audit ? $pembekuan->id_plan : ($user->role === 'superadmin' ? null : $user->id_plan);
-        
+
         if ($targetPlan) {
             $produks       = JenisProduk::where('id_plan', $targetPlan)->get();
             $shifts        = DataShift::where('id_plan', $targetPlan)->get();
@@ -1510,7 +1510,7 @@ class WizardProses2Controller extends Controller
                         'sensori_tekstur'    => $request->sensori_tekstur,
                     ];
 
-                    $aktualSuhuPusat = is_array($request->aktual_suhu_pusat) 
+                    $aktualSuhuPusat = is_array($request->aktual_suhu_pusat)
                         ? array_values(array_filter(array_map('trim', $request->aktual_suhu_pusat), fn($v) => $v !== '' && !is_null($v)))
                         : (is_string($request->aktual_suhu_pusat) ? array_values(array_filter(array_map('trim', explode(',', $request->aktual_suhu_pusat)), fn($v) => $v !== '' && !is_null($v))) : [$request->aktual_suhu_pusat]);
 
@@ -1526,12 +1526,12 @@ class WizardProses2Controller extends Controller
             }
 
             DB::commit();
-            
+
             // Redirect to audit index if this is an audit record, otherwise to regular index
             if ($pembekuan->is_audit) {
                 return redirect()->route('wizard.proses2.audit')->with('success', 'Data audit berhasil diperbarui.');
             }
-            
+
             return redirect()->route('wizard.proses2.index')->with('success', 'Data berhasil diperbarui.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1750,4 +1750,4 @@ $query = PembekuanIqfRoasting::with($this->auditRelations())
     }
 
 }
-    
+

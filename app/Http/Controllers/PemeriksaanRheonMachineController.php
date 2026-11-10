@@ -733,8 +733,8 @@ class PemeriksaanRheonMachineController extends Controller
         // Role-based access control following Produk Forming pattern
         $allowedRoles = [
             'qc' => [1, 3, 5], // Role 1&5 (QC only), Role 3 (QC only)
-            'produksi' => [2], // Role 2 (produksi only)
-            'spv' => [4] // Role 4 (SPV only)
+            'produksi' => [2, 5], // Role 2 (produksi only)
+            'spv' => [4, 5] // Role 4 (SPV only)
         ];
 
         if (!in_array($user->id_role, $allowedRoles[$type])) {
@@ -794,7 +794,7 @@ class PemeriksaanRheonMachineController extends Controller
 
         $user = Auth::user();
         $type = $validated['type'];
-        $allowedRoles = ['qc' => [1, 3, 5], 'produksi' => [2], 'spv' => [4]];
+        $allowedRoles = ['qc' => [1, 3, 5], 'produksi' => [2, 5], 'spv' => [4, 5]];
         if (!in_array((int) $user->id_role, $allowedRoles[$type], true)) {
             return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk approval ini.'], 403);
         }
@@ -850,8 +850,8 @@ class PemeriksaanRheonMachineController extends Controller
             // Role-based access control following Produk Forming pattern
             $allowedRoles = [
                 'qc' => [1, 3, 5], // Role 1&5 (QC only), Role 3 (QC only)
-                'produksi' => [2], // Role 2 (produksi only)
-                'spv' => [4] // Role 4 (SPV only)
+                'produksi' => [2, 5], // Role 2 (produksi only)
+                'spv' => [4, 5] // Role 4 (SPV only)
             ];
 
             if (!in_array($userRole, $allowedRoles[$type])) {

@@ -974,8 +974,8 @@ class BarangMudahPecahController extends Controller
         // Role-based authorization
         $allowedRoles = [
             'qc' => [1, 3, 5], // Role IDs yang bisa approve QC
-            'produksi' => [2], // Role IDs yang bisa approve Produksi
-            'spv' => [4], // Role IDs yang bisa approve SPV
+            'produksi' => [2, 5], // Role IDs yang bisa approve Produksi
+            'spv' => [4, 5], // Role IDs yang bisa approve SPV
         ];
 
         if (! in_array($user->id_role, $allowedRoles[$type])) {

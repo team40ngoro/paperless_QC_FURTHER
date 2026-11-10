@@ -731,7 +731,7 @@ class WizardProses4Controller extends Controller
     {
         $user = Auth::user();
 
-        if (! $user || ! $user->isQc()) {
+        if (! $user || (! $user->isQc() && ! $user->isSuperAdmin())) {
             abort(403, 'Hanya role QC yang dapat mengisi verifikasi ini.');
         }
 
