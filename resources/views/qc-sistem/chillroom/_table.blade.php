@@ -18,6 +18,9 @@
 
             $suhuIsDanger = $item->suhu > 5;
 
+            $qcVerificationNotOk = $item->latestQcVerification
+                && $item->latestQcVerification->status === 'NOT_OK';
+
             $approvalSteps = [
                 'QC'  => $item->approved_by_qc,
                 'SPV' => $item->approved_by_spv,
@@ -51,15 +54,19 @@
             <td class="align-middle">
                 <div class="status-badges d-flex flex-column align-items-center">
                     @foreach($approvalSteps as $label => $isApproved)
+                        @php
+                            $isNotOk = $label === 'QC' && $qcVerificationNotOk;
+                        @endphp
                         <span @class([
                                 'badge',
                                 'w-100',
-                                'badge-success' => $isApproved,
-                                'badge-light border' => !$isApproved,
+                                'badge-danger' => $isNotOk,
+                                'badge-success' => $isApproved && !$isNotOk,
+                                'badge-light border' => !$isApproved && !$isNotOk,
                                 'mb-1' => !$loop->last,
                               ])
                               style="font-size: 0.7rem;">
-                            <i class="fas {{ $isApproved ? 'fa-check' : 'fa-clock' }} mr-1"></i> {{ $label }}
+                            <i class="fas {{ $isNotOk ? 'fa-times' : ($isApproved ? 'fa-check' : 'fa-clock') }} mr-1"></i> {{ $label }}
                         </span>
                     @endforeach
                     @if($item->approved_by_spv)

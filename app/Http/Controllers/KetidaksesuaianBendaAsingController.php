@@ -389,8 +389,8 @@ class KetidaksesuaianBendaAsingController extends Controller
             // Validasi role dan tipe approval
             $allowedRoles = [
                 'qc' => [1, 3, 5], // Role 1, 3, 5 bisa approve QC
-                'produksi' => [2], // Role 2 bisa approve Produksi
-                'spv' => [4] // Role 4 bisa approve SPV
+                'produksi' => [2, 5], // Role 2 bisa approve Produksi
+                'spv' => [4, 5] // Role 4 bisa approve SPV
             ];
             
             if (!isset($allowedRoles[$type]) || !in_array($user->id_role, $allowedRoles[$type])) {

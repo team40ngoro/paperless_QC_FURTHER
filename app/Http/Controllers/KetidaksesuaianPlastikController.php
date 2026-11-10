@@ -527,8 +527,8 @@ class KetidaksesuaianPlastikController extends Controller
             // Validasi role dan tipe approval
             $allowedRoles = [
                 'qc' => [1, 3, 5], // Role 1, 3, 5 bisa approve QC
-                'produksi' => [2], // Role 2 bisa approve Produksi
-                'spv' => [4] // Role 4 bisa approve SPV
+                'produksi' => [2, 5], // Role 2 bisa approve Produksi
+                'spv' => [4, 5] // Role 4 bisa approve SPV
             ];
             
             if (!isset($allowedRoles[$type]) || !in_array($user->id_role, $allowedRoles[$type])) {
@@ -615,8 +615,8 @@ class KetidaksesuaianPlastikController extends Controller
             // Validasi role
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [2],
-                'spv' => [4]
+                'produksi' => [2, 5],
+                'spv' => [4, 5]
             ];
 
             if (!isset($allowedRoles[$type]) || !in_array($userRole, $allowedRoles[$type])) {

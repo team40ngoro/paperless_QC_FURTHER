@@ -110,7 +110,7 @@
                     <div class="col-12">
                         @php
                             $qcUser = auth()->user();
-                            $isQcUser = $qcUser && $qcUser->isQc();
+                            $isQcUser = $qcUser && ($qcUser->isQc() || $qcUser->isSuperAdmin());
                             $verif = $latestVerification ?? null;
                             $bahanForQc = $aging->bahanBaku
                                 ?? (optional($aging->prosesTumbling)->bahanBakuTumbling ?? null);

@@ -390,8 +390,8 @@ class LabelStartUpController extends Controller
 
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [2],
-                'spv' => [4]
+                'produksi' => [2, 5],
+                'spv' => [4, 5]
             ];
 
             if (!isset($allowedRoles[$type]) || !in_array($user->id_role, $allowedRoles[$type])) {
