@@ -4,7 +4,10 @@
 @endphp
 @forelse($records as $groupKey => $groupItems)
     @foreach($groupItems as $item)
-        <tr class="item-row {{ ($item->approved_by_qc && $item->approved_by_spv) ? 'row-verified' : '' }}">
+        @php
+            $qcVerificationNotOk = $item->latestQcVerification && $item->latestQcVerification->overall_status !== 'OK';
+        @endphp
+        <tr class="item-row {{ ($item->approved_by_qc && $item->approved_by_spv && !$qcVerificationNotOk) ? 'row-verified' : '' }}">
             <td class="text-center align-middle">{{ $rowNumber }}</td>
             <td class="text-center align-middle">
                 <span class="badge badge-outline-primary">Shift {{ $item->shift->shift ?? '-' }}</span>
@@ -22,8 +25,15 @@
             </td>
             <td class="align-middle">
                 <div class="status-badges d-flex flex-column align-items-center">
-                    <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                        <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
+                    <span @class([
+                            'badge',
+                            'mb-1',
+                            'w-100',
+                            'badge-danger' => $qcVerificationNotOk,
+                            'badge-success' => $item->approved_by_qc && !$qcVerificationNotOk,
+                            'badge-light border' => !$item->approved_by_qc && !$qcVerificationNotOk,
+                          ]) style="font-size: 0.7rem;">
+                        <i class="fas {{ $qcVerificationNotOk ? 'fa-times' : ($item->approved_by_qc ? 'fa-check' : 'fa-clock') }} mr-1"></i> QC
                     </span>
                     <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
                         <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
