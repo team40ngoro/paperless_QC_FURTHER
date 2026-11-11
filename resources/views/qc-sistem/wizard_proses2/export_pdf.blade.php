@@ -18,7 +18,7 @@
         .main-table th { background-color: #f0f0f0; font-weight: bold; }
         .section-title { font-weight: bold; font-size: 11px; margin-top: 15px; margin-bottom: 5px; color: #333; border-left: 3px solid #007bff; padding-left: 5px; }
         .signature-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        .signature-table td { width: 33.33%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; }
+        .signature-table td { width: 25%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; }
         .signature-box { height: 60px; }
         .footer { position: fixed; bottom: 10px; width: 100%; text-align: right; font-size: 8px; }
         .badge { padding: 2px 5px; border-radius: 3px; border: 1px solid #000; }
@@ -56,7 +56,7 @@
                     <td width="20%">Hari / Tanggal</td>
                     <td width="30%">: {{ \Carbon\Carbon::parse($pembekuan->tanggal)->format('l, d-m-Y') }}</td>
                     <td width="20%">Produk</td>
-                    <td width="30%">: {{ $pembekuan->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</td>
+                    <td width="30%">: {{ $pembekuan->penggorenganData->produk->nama_produk ?? ($pembekuan->prosesRoastingFanData->produk->nama_produk ?? ($pembekuan->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</td>
                 </tr>
                 <tr>
                     <td>Shift</td>
@@ -467,42 +467,30 @@
         </table>
         @endif
 
-        {{-- G. PEMBEKUAN IQF --}}
-        <div class="section-title">G. PEMBEKUAN IQF</div>
-        <table class="main-table">
-            <thead>
-                <tr>
-                    <th>Suhu Ruang IQF</th>
-                    <th>Holding Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>{{ $pembekuan->suhu_ruang_iqf }} °C</td>
-                    <td>{{ $pembekuan->holding_time }} menit</td>
-                </tr>
-            </tbody>
-        </table>
         <div style="text-align: right; width: 100%; font-size: 8px; font-weight: bold; margin-bottom: 20px;">
             {{ $kode_form ?? 'QF 10/00' }}
         </div>
 
-        {{-- SIGNATURES WITH QR CODE --}}
+        {{-- SIGNATURES WITH QR CODE (4 PARTIES) --}}
         @php
+            $creatorName = $pembekuan->user->name ?? 'PRODUKSI';
+            $createdDate = $pembekuan->created_at ? \Carbon\Carbon::parse($pembekuan->created_at)->format('Y-m-d') : \Carbon\Carbon::parse($pembekuan->tanggal)->format('Y-m-d');
+            $base64CreatorSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah dibuat secara sistem oleh {$creatorName} (Produksi) pada {$createdDate}"));
+
             $qcApprover = null;
-            $qcApproverName = 'QC';
+            $qcApproverName = 'QC INSPEKTOR';
             if($pembekuan->approved_by_qc && $pembekuan->qc_approved_by) {
                 $qcApprover = \App\Models\User::find($pembekuan->qc_approved_by);
                 if($qcApprover) { $qcApproverName = $qcApprover->name; }
             }
             $spvQcApprover = null;
-            $spvQcApproverName = 'SUPERVISOR QC';
+            $spvQcApproverName = 'SPV QC';
             if($pembekuan->approved_by_spv && $pembekuan->spv_approved_by) {
                 $spvQcApprover = \App\Models\User::find($pembekuan->spv_approved_by);
                 if($spvQcApprover) { $spvQcApproverName = $spvQcApprover->name; }
             }
             $spvProduksiApprover = null;
-            $spvProduksiApproverName = 'SPV PRODUKSI';
+            $spvProduksiApproverName = 'FOREMAN / SPV PRODUKSI';
             if($pembekuan->approved_by_produksi && $pembekuan->produksi_approved_by) {
                 $spvProduksiApprover = \App\Models\User::find($pembekuan->produksi_approved_by);
                 if($spvProduksiApprover) { $spvProduksiApproverName = $spvProduksiApprover->name; }
@@ -511,27 +499,29 @@
             $base64QcSvg = null;
             if($qcApprover && $pembekuan->qc_approved_at) {
                 $qcApprovalDate = \Carbon\Carbon::parse($pembekuan->qc_approved_at)->format('Y-m-d');
-                $base64QcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (Tim QC) pada {$qcApprovalDate}"));
+                $base64QcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (QC Inspektor) pada {$qcApprovalDate}"));
             }
             $base64SpvQcSvg = null;
             if($spvQcApprover && $pembekuan->spv_approved_at) {
                 $spvQcApprovalDate = \Carbon\Carbon::parse($pembekuan->spv_approved_at)->format('Y-m-d');
-                $base64SpvQcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$spvQcApprover->name} (SPV QC) pada {$spvQcApprovalDate}"));
+                $base64SpvQcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah disetujui secara sistem oleh {$spvQcApprover->name} (SPV QC) pada {$spvQcApprovalDate}"));
             }
             $base64SpvProduksiSvg = null;
             if($spvProduksiApprover && $pembekuan->produksi_approved_at) {
                 $spvProduksiApprovalDate = \Carbon\Carbon::parse($pembekuan->produksi_approved_at)->format('Y-m-d');
-                $base64SpvProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$spvProduksiApprover->name} (SPV PRODUKSI) pada {$spvProduksiApprovalDate}"));
+                $base64SpvProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate("Dokumen ini telah diketahui secara sistem oleh {$spvProduksiApprover->name} (Foreman / SPV Produksi) pada {$spvProduksiApprovalDate}"));
             }
         @endphp
 
 <table class="signature-table">
     <tr>
-        <td class="signature-label">Dibuat Oleh: QC INSPEKTOR</td>
-        <td class="signature-label">Diketahui Oleh: Produksi</td>
-        <td class="signature-label">Disetujui Oleh: Supervisor QC</td>
+        <td class="signature-label">1. Dibuat Oleh:<br><strong>PRODUKSI</strong></td>
+        <td class="signature-label">2. Diverifikasi Oleh:<br><strong>QC INSPEKTOR</strong></td>
+        <td class="signature-label">3. Diketahui Oleh:<br><strong>FOREMAN / SPV PRODUKSI</strong></td>
+        <td class="signature-label">4. Disetujui Oleh:<br><strong>SPV QC</strong></td>
     </tr>
     <tr>
+        <td class="signature-qr-area">@if($base64CreatorSvg)<img src="{{ $base64CreatorSvg }}" class="qr-code-img" alt="QR Creator">@endif</td>
         <td class="signature-qr-area">@if($base64QcSvg)<img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR QC">@endif</td>
         <td class="signature-qr-area">@if($base64SpvProduksiSvg)<img src="{{ $base64SpvProduksiSvg }}" class="qr-code-img" alt="QR Produksi">@endif</td>
         <td class="signature-qr-area">@if($base64SpvQcSvg)<img src="{{ $base64SpvQcSvg }}" class="qr-code-img" alt="QR SPV">@endif</td>
@@ -540,8 +530,10 @@
         <td><div class="signature-line"></div></td>
         <td><div class="signature-line"></div></td>
         <td><div class="signature-line"></div></td>
+        <td><div class="signature-line"></div></td>
     </tr>
     <tr>
+        <td class="signature-name">{{ $creatorName }}</td>
         <td class="signature-name">{{ $qcApproverName }}</td>
         <td class="signature-name">{{ $spvProduksiApproverName }}</td>
         <td class="signature-name">{{ $spvQcApproverName }}</td>

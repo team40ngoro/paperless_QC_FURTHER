@@ -75,18 +75,8 @@
                                     <input type="time" name="jam" class="form-control" value="{{ $pembekuan->jam }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Suhu Ruang IQF (°C) <span class="text-danger">*</span></label>
-                                    <input type="text" name="suhu_ruang_iqf" class="form-control" value="{{ $pembekuan->suhu_ruang_iqf }}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Holding Time (Menit) <span class="text-danger">*</span></label>
-                                    <input type="text" name="holding_time" class="form-control" value="{{ $pembekuan->holding_time }}" required>
-                                </div>
-                            </div>
+                            <input type="hidden" name="suhu_ruang_iqf" value="{{ $pembekuan->suhu_ruang_iqf ?? '-' }}">
+                            <input type="hidden" name="holding_time" value="{{ $pembekuan->holding_time ?? '-' }}">
                         </div>
                     </div>
                 </div>

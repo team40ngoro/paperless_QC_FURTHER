@@ -47,7 +47,7 @@
                                     <a href="{{ route('wizard.proses2.audit') }}" class="btn btn-purple btn-sm shadow-sm" style="background-color:#6f42c1;color:#fff;" title="Riwayat Audit">
                                         <i class="fas fa-history"></i>
                                     </a>
-                                    @if(auth()->user()->hasPermissionTo('create-wizard-proses2'))
+                                    @if(auth()->user()->hasPermissionTo('create-wizard-proses2') && (int) auth()->user()->id_role !== 3)
                                         <a href="{{ route('wizard.proses2.create') }}" class="btn btn-primary btn-sm shadow-sm">
                                             <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru
                                         </a>
@@ -68,17 +68,17 @@
 
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
+                                        <i class="fas fa-check mr-1"></i> 2. Verifikasi QC
                                     </button>
                                 @endif
                                 @if($canApproveProduksi)
                                     <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
+                                        <i class="fas fa-check mr-1"></i> 3. Diketahui Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
+                                        <i class="fas fa-check mr-1"></i> 4. Disetujui SPV QC
                                     </button>
                                 @endif
                             </div>
@@ -175,21 +175,26 @@
                                                     <td class="text-center align-middle">{{ $item->shift->shift ?? '-' }}</td>
                                                     <td class="text-left align-middle">{{ $item->penggorenganData->kode_produksi ?? '-' }}</td>
                                                     <td class="text-left align-middle">
-                                                        <div style="font-size: 0.85rem;">{{ $item->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</div>
+                                                        <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? ($item->prosesRoastingFanData->produk->nama_produk ?? ($item->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</div>
                                                     </td>
                                                     <td class="text-center align-middle">
                                                         <div style="font-size: 0.8rem;">{{ $item->user->name ?? '-' }}</div>
                                                     </td>
                                                     <td class="text-center align-middle">
                                                         <div class="d-flex flex-column align-items-center" style="gap: 2px;">
+                                                            @if($item->hasilProsesRoastingData)
+                                                                <span class="badge badge-info w-100" style="font-size: 0.65rem;" title="Verifikasi Hasil Akhir QC sudah diisi"><i class="fas fa-clipboard-check"></i> Input QC OK</span>
+                                                            @else
+                                                                <span class="badge badge-warning w-100" style="font-size: 0.65rem;" title="Menunggu QC Inspector mengisi hasil verifikasi lewat tombol mata"><i class="fas fa-hourglass-half"></i> Menunggu QC</span>
+                                                            @endif
                                                             @if($item->approved_by_qc)
-                                                                <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
+                                                                <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> 2. QC</span>
                                                             @endif
                                                             @if($item->approved_by_produksi)
-                                                                <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> PRD</span>
+                                                                <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> 3. PRD</span>
                                                             @endif
                                                             @if($item->approved_by_spv)
-                                                                <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>
+                                                                <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> 4. SPV</span>
                                                             @endif
                                                         </div>
                                                     </td>

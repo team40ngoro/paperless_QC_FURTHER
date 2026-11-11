@@ -29,8 +29,6 @@
                             $steps = [
                                 1 => ['icon' => 'fa-file-import',   'label' => 'Input Roasting'],
                                 2 => ['icon' => 'fa-fan',           'label' => 'Roasting Fan'],
-                                3 => ['icon' => 'fa-check-double',  'label' => 'Hasil Roasting'],
-                                4 => ['icon' => 'fa-snowflake',     'label' => 'IQF Roasting'],
                             ];
                         @endphp
 
@@ -177,87 +175,7 @@
                     </div>
                     <div class="card-footer d-flex justify-content-between">
                         <!-- <button type="button" class="btn btn-secondary prev-step" data-step="2"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="2">Simpan & Lanjut <i class="fas fa-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 3: HASIL ROASTING -->
-            <div class="wizard-step" id="step-3" style="display:none;">
-                <div class="card card-primary card-outline shadow-sm">
-                    <div class="card-header"><h3 class="card-title"><i class="fas fa-check-double mr-1"></i> Form Hasil Roasting (Langkah 3)</h3></div>
-                    <div class="card-body">
-                        <div class="alert alert-info py-2"><strong>Produk:</strong> <span class="info_produk">-</span></div>
-                        <form id="form-step-3">
-                            <input type="hidden" name="roasting_fan_uuid" id="p3_roasting_fan_uuid">
-                            <input type="hidden" name="id_produk" id="p3_id_produk">
-                            <div class="form-group"><label>Tanggal *</label>
-                                <input type="date" name="tanggal" class="form-control" value="{{ $dateValue }}" required>
-                            </div>
-                            <div class="form-group"><label>Jam *</label>
-                                <input type="time" name="jam" class="form-control" value="{{ $now->format('H:i') }}" required>
-                            </div>
-                            <div class="form-group"><label>Std Suhu Pusat *</label>
-                                <select name="id_std_suhu_pusat" id="p3_id_std_suhu_pusat" class="form-control" required disabled>
-                                    <option value="">Pilih</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Aktual Suhu Pusat (°C) *</label>
-                                <div id="aktual_suhu_pusat_container">
-                                    <div class="input-group mb-2">
-                                        <input type="text" name="aktual_suhu_pusat[]" class="form-control" placeholder="Masukkan Aktual Suhu Pusat" required>
-                                        <div class="input-group-append">
-                                            <button type="button" class="btn btn-success btn-add-suhu-pusat"><i class="fas fa-plus"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Keterangan</label>
-                                <textarea name="keterangan" class="form-control" rows="2" placeholder="Catatan tambahan"></textarea>
-                            </div>
-                            <div class="row">
-                                @foreach(['kematangan','kenampakan','warna','rasa','bau','tekstur'] as $sen)
-                                <div class="col-4 mb-2"><label class="small mb-1 text-capitalize">{{$sen}}</label>
-                                    <select name="sensori_{{$sen}}" class="form-control form-control-sm"><option value="✔">✔</option><option value="✘">✘</option></select>
-                                </div>
-                                @endforeach
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="3"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="3">Simpan & Lanjut <i class="fas fa-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 4: IQF ROASTING -->
-            <div class="wizard-step" id="step-4" style="display:none;">
-                <div class="card card-primary card-outline shadow-sm">
-                    <div class="card-header"><h3 class="card-title"><i class="fas fa-snowflake mr-1"></i> Form IQF Roasting (Langkah 4)</h3></div>
-                    <div class="card-body">
-                        <div class="alert alert-info py-2"><strong>Produk:</strong> <span class="info_produk">-</span></div>
-                        <form id="form-step-4">
-                            <input type="hidden" name="hasil_roasting_uuid" id="p4_hasil_roasting_uuid">
-                            <div class="form-group"><label>Tanggal *</label>
-                                <input type="date" name="tanggal" class="form-control" value="{{ $dateValue }}" required>
-                            </div>
-                            <div class="form-group"><label>Jam *</label>
-                                <input type="time" name="jam" class="form-control" value="{{ $now->format('H:i') }}" required>
-                            </div>
-                            <div class="form-group"><label>Suhu Ruang IQF (°C) *</label>
-                                <input type="text" name="suhu_ruang_iqf" class="form-control" required>
-                            </div>
-                            <div class="form-group"><label>Holding Time (Menit) *</label>
-                                <input type="text" name="holding_time" class="form-control" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="4"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-success next-step" data-step="4"><i class="fas fa-save"></i> Simpan Selesai</button>
+                        <button type="button" class="btn btn-success next-step" data-step="2"><i class="fas fa-check-circle mr-1"></i> Simpan &amp; Selesaikan Input Produksi</button>
                     </div>
                 </div>
             </div>
@@ -269,7 +187,7 @@
 <style>
     .wizard-steps-container { margin: 20px 0 40px; }
     .wizard-line { position: absolute; top: 25px; left: 5%; right: 5%; height: 3px; background: #e0e0e0; z-index: 1; }
-    .wizard-step-item { position: relative; z-index: 2; width: 25%; }
+    .wizard-step-item { position: relative; z-index: 2; width: 50%; }
     .step-icon-circle { width: 50px; height: 50px; border-radius: 50%; background: #fff; border: 3px solid #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #adb5bd; transition: 0.3s; }
     .wizard-step-item.active .step-icon-circle { border-color: #007bff; background: #007bff; color: #fff; transform: scale(1.1); box-shadow: 0 0 10px rgba(0,123,255,0.3); }
     .wizard-step-item.completed .step-icon-circle { border-color: #28a745; background: #28a745; color: #fff; }
@@ -301,7 +219,7 @@
 <script>
     $(document).ready(function() {
         // ========== STATE ==========
-        const STORAGE_KEY = 'wizard_proses3_state_v1';
+        const STORAGE_KEY = 'wizard_proses3_state_v2';
 
 
 
@@ -335,25 +253,7 @@
             state.input_roasting_uuid = "{{ $draftData->uuid }}";
             state.id_produk = "{{ $draftData->id_produk }}";
             state.nama_produk = "{{ $draftData->produk->nama_produk ?? '' }}";
-            
-            // Mencari draf fan dan hasil draf tanpa relasi model (manual check via DB if needed, 
-            // but for now we look if we have the IDs from controller logic or just start from step 2)
-            @php
-                $fan = \App\Models\ProsesRoastingFan::where('input_roasting_uuid', $draftData->uuid)->first();
-                $hasil = $fan ? \App\Models\HasilProsesRoasting::where('roasting_fan_uuid', $fan->uuid)->first() : null;
-            @endphp
-
-            @if($hasil)
-                state.hasil_roasting_uuid = "{{ $hasil->uuid }}";
-                state.roasting_fan_uuid = "{{ $fan->uuid }}";
-                state.current_step = 4;
-            @elseif($fan)
-                state.roasting_fan_uuid = "{{ $fan->uuid }}";
-                state.current_step = 3;
-            @else
-                state.current_step = 2;
-            @endif
-            
+            state.current_step = 2;
             sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         @endif
 
@@ -491,7 +391,7 @@
         $('#step-2 .next-step').on('click', function() {
             const f = $('#form-step-2');
 
-            showLoading('Saving Roasting Fan...');
+            showLoading('Menyimpan Roasting Fan & Menyelesaikan Input Produksi...');
             $.ajax({
                 url: '{{ route("wizard.proses3.store-roasting-fan") }}',
                 type: 'POST',
@@ -501,9 +401,8 @@
                     hideLoading();
                     if (res.success) {
                         state.roasting_fan_uuid = res.uuid;
-                        $('#p3_roasting_fan_uuid').val(res.uuid);
-                        goToStep(3);
-                        showAlert('success', 'Berhasil', res.message);
+                        try { sessionStorage.removeItem(STORAGE_KEY); } catch(_) {}
+                        window.location.href = res.redirect_url || '{{ route("wizard.proses3.index") }}';
                     } else { showAlert('error', 'Gagal', res.message); }
                 },
                                 error: function(xhr) {

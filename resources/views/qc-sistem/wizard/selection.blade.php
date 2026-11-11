@@ -75,16 +75,16 @@
                                     </div>
                                     <h6 class="process-title">[QF-10/00] Frying → Roasted → IQF</h6>
                                     <ul class="process-list">
-                                        <li>Frying</li>
+                                        <li>Pencetakan</li>
                                         <li>Predust</li>
                                         <li>Battering & Breader</li>
-                                        <li>Fryer 1-5</li>
+                                        <li>Fryer 1 - 5</li>
                                         <li>Roasting Fan</li>
-                                        <li>IQF</li>
+                                        <li>Hasil Roasting</li>
                                     </ul>
 
                                     <div class="btn-group-custom">
-                                        @if($superadmin || auth()->user()->can('create-wizard-proses2'))
+                                        @if($userRole !== 3 && ($superadmin || in_array($userRole, [1, 2, 5], true) || auth()->user()->can('create-wizard-proses2')))
                                             @if($draftProses2)
                                                 <button type="button" class="btn btn-warning btn-sm btn-block text-white" data-toggle="modal" data-target="#modalProses2">
                                                     Mulai
@@ -96,7 +96,7 @@
                                             @endif
                                         @endif
                                         <a href="{{ route('wizard.proses2.index') }}" class="btn btn-outline-warning btn-sm btn-block">
-                                            Riwayat
+                                            {{ $userRole === 3 ? 'Lihat Data & Input QC' : 'Riwayat' }}
                                         </a>
                                     </div>
                                 </div>
@@ -114,12 +114,11 @@
                                     <ul class="process-list">
                                         <li>Input Roasted</li>
                                         <li>Roasted Fan</li>
-                                        <li>Hasil</li>
-                                        <li>IQF</li>
+                                        <li>Hasil Roasting</li>
                                     </ul>
 
                                     <div class="btn-group-custom">
-                                        @if($superadmin || auth()->user()->can('create-wizard-proses3'))
+                                        @if($userRole !== 3 && ($superadmin || in_array($userRole, [1, 2, 5], true) || auth()->user()->can('create-wizard-proses3')))
                                             @if($draftProses3)
                                                 <button type="button" class="btn btn-info btn-sm btn-block" data-toggle="modal" data-target="#modalProses3">
                                                     Mulai
@@ -131,7 +130,7 @@
                                             @endif
                                         @endif
                                         <a href="{{ route('wizard.proses3.index') }}" class="btn btn-outline-info btn-sm btn-block">
-                                            Riwayat
+                                            {{ $userRole === 3 ? 'Lihat Data & Input QC' : 'Riwayat' }}
                                         </a>
                                     </div>
                                 </div>

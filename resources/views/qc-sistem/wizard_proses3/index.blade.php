@@ -40,11 +40,10 @@
                         <a href="{{ route('wizard.proses3.audit') }}" class="btn btn-sm btn-purple mr-1">
                             <i class="fas fa-history"></i>
                         </a>
-                        @if(auth()->user()->hasPermissionTo('create-wizard-proses3'))
+                        @if(auth()->user()->hasPermissionTo('create-wizard-proses3') && (int) auth()->user()->id_role !== 3)
                         <a href="{{ route('wizard.proses3.create') }}" class="btn btn-sm btn-primary">
                             <i class="fas fa-plus-circle mr-1"></i> Input Proses Baru
                         </a>
-                        
                         @endif
                     </div>
                 </div>
@@ -135,7 +134,7 @@
                                         <td>{{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}</td>
                                         <td>{{ $item->inputRoastingData->jam ?? ($item->jam ?? '-') }}</td>
                                         <td>{{ $item->shift->shift ?? '-' }}</td>
-                                        <td class="text-left"><strong>{{ $item->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</strong></td>
+                                        <td class="text-left"><strong>{{ $item->inputRoastingData->produk->nama_produk ?? ($item->prosesRoastingFanData->produk->nama_produk ?? ($item->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</strong></td>
                                         <td><span class="badge badge-light border">{{ $item->inputRoastingData->kode_produksi ?? '-' }}</span></td>
                                         <td>{{ $item->prosesRoastingFanData->aktual_lama_proses ?? '-' }}</td>
                                         <td>
@@ -170,14 +169,23 @@
                                         <td><small class="text-muted">{{ $item->user->name ?? '-' }}</small></td>
                                         <td class="align-middle">
                                             <div class="status-badges d-flex flex-column align-items-center">
+                                                @if($item->hasilProsesRoastingData)
+                                                    <span class="badge badge-info mb-1 w-100" style="font-size: 0.7rem;" title="Verifikasi Hasil Akhir oleh QC sudah diisi">
+                                                        <i class="fas fa-check-double mr-1"></i> Input QC OK
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-warning mb-1 w-100" style="font-size: 0.7rem;" title="Menunggu QC mengisi Verifikasi Hasil Akhir via ikon Mata">
+                                                        <i class="fas fa-hourglass-half mr-1"></i> Menunggu QC
+                                                    </span>
+                                                @endif
                                                 <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                                                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
+                                                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> 2. QC
                                                 </span>
                                                 <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                                                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
+                                                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> 3. PROD
                                                 </span>
                                                 <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                                                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
+                                                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> 4. SPV
                                                 </span>
                                             </div>
                                         </td>
@@ -209,7 +217,7 @@
                                             <div class="rincian-wrapper p-3" style="background:#f8f9fc; border-left:4px solid #17a2b8; border-bottom:1px solid #dee2e6;">
                                                 <h6 class="font-weight-bold text-info mb-3">
                                                     <i class="fas fa-stream mr-1"></i>
-                                                    Rincian Langkah Proses &mdash; <span class="text-dark">{{ $item->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</span>
+                                                    Rincian Langkah Proses &mdash; <span class="text-dark">{{ $item->inputRoastingData->produk->nama_produk ?? ($item->prosesRoastingFanData->produk->nama_produk ?? ($item->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</span>
                                                     <small class="text-muted ml-2">{{ $item->tanggal ? $item->tanggal->format('d/m/Y') : '-' }} {{ $item->jam ? \Carbon\Carbon::parse($item->jam)->format('H:i') : '' }}</small>
                                                 </h6>
 
