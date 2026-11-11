@@ -293,83 +293,70 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-muted small text-uppercase font-weight-bold mb-1">Dibuat oleh</div>
-                                        <div class="font-weight-bold">{{ $shoestring->createdBy->name ?? '-' }}</div>
-                                        @if($shoestring->createdBy)
-                                            <div class="small text-muted mb-1">{{ $shoestring->createdBy->roleModel->role ?? $shoestring->createdBy->role ?? '-' }}</div>
-                                        @endif
-                                        <small class="text-muted">
-                                            {{ $shoestring->created_at ? \Carbon\Carbon::parse($shoestring->created_at)->format('d-m-Y H:i') : '' }}
-                                        </small>
-                                    </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <th style="width: 35%;">Verifikasi</th>
+                                            <td>:
+                                                @if($shoestring->approved_by_qc)
+                                                    <strong>{{ $shoestring->qcApprover->name ?? '-' }}</strong>
+                                                    <span class="text-muted">({{ $shoestring->qcApprover->roleModel->role ?? $shoestring->qcApprover->role ?? '-' }})</span>
+                                                @else
+                                                    <span class="text-muted font-italic">Belum diverifikasi</span>
+                                                    @if($canVerifyQc)
+                                                        <button type="button" class="btn btn-sm btn-info btn-approve ml-2" data-type="qc">
+                                                            <i class="fas fa-check mr-1"></i> Verifikasi
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Disetujui</th>
+                                            <td>:
+                                                @if($shoestring->approved_by_spv)
+                                                    <strong>{{ $shoestring->spvApprover->name ?? '-' }}</strong>
+                                                    <span class="text-muted">({{ $shoestring->spvApprover->roleModel->role ?? $shoestring->spvApprover->role ?? '-' }})</span>
+                                                @else
+                                                    <span class="text-muted font-italic">Belum disetujui</span>
+                                                    @if($canApproveSpv)
+                                                        <button type="button" class="btn btn-sm btn-success btn-approve ml-2" data-type="spv">
+                                                            <i class="fas fa-check mr-1"></i> Setujui
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-muted small text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</div>
-                                        @if($shoestring->approved_by_produksi)
-                                            <div class="font-weight-bold text-success">{{ $shoestring->produksiApprover->name ?? '-' }}</div>
-                                            @if($shoestring->produksiApprover)
-                                                <div class="small text-muted mb-1">{{ $shoestring->produksiApprover->roleModel->role ?? $shoestring->produksiApprover->role ?? '-' }}</div>
-                                            @endif
-                                            <small class="text-muted">
-                                                {{ $shoestring->produksi_approved_at ? \Carbon\Carbon::parse($shoestring->produksi_approved_at)->format('d-m-Y H:i') : '' }}
-                                            </small>
-                                        @else
-                                            <div class="text-muted font-italic mb-2">Belum disetujui</div>
-                                            @if($canApproveProduksi)
-                                                <button type="button" class="btn btn-sm btn-primary btn-approve" data-type="produksi">
-                                                    <i class="fas fa-check mr-1"></i> Setujui
-                                                </button>
-                                            @endif
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-muted small text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</div>
-                                        @if($shoestring->approved_by_qc)
-                                            <div class="font-weight-bold text-success">{{ $shoestring->qcApprover->name ?? '-' }}</div>
-                                            @if($shoestring->qcApprover)
-                                                <div class="small text-muted mb-1">{{ $shoestring->qcApprover->roleModel->role ?? $shoestring->qcApprover->role ?? '-' }}</div>
-                                            @endif
-                                            <small class="text-muted">
-                                                {{ $shoestring->qc_approved_at ? \Carbon\Carbon::parse($shoestring->qc_approved_at)->format('d-m-Y H:i') : '' }}
-                                            </small>
-                                        @else
-                                            <div class="text-muted font-italic mb-2">Belum diverifikasi</div>
-                                            @if($canVerifyQc)
-                                                <button type="button" class="btn btn-sm btn-info btn-approve" data-type="qc">
-                                                    <i class="fas fa-check mr-1"></i> Verifikasi
-                                                </button>
-                                            @endif
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-muted small text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</div>
-                                        @if($shoestring->approved_by_spv)
-                                            <div class="font-weight-bold text-success">{{ $shoestring->spvApprover->name ?? '-' }}</div>
-                                            @if($shoestring->spvApprover)
-                                                <div class="small text-muted mb-1">{{ $shoestring->spvApprover->roleModel->role ?? $shoestring->spvApprover->role ?? '-' }}</div>
-                                            @endif
-                                            <small class="text-muted">
-                                                {{ $shoestring->spv_approved_at ? \Carbon\Carbon::parse($shoestring->spv_approved_at)->format('d-m-Y H:i') : '' }}
-                                            </small>
-                                        @else
-                                            <div class="text-muted font-italic mb-2">Belum disetujui</div>
-                                            @if($canApproveSpv)
-                                                <button type="button" class="btn btn-sm btn-success btn-approve" data-type="spv">
-                                                    <i class="fas fa-check mr-1"></i> Setujui
-                                                </button>
-                                            @endif
-                                        @endif
-                                    </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <th style="width: 35%;">Dibuat oleh</th>
+                                            <td>:
+                                                <strong>{{ $shoestring->createdBy->name ?? '-' }}</strong>
+                                                @if($shoestring->createdBy)
+                                                    <span class="text-muted">({{ $shoestring->createdBy->roleModel->role ?? $shoestring->createdBy->role ?? '-' }})</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Diketahui oleh</th>
+                                            <td>:
+                                                @if($shoestring->approved_by_produksi)
+                                                    <strong>{{ $shoestring->produksiApprover->name ?? '-' }}</strong>
+                                                    <span class="text-muted">({{ $shoestring->produksiApprover->roleModel->role ?? $shoestring->produksiApprover->role ?? '-' }})</span>
+                                                @else
+                                                    <span class="text-muted font-italic">Belum diketahui</span>
+                                                    @if($canApproveProduksi)
+                                                        <button type="button" class="btn btn-sm btn-primary btn-approve ml-2" data-type="produksi">
+                                                            <i class="fas fa-check mr-1"></i> Setujui
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
                             </div>
                         </div>

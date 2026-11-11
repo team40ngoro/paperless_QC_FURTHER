@@ -122,56 +122,55 @@
 
                                     <h5 class="text-info border-bottom pb-2 mb-3 mt-4"><i class="fas fa-signature mr-2"></i> Pengesahan</h5>
                                     <div class="row">
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 bg-light">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Dibuat oleh</small>
-                                                <div class="small font-weight-bold">{{ $chillroom->user->name ?? '-' }}</div>
-                                                @if($chillroom->user)
-                                                    <div class="small text-muted">{{ $chillroom->user->roleModel->role ?? $chillroom->user->role ?? '-' }}</div>
-                                                @endif
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Verifikasi</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_qc)
+                                                            <strong>{{ $chillroom->qcApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->qcApprover->roleModel->role ?? $chillroom->qcApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diverifikasi</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Disetujui</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_spv)
+                                                            <strong>{{ $chillroom->spvApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->spvApprover->roleModel->role ?? $chillroom->spvApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum disetujui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $chillroom->approved_by_produksi ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</small>
-                                                @if($chillroom->approved_by_produksi)
-                                                    <div class="small font-weight-bold text-success">{{ $chillroom->produksiApprover->name ?? '-' }}</div>
-                                                    @if($chillroom->produksiApprover)
-                                                        <div class="small text-muted">{{ $chillroom->produksiApprover->roleModel->role ?? $chillroom->produksiApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $chillroom->produksi_approved_at ? \Carbon\Carbon::parse($chillroom->produksi_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum diketahui</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $chillroom->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</small>
-                                                @if($chillroom->approved_by_qc)
-                                                    <div class="small font-weight-bold text-success">{{ $chillroom->qcApprover->name ?? '-' }}</div>
-                                                    @if($chillroom->qcApprover)
-                                                        <div class="small text-muted">{{ $chillroom->qcApprover->roleModel->role ?? $chillroom->qcApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $chillroom->qc_approved_at ? \Carbon\Carbon::parse($chillroom->qc_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum diverifikasi</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $chillroom->approved_by_spv ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</small>
-                                                @if($chillroom->approved_by_spv)
-                                                    <div class="small font-weight-bold text-success">{{ $chillroom->spvApprover->name ?? '-' }}</div>
-                                                    @if($chillroom->spvApprover)
-                                                        <div class="small text-muted">{{ $chillroom->spvApprover->roleModel->role ?? $chillroom->spvApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $chillroom->spv_approved_at ? \Carbon\Carbon::parse($chillroom->spv_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum disetujui</div>
-                                                @endif
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Dibuat oleh</th>
+                                                    <td>:
+                                                        <strong>{{ $chillroom->user->name ?? '-' }}</strong>
+                                                        @if($chillroom->user)
+                                                            <span class="text-muted">({{ $chillroom->user->roleModel->role ?? $chillroom->user->role ?? '-' }})</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Diketahui oleh</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_produksi)
+                                                            <strong>{{ $chillroom->produksiApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->produksiApprover->roleModel->role ?? $chillroom->produksiApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diketahui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>

@@ -138,62 +138,59 @@
 
                                     <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-signature mr-2"></i> Pengesahan</h5>
                                     <div class="row">
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 bg-light">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Dibuat oleh</small>
-                                                <div class="small font-weight-bold">{{ $seasoning->createdBy->name ?? '-' }}</div>
-                                                @if($seasoning->createdBy)
-                                                    <div class="small text-muted">{{ $seasoning->createdBy->roleModel->role ?? $seasoning->createdBy->role ?? '-' }}</div>
-                                                @endif
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Verifikasi</th>
+                                                    <td>:
+                                                        @if($qcVerificationNotOk)
+                                                            <strong>{{ $seasoning->qcApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $seasoning->qcApprover->roleModel->role ?? $seasoning->qcApprover->role ?? '-' }})</span>
+                                                            <span class="badge badge-danger ml-1">Tidak Oke</span>
+                                                        @elseif($seasoning->approved_by_qc)
+                                                            <strong>{{ $seasoning->qcApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $seasoning->qcApprover->roleModel->role ?? $seasoning->qcApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diverifikasi</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Disetujui</th>
+                                                    <td>:
+                                                        @if($seasoning->approved_by_spv)
+                                                            <strong>{{ $seasoning->spvApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $seasoning->spvApprover->roleModel->role ?? $seasoning->spvApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum disetujui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $seasoning->approved_by_produksi ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</small>
-                                                @if($seasoning->approved_by_produksi)
-                                                    <div class="small font-weight-bold text-success">{{ $seasoning->produksiApprover->name ?? '-' }}</div>
-                                                    @if($seasoning->produksiApprover)
-                                                        <div class="small text-muted">{{ $seasoning->produksiApprover->roleModel->role ?? $seasoning->produksiApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $seasoning->produksi_approved_at ? \Carbon\Carbon::parse($seasoning->produksi_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum diketahui</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $qcVerificationNotOk ? 'bg-danger-light' : ($seasoning->approved_by_qc ? 'bg-success-light' : 'bg-light') }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</small>
-                                                @if($qcVerificationNotOk)
-                                                    <div class="small font-weight-bold text-danger">{{ $seasoning->qcApprover->name ?? '-' }}</div>
-                                                    @if($seasoning->qcApprover)
-                                                        <div class="small text-muted">{{ $seasoning->qcApprover->roleModel->role ?? $seasoning->qcApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small font-weight-bold text-danger">Ada item tidak oke</div>
-                                                @elseif($seasoning->approved_by_qc)
-                                                    <div class="small font-weight-bold text-success">{{ $seasoning->qcApprover->name ?? '-' }}</div>
-                                                    @if($seasoning->qcApprover)
-                                                        <div class="small text-muted">{{ $seasoning->qcApprover->roleModel->role ?? $seasoning->qcApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $seasoning->qc_approved_at ? \Carbon\Carbon::parse($seasoning->qc_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum diverifikasi</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="p-2 border rounded h-100 {{ $seasoning->approved_by_spv ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</small>
-                                                @if($seasoning->approved_by_spv)
-                                                    <div class="small font-weight-bold text-success">{{ $seasoning->spvApprover->name ?? '-' }}</div>
-                                                    @if($seasoning->spvApprover)
-                                                        <div class="small text-muted">{{ $seasoning->spvApprover->roleModel->role ?? $seasoning->spvApprover->role ?? '-' }}</div>
-                                                    @endif
-                                                    <div class="small text-muted">{{ $seasoning->spv_approved_at ? \Carbon\Carbon::parse($seasoning->spv_approved_at)->format('d-m-Y H:i') : '' }}</div>
-                                                @else
-                                                    <div class="small text-muted font-italic">Belum disetujui</div>
-                                                @endif
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Dibuat oleh</th>
+                                                    <td>:
+                                                        <strong>{{ $seasoning->createdBy->name ?? '-' }}</strong>
+                                                        @if($seasoning->createdBy)
+                                                            <span class="text-muted">({{ $seasoning->createdBy->roleModel->role ?? $seasoning->createdBy->role ?? '-' }})</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Diketahui oleh</th>
+                                                    <td>:
+                                                        @if($seasoning->approved_by_produksi)
+                                                            <strong>{{ $seasoning->produksiApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $seasoning->produksiApprover->roleModel->role ?? $seasoning->produksiApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diketahui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>

@@ -415,9 +415,9 @@ class ChillroomQcRoleRestrictionTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Dibuat oleh');
-        $response->assertSee('Diketahui (SPV Produksi)');
-        $response->assertSee('Verifikasi (QC Inspector)');
-        $response->assertSee('Disetujui (SPV QC)');
+        $response->assertSee('Diketahui oleh');
+        $response->assertSee('Verifikasi');
+        $response->assertSee('Disetujui');
     }
 
     public function test_index_page_does_not_render_approve_produksi_button(): void
