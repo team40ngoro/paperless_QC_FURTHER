@@ -41,7 +41,7 @@
                                 </div>
                             @endif
 
-                            <form action="{{ route('shoestring.store') }}" method="POST" id="main-shoestring-form" enctype="multipart/form-data">                                
+                            <form action="{{ route('shoestring.store') }}" method="POST" id="main-shoestring-form" enctype="multipart/form-data">
                                 @csrf
                                 <!-- Informasi Umum (Shared Fields) -->
                                 <div class="card card-info card-outline mb-3">
@@ -60,7 +60,7 @@
                                                         <div class="input-group-prepend">
                                                             <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
                                                         </div>
-                                                        <input type="date" class="form-control" name="tanggal" id="tanggal" 
+                                                        <input type="date" class="form-control" name="tanggal" id="tanggal"
                                                                 value="{{ old('tanggal', \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d')) }}" required>
                                                     </div>
                                                 </div>
@@ -139,7 +139,7 @@
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Kode Produksi <span class="text-danger">*</span></label>
-                                                            <input type="text" class="form-control entry-field" name="entries[0][kode_produksi]" 
+                                                            <input type="text" class="form-control entry-field" name="entries[0][kode_produksi]"
                                                                    placeholder="Masukkan kode produksi" value="{{ old('entries.0.kode_produksi') }}" required>
                                                         </div>
                                                         <div class="form-group">
@@ -168,7 +168,7 @@
 
                                                         <div class="form-group">
                                                             <label>Keterangan</label>
-                                                            <textarea class="form-control entry-field" name="entries[0][catatan]" 
+                                                            <textarea class="form-control entry-field" name="entries[0][catatan]"
                                                                 rows="4" placeholder="Masukkan keterangan tambahan"></textarea>
                                                         </div>
 
@@ -248,21 +248,21 @@ $(document).ready(function() {
     }
 
     initBeratSelects();
-    
+
     // Function to update summary
     function updateSummary() {
         const totalEntries = $('.entry-card').length;
         let validEntries = 0;
         let incompleteEntries = 0;
-        
+
         $('.entry-card').each(function() {
             const requiredFields = $(this).find('.entry-field[required]');
             let isComplete = true;
-            
+
             requiredFields.each(function() {
                 const $field = $(this);
                 let fieldValue = $field.val();
-                
+
                 if (Array.isArray(fieldValue)) {
                     if (fieldValue.length === 0 || (fieldValue.length === 1 && fieldValue[0] === '')) {
                         isComplete = false;
@@ -275,27 +275,27 @@ $(document).ready(function() {
                     }
                 }
             });
-            
+
             if (isComplete) {
                 validEntries++;
             } else {
                 incompleteEntries++;
             }
         });
-        
+
         $('#total-entries').text(totalEntries);
         $('#valid-entries').text(validEntries);
         $('#incomplete-entries').text(incompleteEntries);
         $('#submit-count').text(totalEntries);
     }
-    
+
     // Function to reindex entries
     function reindexEntries() {
         $('.entry-card').each(function(index) {
             const entryNum = index;
             $(this).attr('data-entry', index + 1);
             $(this).find('.card-title').html(`<i class="fas fa-box"></i> Entry #${index + 1}`);
-            
+
             // Update name attributes
             $(this).find('input, select, textarea').each(function() {
                 const name = $(this).attr('name');
@@ -307,13 +307,13 @@ $(document).ready(function() {
                     }
                 }
             });
-            
+
             // Update IDs
             $(this).find('.select-produsen').attr('id', `nama_produsen_${entryNum}`);
             $(this).find('.defect-qty-card').attr('id', `defect-card-${entryNum}`);
             $(this).find('[id^="defect-qty-container-"]').attr('id', `defect-qty-container-${entryNum}`);
             $(this).find('[id^="total_defect_"]').attr('id', `total_defect_${entryNum}`);
-            
+
             // Show/hide remove button
             const removeBtn = $(this).find('.remove-entry-btn');
             if ($('.entry-card').length > 1) {
@@ -323,12 +323,12 @@ $(document).ready(function() {
             }
         });
     }
-    
+
     // Add new entry
     $('#add-entry-btn').click(function() {
         entryCounter++;
         const newEntryNum = $('.entry-card').length;
-        
+
         const newEntryHtml = `
         <div class="entry-card" data-entry="${newEntryNum + 1}">
             <div class="card card-primary card-outline">
@@ -354,7 +354,7 @@ $(document).ready(function() {
                             </div>
                             <div class="form-group">
                                 <label>Kode Produksi <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][kode_produksi]" 
+                                <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][kode_produksi]"
                                        placeholder="Masukkan kode produksi" required>
                             </div>
                              <div class="form-group">
@@ -383,7 +383,7 @@ $(document).ready(function() {
 
                             <div class="form-group">
                                 <label>Keterangan</label>
-                                <textarea class="form-control entry-field" name="entries[${newEntryNum}][catatan]" 
+                                <textarea class="form-control entry-field" name="entries[${newEntryNum}][catatan]"
                                     rows="4" placeholder="Masukkan keterangan tambahan"></textarea>
                             </div>
 
@@ -398,23 +398,23 @@ $(document).ready(function() {
             </div>
         </div>
         `;
-        
+
         $('#entries-container').append(newEntryHtml);
-        
+
         reindexEntries();
         initBeratSelects();
         updateSummary();
-        
+
         if (typeof toastr !== 'undefined') {
             toastr.success('Entry baru berhasil ditambahkan');
         }
-        
+
         const newEntry = $('.entry-card').last();
         $('html, body').animate({
             scrollTop: newEntry.offset().top - 100
         }, 500);
     });
-    
+
     // Remove entry
     $(document).on('click', '.remove-entry-btn', function() {
         if ($('.entry-card').length > 1) {
@@ -494,11 +494,11 @@ $(document).ready(function() {
                                         <div class="col-3 text-secondary pr-1" style="font-size:0.85rem;line-height:1.3;">${sub_jenis_display}</div>
                                         <div class="col-3 text-secondary pr-1" style="font-size:0.85rem;line-height:1.3;">${spesifikasi_display}</div>
                                         <div class="col-2">
-                                            <input type="text" 
-                                                   class="form-control form-control-sm defect-qty-input entry-field" 
-                                                   name="entries[${entryIndex}][sampling_defect_qty][${label_defect}]" 
-                                                   placeholder="0" 
-                                                   value="" 
+                                            <input type="text"
+                                                   class="form-control form-control-sm defect-qty-input entry-field"
+                                                   name="entries[${entryIndex}][sampling_defect_qty][${label_defect}]"
+                                                   placeholder="0"
+                                                   value=""
                                                    style="border-radius:4px;text-align:center;">
                                         </div>
                                     </div>
@@ -527,7 +527,7 @@ $(document).ready(function() {
             }
         });
     });
-    
+
     // Update summary on field change
     $(document).on('input change', '.entry-field', function() {
         updateSummary();
@@ -557,7 +557,7 @@ $(document).ready(function() {
     // Form submit - simple validation only
     $('#main-shoestring-form').on('submit', function(e) {
         e.preventDefault();
-        
+
         const shift = $('#shift_id').val();
         if (!shift || shift === '') {
             if (typeof toastr !== 'undefined') {
@@ -568,20 +568,20 @@ $(document).ready(function() {
             $('#shift_id').addClass('is-invalid');
             return false;
         }
-        
+
         let validationPass = true;
         $('.entry-card').each(function(index) {
             const namaProdusen = $(this).find(`.select-produsen`).val();
             const kodeProduksi = $(this).find(`input[name="entries[${index}][kode_produksi]"]`).val();
             const bestBefore = $(this).find(`input[name="entries[${index}][best_before]"]`).val();
-            
+
             if (!namaProdusen || !kodeProduksi || !bestBefore) {
                 alert(`Mohon lengkapi semua field yang required di Entry #${index + 1} (Nama Produsen, Kode Produksi, Tanggal Expired)`);
                 validationPass = false;
                 return false;
             }
         });
-        
+
         if (validationPass) {
             this.submit();
         }
@@ -593,16 +593,16 @@ $(document).ready(function() {
         const $previewContainer = $container.find('.dokumentasi-preview');
         const entryNumAttr = $(this).closest('.entry-card').attr('data-entry');
         const entryIndex = parseInt(entryNumAttr) - 1;
-        
+
         $previewContainer.empty();
         $container.find('input[type="hidden"].dokumentasi-base64').remove();
-        
+
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        
+
         Array.from(files).forEach((file, fileIndex) => {
             if (!file.type.match('image.*')) return;
-            
+
             const reader = new FileReader();
             reader.onload = function(readerEvent) {
                 const img = new Image();
@@ -612,23 +612,23 @@ $(document).ready(function() {
                     let height = img.height;
                     const MAX_WIDTH = 1200;
                     const MAX_HEIGHT = 1200;
-                    
+
                     if (width > height) {
                         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     } else {
                         if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                     }
-                    
+
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    
+
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    
+
                     const imgElement = $(`<img src="${dataUrl}" class="img-thumbnail" style="height: 100px; width: 100px; object-fit: cover;">`);
                     $previewContainer.append(imgElement);
-                    
+
                     const hiddenInput = $(`<input type="hidden" name="entries[${entryIndex}][dokumentasi_base64][]" class="dokumentasi-base64">`);
                     hiddenInput.val(dataUrl);
                     $container.append(hiddenInput);

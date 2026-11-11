@@ -101,6 +101,9 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Tambah Sampling Berat (Frozen)');
         $response->assertDontSee('Readonly (Role QC)');
+        $response->assertSee('name="entries[0][keterangan]"', false);
+        $response->assertSee('value="Frozen"', false);
+        $response->assertSee('value="Fresh"', false);
     }
 
     public function test_qc_user_can_input_detail_bahan_baku_and_sampling_spo_is_blanked_on_store(): void
@@ -513,6 +516,8 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             'status' => 'OK',
             'suhu_rm' => -18.5,
             'sensori' => '✔',
+            'pemeriksaan_kedatangan' => 'OK',
+            'sampling_berat_rm' => 'OK',
             'note' => 'Data sudah sesuai standar.',
         ]);
 
@@ -522,6 +527,8 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             'status' => 'OK',
             'suhu_rm' => -18.5,
             'sensori' => '✔',
+            'pemeriksaan_kedatangan' => 'OK',
+            'sampling_berat_rm' => 'OK',
             'note' => 'Data sudah sesuai standar.',
             'verified_by' => $this->qcUser->id,
         ]);
@@ -556,6 +563,8 @@ class ChillroomQcRoleRestrictionTest extends TestCase
                 'status' => 'OK',
                 'suhu_rm' => -18.5,
                 'sensori' => '✔',
+                'pemeriksaan_kedatangan' => 'OK',
+                'sampling_berat_rm' => 'OK',
                 'note' => 'Verifikasi tanpa izin create chillroom.',
             ])
             ->assertRedirect();
@@ -593,7 +602,7 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             ->assertStatus(200)
             ->assertSee('id="qcStatusOk"', false)
             ->assertSee('Input Suhu RM (°C)')
-            ->assertSee('Pilih Status Sensori')
+            ->assertSee('id="qcSensoriOk"', false)
             ->assertSee('Simpan Verifikasi QC');
 
         $this->actingAs($this->produksiUser)
@@ -601,7 +610,7 @@ class ChillroomQcRoleRestrictionTest extends TestCase
             ->assertStatus(200)
             ->assertDontSee('id="qcStatusOk"', false)
             ->assertDontSee('Input Suhu RM (°C)')
-            ->assertDontSee('Pilih Status Sensori')
+            ->assertDontSee('id="qcSensoriOk"', false)
             ->assertSee('Hanya role QC yang dapat mengubah verifikasi.');
     }
 

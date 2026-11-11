@@ -171,8 +171,18 @@
                                                         </div>
                                                         <div class="form-group">
                                                             <label>Keterangan</label>
-                                                            <textarea class="form-control entry-field" name="entries[0][keterangan]" 
-                                                                rows="2" placeholder="Masukkan keterangan tambahan"></textarea>
+                                                            <div class="d-flex flex-wrap align-items-center">
+                                                                <label class="mr-4 mb-0 font-weight-normal">
+                                                                    <input type="checkbox" class="entry-keterangan-checkbox" name="entries[0][keterangan]" value="Frozen"
+                                                                        {{ old('entries.0.keterangan') === 'Frozen' ? 'checked' : '' }}>
+                                                                    <i class="fas fa-snowflake text-info mr-1"></i> Frozen
+                                                                </label>
+                                                                <label class="mb-0 font-weight-normal">
+                                                                    <input type="checkbox" class="entry-keterangan-checkbox" name="entries[0][keterangan]" value="Fresh"
+                                                                        {{ old('entries.0.keterangan') === 'Fresh' ? 'checked' : '' }}>
+                                                                    <i class="fas fa-leaf text-success mr-1"></i> Fresh
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -382,6 +392,13 @@ $(document).ready(function() {
         $('#incomplete-entries').text(incompleteEntries);
         $('#submit-count').text(totalEntries);
     }
+
+    // Hanya boleh centang salah satu: Frozen atau Fresh (per entry)
+    $(document).on('change', '.entry-keterangan-checkbox', function() {
+        if ($(this).is(':checked')) {
+            $(this).closest('.entry-card').find('.entry-keterangan-checkbox').not(this).prop('checked', false);
+        }
+    });
     
     // Function to reindex entries - PERBAIKAN LEBIH AMAN
     function reindexEntries() {
@@ -495,8 +512,16 @@ $(document).ready(function() {
                             </div>
                             <div class="form-group">
                                 <label>Keterangan</label>
-                                <textarea class="form-control entry-field" name="entries[${newEntryNum}][keterangan]" 
-                                          rows="2" placeholder="Masukkan keterangan tambahan"></textarea>
+                                <div class="d-flex flex-wrap align-items-center">
+                                    <label class="mr-4 mb-0 font-weight-normal">
+                                        <input type="checkbox" class="entry-keterangan-checkbox" name="entries[${newEntryNum}][keterangan]" value="Frozen">
+                                        <i class="fas fa-snowflake text-info mr-1"></i> Frozen
+                                    </label>
+                                    <label class="mb-0 font-weight-normal">
+                                        <input type="checkbox" class="entry-keterangan-checkbox" name="entries[${newEntryNum}][keterangan]" value="Fresh">
+                                        <i class="fas fa-leaf text-success mr-1"></i> Fresh
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6 sampling-spo-card-section ${isUserQc ? 'sampling-spo-muted' : ''}">
