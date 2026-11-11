@@ -25,10 +25,16 @@
             <td class="align-middle">
                 <div class="small">
                     <i class="fas fa-user-edit text-muted mr-1"></i>{{ $item->createdBy->name ?? '-' }}
+                    @if($item->createdBy)
+                        <span class="text-muted">({{ $item->createdBy->roleModel->role ?? $item->createdBy->role ?? '-' }})</span>
+                    @endif
                 </div>
                 <div class="small">
                     @if($item->approved_by_produksi)
                         <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->produksiApprover->name ?? 'SPV Produksi' }}</span>
+                        @if($item->produksiApprover)
+                            <span class="text-muted">({{ $item->produksiApprover->roleModel->role ?? $item->produksiApprover->role ?? '-' }})</span>
+                        @endif
                     @else
                         <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum diketahui</span>
                     @endif
@@ -38,6 +44,9 @@
                 <div class="small">
                     @if($item->approved_by_qc)
                         <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->qcApprover->name ?? 'QC Inspector' }}</span>
+                        @if($item->qcApprover)
+                            <span class="text-muted">({{ $item->qcApprover->roleModel->role ?? $item->qcApprover->role ?? '-' }})</span>
+                        @endif
                     @else
                         <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum verifikasi</span>
                     @endif
@@ -45,6 +54,9 @@
                 <div class="small">
                     @if($item->approved_by_spv)
                         <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->spvApprover->name ?? 'SPV QC' }}</span>
+                        @if($item->spvApprover)
+                            <span class="text-muted">({{ $item->spvApprover->roleModel->role ?? $item->spvApprover->role ?? '-' }})</span>
+                        @endif
                     @else
                         <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum disetujui</span>
                     @endif

@@ -33,7 +33,7 @@ class ChillroomController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'auditVersion'])
+        $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'auditVersion'])
             ->where('is_audit', false)
             ->when($user->role !== 'superadmin', function ($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -81,7 +81,7 @@ class ChillroomController extends Controller
 
             $isAudit = $request->get('is_audit', 0);
 
-            $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'auditVersion'])
+            $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'auditVersion'])
                 ->where('is_audit', $isAudit)
                 ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -292,7 +292,7 @@ class ChillroomController extends Controller
     // Tampilkan detail data
     public function show($uuid)
     {
-        $chillroom = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'qcVerifications.verifiedBy'])
+        $chillroom = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'qcVerifications.verifiedBy.roleModel'])
             ->where('uuid', $uuid)->firstOrFail();
 
         $user = auth()->user();
@@ -1022,7 +1022,7 @@ class ChillroomController extends Controller
             ->pluck('source_uuid')
             ->toArray();
 
-        $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'originalVersion'])
+        $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'originalVersion'])
             ->where(function ($q) use ($auditedSourceUuids) {
                 $q->where('is_audit', true)
                     ->orWhere(function ($subQ) use ($auditedSourceUuids) {
@@ -1082,7 +1082,7 @@ class ChillroomController extends Controller
                 ->pluck('source_uuid')
                 ->toArray();
 
-            $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'originalVersion'])
+            $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'originalVersion'])
                 ->where(function ($q) use ($auditedSourceUuids) {
                     $q->where('is_audit', true)
                         ->orWhere(function ($subQ) use ($auditedSourceUuids) {

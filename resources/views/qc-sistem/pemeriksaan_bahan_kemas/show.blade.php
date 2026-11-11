@@ -172,9 +172,77 @@
                             @if($item->verifikasi_kedatangan)
                                 <div class="small text-muted mt-3">
                                     Diverifikasi oleh <strong>{{ $item->verifikasiKedatanganBy->name ?? '-' }}</strong>
+                                    @if($item->verifikasiKedatanganBy)
+                                        <span class="badge badge-light border">{{ $item->verifikasiKedatanganBy->roleModel->role ?? $item->verifikasiKedatanganBy->role ?? '-' }}</span>
+                                    @endif
                                     pada {{ $item->verifikasi_kedatangan_at ? $item->verifikasi_kedatangan_at->format('d/m/Y H:i') : '-' }}.
                                 </div>
                             @endif
+                        </div>
+                    </div>
+
+                    <!-- Pengesahan -->
+                    <div class="card card-primary card-outline mt-3">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-signature text-primary mr-2"></i>
+                                Pengesahan
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="p-2 border rounded h-100 bg-light">
+                                        <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Dibuat oleh</small>
+                                        <div class="small font-weight-bold">{{ $item->user->name ?? '-' }}</div>
+                                        @if($item->user)
+                                            <div class="small text-muted">{{ $item->user->roleModel->role ?? $item->user->role ?? '-' }}</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="p-2 border rounded h-100 {{ $item->approved_by_produksi ? 'bg-primary-light' : 'bg-light' }}">
+                                        <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</small>
+                                        @if($item->approved_by_produksi)
+                                            <div class="small font-weight-bold text-primary">{{ $item->produksiApprover->name ?? '-' }}</div>
+                                            @if($item->produksiApprover)
+                                                <div class="small text-muted">{{ $item->produksiApprover->roleModel->role ?? $item->produksiApprover->role ?? '-' }}</div>
+                                            @endif
+                                            <div class="small text-muted">{{ $item->produksi_approved_at ? \Carbon\Carbon::parse($item->produksi_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                        @else
+                                            <div class="small text-muted font-italic">Belum diketahui</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="p-2 border rounded h-100 {{ $item->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
+                                        <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</small>
+                                        @if($item->approved_by_qc)
+                                            <div class="small font-weight-bold text-success">{{ $item->qcApprover->name ?? '-' }}</div>
+                                            @if($item->qcApprover)
+                                                <div class="small text-muted">{{ $item->qcApprover->roleModel->role ?? $item->qcApprover->role ?? '-' }}</div>
+                                            @endif
+                                            <div class="small text-muted">{{ $item->qc_approved_at ? \Carbon\Carbon::parse($item->qc_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                        @else
+                                            <div class="small text-muted font-italic">Belum diverifikasi</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="p-2 border rounded h-100 {{ $item->approved_by_spv ? 'bg-success-light' : 'bg-light' }}">
+                                        <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</small>
+                                        @if($item->approved_by_spv)
+                                            <div class="small font-weight-bold text-success">{{ $item->spvApprover->name ?? '-' }}</div>
+                                            @if($item->spvApprover)
+                                                <div class="small text-muted">{{ $item->spvApprover->roleModel->role ?? $item->spvApprover->role ?? '-' }}</div>
+                                            @endif
+                                            <div class="small text-muted">{{ $item->spv_approved_at ? \Carbon\Carbon::parse($item->spv_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                        @else
+                                            <div class="small text-muted font-italic">Belum disetujui</div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

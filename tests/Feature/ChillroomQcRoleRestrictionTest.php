@@ -407,16 +407,17 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $response->assertDontSee('Merged Receiving Inspection');
     }
 
-    public function test_show_page_does_not_render_production_verification_block(): void
+    public function test_show_page_renders_pengesahan_cards_with_role_labels(): void
     {
         $item = $this->createChillroomRecord();
 
         $response = $this->actingAs($this->adminUser)->get(route('chillroom.show', $item->uuid));
 
         $response->assertStatus(200);
-        $response->assertDontSee('<small class="d-block text-muted">Produksi</small>', false);
-        $response->assertSee('<small class="d-block text-muted">QC</small>', false);
-        $response->assertSee('<small class="d-block text-muted">SPV</small>', false);
+        $response->assertSee('Dibuat oleh');
+        $response->assertSee('Diketahui (SPV Produksi)');
+        $response->assertSee('Verifikasi (QC Inspector)');
+        $response->assertSee('Disetujui (SPV QC)');
     }
 
     public function test_index_page_does_not_render_approve_produksi_button(): void

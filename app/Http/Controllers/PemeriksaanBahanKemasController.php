@@ -44,7 +44,7 @@ class PemeriksaanBahanKemasController extends Controller
         $search = trim((string) $request->get('search', ''));
         $perPage = (int) $request->get('per_page', 5);
 
-        $query = PemeriksaanBahanKemas::with(['user', 'plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover','auditVersion'])
+        $query = PemeriksaanBahanKemas::with(['user.roleModel', 'plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel','auditVersion'])
             ->operasional()
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -82,7 +82,7 @@ class PemeriksaanBahanKemasController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = PemeriksaanBahanKemas::with(['user', 'plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover']);
+            $query = PemeriksaanBahanKemas::with(['user.roleModel', 'plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel']);
 
             if ($user->role !== 'superadmin') {
                 $query->where('id_plan', $user->id_plan);
@@ -184,7 +184,7 @@ class PemeriksaanBahanKemasController extends Controller
 
     public function show($uuid)
     {
-        $item = PemeriksaanBahanKemas::with(['user', 'plan', 'shift', 'verifikasiKedatanganBy'])->where('uuid', $uuid)->firstOrFail();
+        $item = PemeriksaanBahanKemas::with(['user.roleModel', 'plan', 'shift', 'verifikasiKedatanganBy.roleModel', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel'])->where('uuid', $uuid)->firstOrFail();
         $user = Auth::user();
 
         if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {

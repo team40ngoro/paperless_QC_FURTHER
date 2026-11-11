@@ -82,27 +82,57 @@
                                         </tr>
                                     </table>
 
-                                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-check mr-2"></i> Verifikasi</h5>
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">QC</small>
-                                                <i class="fas {{ $rebox->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->qcApprover->name ?? 'Belum' }}</div>
+                                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-signature mr-2"></i> Pengesahan</h5>
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <div class="p-2 border rounded h-100 bg-light">
+                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Dibuat oleh</small>
+                                                <div class="small font-weight-bold">{{ $rebox->createdBy->name ?? '-' }}</div>
+                                                @if($rebox->createdBy)
+                                                    <div class="small text-muted">{{ $rebox->createdBy->roleModel->role ?? $rebox->createdBy->role ?? '-' }}</div>
+                                                @endif
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_produksi ? 'bg-primary-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">Produksi</small>
-                                                <i class="fas {{ $rebox->approved_by_produksi ? 'fa-check-circle text-primary' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->produksiApprover->name ?? 'Belum' }}</div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="p-2 border rounded h-100 {{ $rebox->approved_by_produksi ? 'bg-primary-light' : 'bg-light' }}">
+                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</small>
+                                                @if($rebox->approved_by_produksi)
+                                                    <div class="small font-weight-bold text-primary">{{ $rebox->produksiApprover->name ?? '-' }}</div>
+                                                    @if($rebox->produksiApprover)
+                                                        <div class="small text-muted">{{ $rebox->produksiApprover->roleModel->role ?? $rebox->produksiApprover->role ?? '-' }}</div>
+                                                    @endif
+                                                    <div class="small text-muted">{{ $rebox->produksi_approved_at ? \Carbon\Carbon::parse($rebox->produksi_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                                @else
+                                                    <div class="small text-muted font-italic">Belum diketahui</div>
+                                                @endif
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_spv ? 'bg-dark-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">SPV</small>
-                                                <i class="fas {{ $rebox->approved_by_spv ? 'fa-check-circle text-dark' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->spvApprover->name ?? 'Belum' }}</div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="p-2 border rounded h-100 {{ $rebox->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
+                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</small>
+                                                @if($rebox->approved_by_qc)
+                                                    <div class="small font-weight-bold text-success">{{ $rebox->qcApprover->name ?? '-' }}</div>
+                                                    @if($rebox->qcApprover)
+                                                        <div class="small text-muted">{{ $rebox->qcApprover->roleModel->role ?? $rebox->qcApprover->role ?? '-' }}</div>
+                                                    @endif
+                                                    <div class="small text-muted">{{ $rebox->qc_approved_at ? \Carbon\Carbon::parse($rebox->qc_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                                @else
+                                                    <div class="small text-muted font-italic">Belum diverifikasi</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="p-2 border rounded h-100 {{ $rebox->approved_by_spv ? 'bg-success-light' : 'bg-light' }}">
+                                                <small class="d-block text-muted text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</small>
+                                                @if($rebox->approved_by_spv)
+                                                    <div class="small font-weight-bold text-success">{{ $rebox->spvApprover->name ?? '-' }}</div>
+                                                    @if($rebox->spvApprover)
+                                                        <div class="small text-muted">{{ $rebox->spvApprover->roleModel->role ?? $rebox->spvApprover->role ?? '-' }}</div>
+                                                    @endif
+                                                    <div class="small text-muted">{{ $rebox->spv_approved_at ? \Carbon\Carbon::parse($rebox->spv_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                                                @else
+                                                    <div class="small text-muted font-italic">Belum disetujui</div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>

@@ -20,11 +20,6 @@
 
             $qcVerificationNotOk = $item->latestQcVerification
                 && $item->latestQcVerification->status === 'NOT_OK';
-
-            $approvalSteps = [
-                'QC'  => $item->approved_by_qc,
-                'SPV' => $item->approved_by_spv,
-            ];
         @endphp
         <tr @class(['item-row', 'row-verified' => $isVerified]) data-uuid="{{ $item->uuid }}">
             @if($showApprovalCheckbox)
@@ -48,29 +43,46 @@
             <td class="text-center align-middle font-weight-bold">
                 {{ $item->suhu ?? '0' }}°C
             </td>
-            <td class="text-center align-middle">
-                <span class="small text-muted">{{ $item->user->name ?? '-' }}</span>
+            <td class="align-middle">
+                <div class="small">
+                    <i class="fas fa-user-edit text-muted mr-1"></i>{{ $item->user->name ?? '-' }}
+                    @if($item->user)
+                        <span class="text-muted">({{ $item->user->roleModel->role ?? $item->user->role ?? '-' }})</span>
+                    @endif
+                </div>
+                <div class="small">
+                    @if($item->approved_by_produksi)
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->produksiApprover->name ?? 'SPV Produksi' }}</span>
+                        @if($item->produksiApprover)
+                            <span class="text-muted">({{ $item->produksiApprover->roleModel->role ?? $item->produksiApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum diketahui</span>
+                    @endif
+                </div>
             </td>
             <td class="align-middle">
-                <div class="status-badges d-flex flex-column align-items-center">
-                    @foreach($approvalSteps as $label => $isApproved)
-                        @php
-                            $isNotOk = $label === 'QC' && $qcVerificationNotOk;
-                        @endphp
-                        <span @class([
-                                'badge',
-                                'w-100',
-                                'badge-danger' => $isNotOk,
-                                'badge-success' => $isApproved && !$isNotOk,
-                                'badge-light border' => !$isApproved && !$isNotOk,
-                                'mb-1' => !$loop->last,
-                              ])
-                              style="font-size: 0.7rem;">
-                            <i class="fas {{ $isNotOk ? 'fa-times' : ($isApproved ? 'fa-check' : 'fa-clock') }} mr-1"></i> {{ $label }}
-                        </span>
-                    @endforeach
+                <div class="small">
+                    @if($qcVerificationNotOk)
+                        <span class="text-danger"><i class="fas fa-times-circle mr-1"></i>{{ $item->qcApprover->name ?? 'Tidak Oke' }}</span>
+                        <span class="badge badge-danger ml-1">Tidak Oke</span>
+                    @elseif($item->approved_by_qc)
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->qcApprover->name ?? 'QC Inspector' }}</span>
+                        @if($item->qcApprover)
+                            <span class="text-muted">({{ $item->qcApprover->roleModel->role ?? $item->qcApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum verifikasi</span>
+                    @endif
+                </div>
+                <div class="small">
                     @if($item->approved_by_spv)
-                        <small class="text-success font-weight-bold" style="font-size: 0.6rem;">Sudah disetujui oleh SPV QC</small>
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->spvApprover->name ?? 'SPV QC' }}</span>
+                        @if($item->spvApprover)
+                            <span class="text-muted">({{ $item->spvApprover->roleModel->role ?? $item->spvApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum disetujui</span>
                     @endif
                 </div>
             </td>

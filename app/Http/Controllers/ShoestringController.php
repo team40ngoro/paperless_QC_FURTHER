@@ -60,7 +60,7 @@ class ShoestringController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+        $query = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion'])
             ->operasional()
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -105,7 +105,7 @@ class ShoestringController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+            $query = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion'])
                 ->operasional()
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -227,7 +227,7 @@ class ShoestringController extends Controller
 
     public function show($uuid)
     {
-        $shoestring = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'latestQcVerification.verifiedBy', 'qcVerifications.verifiedBy'])->where('uuid', $uuid)->firstOrFail();
+        $shoestring = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'latestQcVerification.verifiedBy.roleModel', 'qcVerifications.verifiedBy.roleModel'])->where('uuid', $uuid)->firstOrFail();
         $user = auth()->user();
         if ($user->role !== 'superadmin' && (int) $shoestring->id_plan !== (int) $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses ke data ini.');

@@ -183,6 +183,9 @@
                                     <br>
                                     <small>
                                         Diverifikasi oleh {{ $latestQcVerification->verifiedBy->name ?? '-' }}
+                                        @if($latestQcVerification->verifiedBy)
+                                            <span class="badge badge-light border ml-1">{{ $latestQcVerification->verifiedBy->roleModel->role ?? $latestQcVerification->verifiedBy->role ?? '-' }}</span>
+                                        @endif
                                         @if($latestQcVerification->verified_at)
                                             pada {{ \Carbon\Carbon::parse($latestQcVerification->verified_at)->format('d-m-Y H:i') }}
                                         @endif
@@ -269,7 +272,12 @@
                                                     </td>
                                                     <td>{{ $verification->total_defect ?? '-' }}</td>
                                                     <td>{{ $verification->note ?? '-' }}</td>
-                                                    <td>{{ $verification->verifiedBy->name ?? '-' }}</td>
+                                                    <td>
+                                                        {{ $verification->verifiedBy->name ?? '-' }}
+                                                        @if($verification->verifiedBy)
+                                                            <br><small class="text-muted">{{ $verification->verifiedBy->roleModel->role ?? $verification->verifiedBy->role ?? '-' }}</small>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -289,6 +297,9 @@
                                     <div class="border rounded p-3 h-100">
                                         <div class="text-muted small text-uppercase font-weight-bold mb-1">Dibuat oleh</div>
                                         <div class="font-weight-bold">{{ $shoestring->createdBy->name ?? '-' }}</div>
+                                        @if($shoestring->createdBy)
+                                            <div class="small text-muted mb-1">{{ $shoestring->createdBy->roleModel->role ?? $shoestring->createdBy->role ?? '-' }}</div>
+                                        @endif
                                         <small class="text-muted">
                                             {{ $shoestring->created_at ? \Carbon\Carbon::parse($shoestring->created_at)->format('d-m-Y H:i') : '' }}
                                         </small>
@@ -300,6 +311,9 @@
                                         <div class="text-muted small text-uppercase font-weight-bold mb-1">Diketahui (SPV Produksi)</div>
                                         @if($shoestring->approved_by_produksi)
                                             <div class="font-weight-bold text-success">{{ $shoestring->produksiApprover->name ?? '-' }}</div>
+                                            @if($shoestring->produksiApprover)
+                                                <div class="small text-muted mb-1">{{ $shoestring->produksiApprover->roleModel->role ?? $shoestring->produksiApprover->role ?? '-' }}</div>
+                                            @endif
                                             <small class="text-muted">
                                                 {{ $shoestring->produksi_approved_at ? \Carbon\Carbon::parse($shoestring->produksi_approved_at)->format('d-m-Y H:i') : '' }}
                                             </small>
@@ -319,6 +333,9 @@
                                         <div class="text-muted small text-uppercase font-weight-bold mb-1">Verifikasi (QC Inspector)</div>
                                         @if($shoestring->approved_by_qc)
                                             <div class="font-weight-bold text-success">{{ $shoestring->qcApprover->name ?? '-' }}</div>
+                                            @if($shoestring->qcApprover)
+                                                <div class="small text-muted mb-1">{{ $shoestring->qcApprover->roleModel->role ?? $shoestring->qcApprover->role ?? '-' }}</div>
+                                            @endif
                                             <small class="text-muted">
                                                 {{ $shoestring->qc_approved_at ? \Carbon\Carbon::parse($shoestring->qc_approved_at)->format('d-m-Y H:i') : '' }}
                                             </small>
@@ -338,6 +355,9 @@
                                         <div class="text-muted small text-uppercase font-weight-bold mb-1">Disetujui (SPV QC)</div>
                                         @if($shoestring->approved_by_spv)
                                             <div class="font-weight-bold text-success">{{ $shoestring->spvApprover->name ?? '-' }}</div>
+                                            @if($shoestring->spvApprover)
+                                                <div class="small text-muted mb-1">{{ $shoestring->spvApprover->roleModel->role ?? $shoestring->spvApprover->role ?? '-' }}</div>
+                                            @endif
                                             <small class="text-muted">
                                                 {{ $shoestring->spv_approved_at ? \Carbon\Carbon::parse($shoestring->spv_approved_at)->format('d-m-Y H:i') : '' }}
                                             </small>
