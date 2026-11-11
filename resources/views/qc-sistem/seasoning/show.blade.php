@@ -3,6 +3,7 @@
 @section('container')
 @php
     $latestQcVerification = $seasoning->latestQcVerification;
+    $qcVerificationNotOk = $latestQcVerification && $latestQcVerification->overall_status !== 'OK';
     $isQcUser = auth()->check() && (auth()->user()->isQcInspector() || auth()->user()->isSuperAdmin());
     $isSpvUser = auth()->check() && ((int) auth()->user()->id_role === 4 || auth()->user()->isSuperAdmin());
 @endphp
@@ -83,8 +84,10 @@
                                                 @if($latestQcVerification)
                                                     @if($latestQcVerification->sensori_status === 'OK')
                                                         <span class="badge badge-success">Oke</span>
-                                                    @else
+                                                    @elseif($latestQcVerification->sensori_status === 'NOT_OK')
                                                         <span class="badge badge-danger">Tidak Oke</span>
+                                                    @else
+                                                        <span class="badge badge-light border">Belum diverifikasi QC</span>
                                                     @endif
                                                 @else
                                                     <span class="badge badge-light border">Belum diverifikasi QC</span>
@@ -101,8 +104,10 @@
                                                 @if($latestQcVerification)
                                                     @if($latestQcVerification->kemasan_status === 'OK')
                                                         <span class="badge badge-success">Oke</span>
-                                                    @else
+                                                    @elseif($latestQcVerification->kemasan_status === 'NOT_OK')
                                                         <span class="badge badge-danger">Tidak Oke</span>
+                                                    @else
+                                                        <span class="badge badge-light border">Belum diverifikasi QC</span>
                                                     @endif
                                                 @else
                                                     <span class="badge badge-light border">Belum diverifikasi QC</span>
@@ -134,10 +139,15 @@
                                     <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-check mr-2"></i> Verifikasi</h5>
                                     <div class="row text-center">
                                         <div class="col-6">
-                                            <div class="p-2 border rounded {{ $seasoning->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
+                                            <div class="p-2 border rounded {{ $qcVerificationNotOk ? 'bg-danger-light' : ($seasoning->approved_by_qc ? 'bg-success-light' : 'bg-light') }}">
                                                 <small class="d-block text-muted">QC</small>
-                                                <i class="fas {{ $seasoning->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }} fa-lg my-2"></i>
+                                                <i class="fas {{ $qcVerificationNotOk ? 'fa-times-circle text-danger' : ($seasoning->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted') }} fa-lg my-2"></i>
                                                 <div class="small">{{ $seasoning->qcApprover->name ?? 'Belum' }}</div>
+                                                @if($qcVerificationNotOk)
+                                                    <div class="small font-weight-bold text-danger">Ada item tidak oke</div>
+                                                @elseif($seasoning->approved_by_qc)
+                                                    <div class="small font-weight-bold text-success">Sudah diverifikasi QC</div>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="col-6">
@@ -343,6 +353,7 @@
 
 <style>
     .bg-success-light { background-color: rgba(40, 167, 69, 0.1); border-color: rgba(40, 167, 69, 0.2) !important; }
+    .bg-danger-light { background-color: rgba(220, 53, 69, 0.1); border-color: rgba(220, 53, 69, 0.2) !important; }
     .bg-primary-light { background-color: rgba(0, 123, 255, 0.1); border-color: rgba(0, 123, 255, 0.2) !important; }
     .bg-dark-light { background-color: rgba(52, 58, 64, 0.1); border-color: rgba(52, 58, 64, 0.2) !important; }
 </style>
