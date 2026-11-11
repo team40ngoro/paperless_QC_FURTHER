@@ -7,8 +7,9 @@
     $userRole = (int) (auth()->user()->id_role ?? 0);
     $canCreateProses1 = $userRole !== 3 && (in_array($userRole, [1, 2, 5], true) || auth()->user()->hasPermissionTo('create-wizard-proses1'));
     $canApproveQc = in_array($userRole, [1, 3, 5], true);
+    $canApproveProduksi = in_array($userRole, [1, 2, 5], true);
     $canApproveSPV = in_array($userRole, [1, 4, 5], true);
-    $showApprovalCheckbox = $canApproveQc || $canApproveSPV;
+    $showApprovalCheckbox = $canApproveQc || $canApproveProduksi || $canApproveSPV;
     $tableColspan = $showApprovalCheckbox ? 11 : 10;
 @endphp
 <div class="content-wrapper">
@@ -64,18 +65,23 @@
                             </div>
 
                             @if($showApprovalCheckbox)
-                            <!-- Bar aksi bulk approve: hanya muncul saat ada baris yang dicentang (Alur: QC Inspector -> SPV QC) -->
+                            <!-- Bar aksi bulk approve: hanya muncul saat ada baris yang dicentang (Alur: QC Inspector -> Foreman/SPV Produksi -> SPV QC) -->
                             <div class="approval-buttons-group d-none">
                                 <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
 
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC Inspector
+                                        <i class="fas fa-check mr-1"></i> Verifikasi QC Inspector
+                                    </button>
+                                @endif
+                                @if($canApproveProduksi)
+                                    <button type="button" class="btn btn-sm btn-primary shadow-sm approve-selected-btn" data-type="produksi">
+                                        <i class="fas fa-check mr-1"></i> Diketahui Foreman/SPV Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV QC
+                                        <i class="fas fa-check mr-1"></i> Disetujui SPV QC
                                     </button>
                                 @endif
                             </div>
@@ -105,7 +111,7 @@
                             @if($userRole === 3)
                                 <div class="alert alert-info border-0 shadow-sm mb-3">
                                     <i class="fas fa-eye mr-1"></i>
-                                    <strong>Petunjuk QC Inspector:</strong> Klik tombol <strong>Ikon Mata (<i class="fas fa-eye"></i>)</strong> pada kolom Aksi untuk membaca data yang telah diinput oleh Produksi terlebih dahulu dan mengisi verifikasi QC (Pencetakan, Predust, Battering, Breading, Frying, dan Hasil Penggorengan).
+                                    <strong>Petunjuk QC Inspector:</strong> Klik tombol <strong>Ikon Mata (<i class="fas fa-eye"></i>)</strong> pada kolom Aksi untuk memeriksa data proses yang telah diinput oleh Produksi (Pencetakan, Predusting, Battering, Breader, dan Frying) lalu mengisi <strong>Verifikasi Hasil Akhir Penggorengan (Suhu Produk &amp; Sensori Produk)</strong>.
                                 </div>
                             @endif
 
@@ -182,7 +188,7 @@
                                         @forelse($pembekuanData as $groupKey => $items)
                                             @forelse($items as $item)
                                                 @php
-                                                    $isQcVerified = !empty($item->hasil_penggorengan_uuid) && !empty(optional($item->penggorenganData)->hasil_pencetakan);
+                                                    $isQcVerified = !empty($item->hasil_penggorengan_uuid);
                                                 @endphp
                                                 <tr class="item-row">
                                                     @if($showApprovalCheckbox)
@@ -215,19 +221,29 @@
                                                     <td class="text-center align-middle">
                                                         <div class="d-flex flex-column align-items-center" style="gap: 3px;">
                                                             @if($item->approved_by_qc)
-                                                                <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
+                                                                <span class="badge badge-success w-100" style="font-size: 0.65rem;" title="Diverifikasi oleh QC Inspector"><i class="fas fa-check"></i> QC</span>
                                                             @elseif($canApproveQc)
-                                                                <button type="button" class="btn btn-xs btn-outline-success w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="qc" style="font-size: 0.65rem; padding: 1px 4px;" title="Approve sebagai QC Inspector">
+                                                                <button type="button" class="btn btn-xs btn-outline-success w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="qc" style="font-size: 0.65rem; padding: 1px 4px;" title="Verifikasi sebagai QC Inspector">
                                                                     <i class="fas fa-check"></i> Appr QC
                                                                 </button>
                                                             @else
                                                                 <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">QC</span>
                                                             @endif
 
+                                                            @if($item->approved_by_produksi)
+                                                                <span class="badge badge-primary w-100" style="font-size: 0.65rem;" title="Diketahui oleh Foreman / SPV Produksi"><i class="fas fa-check"></i> PRD</span>
+                                                            @elseif($item->approved_by_qc && $canApproveProduksi)
+                                                                <button type="button" class="btn btn-xs btn-outline-primary w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="produksi" style="font-size: 0.65rem; padding: 1px 4px;" title="Diketahui oleh Foreman / SPV Produksi">
+                                                                    <i class="fas fa-check"></i> Appr PRD
+                                                                </button>
+                                                            @else
+                                                                <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">PRD</span>
+                                                            @endif
+
                                                             @if($item->approved_by_spv)
-                                                                <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>
-                                                            @elseif($item->approved_by_qc && $canApproveSPV)
-                                                                <button type="button" class="btn btn-xs btn-outline-dark w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="spv" style="font-size: 0.65rem; padding: 1px 4px;" title="Approve sebagai SPV QC">
+                                                                <span class="badge badge-dark w-100" style="font-size: 0.65rem;" title="Disetujui oleh SPV QC"><i class="fas fa-check"></i> SPV</span>
+                                                            @elseif($item->approved_by_produksi && $canApproveSPV)
+                                                                <button type="button" class="btn btn-xs btn-outline-dark w-100 single-approve-btn" data-uuid="{{ $item->uuid }}" data-type="spv" style="font-size: 0.65rem; padding: 1px 4px;" title="Disetujui sebagai SPV QC">
                                                                     <i class="fas fa-check"></i> Appr SPV
                                                                 </button>
                                                             @else
@@ -305,7 +321,7 @@
                                                             <div class="row">
                                                                 <div class="col-lg-8 mb-3">
                                                                     <div class="card mb-0 h-100">
-                                                                        <div class="card-header py-2"><strong>Data Aktual Fryer (QC)</strong></div>
+                                                                        <div class="card-header py-2"><strong>Data Aktual Fryer (Produksi)</strong></div>
                                                                         <div class="table-responsive">
                                                                             <table class="table table-sm table-bordered mb-0">
                                                                                 <thead class="text-center">
@@ -326,7 +342,7 @@
                                                                                             <td>{{ $record->keterangan ?? '-' }}</td>
                                                                                         </tr>
                                                                                     @empty
-                                                                                        <tr><td colspan="8" class="text-center text-muted">Data fryer belum diisi oleh QC Inspector</td></tr>
+                                                                                        <tr><td colspan="8" class="text-center text-muted">Data fryer belum diisi oleh Produksi</td></tr>
                                                                                     @endforelse
                                                                                 </tbody>
                                                                             </table>
