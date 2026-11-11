@@ -68,8 +68,9 @@
                             <div class="approval-buttons-group d-none">
                                 @php
                                     $userRole = auth()->user()->id_role;
+                                    $userRoleName = strtolower(trim(auth()->user()->roleModel->role ?? auth()->user()->role ?? ''));
                                     $canApproveQc = in_array($userRole, [1, 3, 5]);
-                                    $canApproveProduksi = in_array($userRole, [1, 2, 5]);
+                                    $canApproveProduksi = in_array($userRole, [1, 5, 8]) || in_array($userRoleName, ['produksi spv', 'spv produksi', 'foreman produksi']);
                                     $canApproveSpv = in_array($userRole, [1, 4, 5]);
                                 @endphp
 
@@ -77,17 +78,17 @@
 
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
+                                        <i class="fas fa-check mr-1"></i> Verifikasi QC
                                     </button>
                                 @endif
                                 @if($canApproveProduksi)
                                     <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
+                                        <i class="fas fa-check mr-1"></i> Diketahui Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSpv)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
+                                        <i class="fas fa-check mr-1"></i> Disetujui SPV QC
                                     </button>
                                 @endif
                             </div>
@@ -161,8 +162,8 @@
                                             <th class="py-3 text-center">Jam</th>
                                             <th class="py-3 text-center">Kode Produksi</th>
                                             <th class="py-3 text-left">Produsen</th>
-                                            <th class="py-3 text-center">Dibuat Oleh</th>
-                                            <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
+                                            <th class="py-3 text-center">Produksi</th>
+                                            <th class="py-3 text-center" style="width: 110px;">QC</th>
                                             <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                         </tr>
                                     </thead>

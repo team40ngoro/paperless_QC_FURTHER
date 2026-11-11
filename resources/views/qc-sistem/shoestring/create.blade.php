@@ -152,20 +152,6 @@
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <div class="card card-outline card-secondary defect-qty-card" style="display:none;" id="defect-card-0">
-                                                            <div class="card-header bg-light py-2">
-                                                                <h6 class="card-title text-primary m-0" style="font-size: 0.95rem; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> Daftar Item Defect</h6>
-                                                            </div>
-                                                            <div class="card-body py-2 px-3" id="defect-qty-container-0">
-                                                                <!-- Kategori & Items input akan masuk di sini secara dinamis -->
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="form-group mt-3">
-                                                            <label>Total Defect</label>
-                                                            <input type="text" class="form-control entry-field" name="entries[0][total_defect]" id="total_defect_0" value="0" readonly>
-                                                        </div>
-
                                                         <div class="form-group">
                                                             <label>Keterangan</label>
                                                             <textarea class="form-control entry-field" name="entries[0][catatan]"
@@ -310,9 +296,6 @@ $(document).ready(function() {
 
             // Update IDs
             $(this).find('.select-produsen').attr('id', `nama_produsen_${entryNum}`);
-            $(this).find('.defect-qty-card').attr('id', `defect-card-${entryNum}`);
-            $(this).find('[id^="defect-qty-container-"]').attr('id', `defect-qty-container-${entryNum}`);
-            $(this).find('[id^="total_defect_"]').attr('id', `total_defect_${entryNum}`);
 
             // Show/hide remove button
             const removeBtn = $(this).find('.remove-entry-btn');
@@ -367,20 +350,6 @@ $(document).ready(function() {
                              </div>
                          </div>
                          <div class="col-md-6">
-                            <div class="card card-outline card-secondary defect-qty-card" style="display:none;" id="defect-card-${newEntryNum}">
-                                <div class="card-header bg-light py-2">
-                                    <h6 class="card-title text-primary m-0" style="font-size: 0.95rem; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> Daftar Item Defect</h6>
-                                </div>
-                                <div class="card-body py-2 px-3" id="defect-qty-container-${newEntryNum}">
-                                    <!-- Kategori & Items input akan masuk di sini secara dinamis -->
-                                </div>
-                            </div>
-
-                            <div class="form-group mt-3">
-                                <label>Total Defect</label>
-                                <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][total_defect]" id="total_defect_${newEntryNum}" value="0" readonly>
-                            </div>
-
                             <div class="form-group">
                                 <label>Keterangan</label>
                                 <textarea class="form-control entry-field" name="entries[${newEntryNum}][catatan]"
@@ -433,125 +402,9 @@ $(document).ready(function() {
         }
     });
 
-    // Fetch and render defects when producer dropdown changes
-    $(document).on('change', '.select-produsen', function() {
-        const $entryCard = $(this).closest('.entry-card');
-        const entryIndex = $entryCard.index();
-        const produsenVal = $(this).val();
-        const $defectCard = $entryCard.find(`.defect-qty-card`);
-        const $qtyContainer = $entryCard.find(`#defect-qty-container-${entryIndex}`);
-
-        if (!produsenVal) {
-            $qtyContainer.html('');
-            $defectCard.hide();
-            $entryCard.find(`#total_defect_${entryIndex}`).val(0);
-            updateSummary();
-            return;
-        }
-
-        // Add loading indicator
-        $qtyContainer.html('<div class="text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data defect...</div>');
-        $defectCard.show();
-
-        $.ajax({
-            url: '{{ route("ajax.get-defect-by-produsen") }}',
-            type: 'GET',
-            data: { nama_produsen: produsenVal },
-            success: function(response) {
-                if (response.success && response.detail_defect && response.detail_defect.length > 0) {
-                    let html = '';
-                    response.detail_defect.forEach(cat => {
-                        html += `
-                            <div class="defect-category-section mb-3">
-                                <h6 class="font-weight-bold text-secondary border-bottom pb-1 mb-2">
-                                    <i class="fas fa-folder-open"></i> Kategori: ${cat.kategori}
-                                </h6>
-                                <div class="pl-1">
-                        `;
-                        if (cat.items && cat.items.length > 0) {
-                            // Header row
-                            html += `
-                                <div class="row no-gutters mb-1 px-1">
-                                    <div class="col-4" style="font-size:0.75rem;font-weight:600;color:#888;">Jenis</div>
-                                    <div class="col-3" style="font-size:0.75rem;font-weight:600;color:#888;">Sub Jenis</div>
-                                    <div class="col-3" style="font-size:0.75rem;font-weight:600;color:#888;">Spesifikasi</div>
-                                    <div class="col-2 text-center" style="font-size:0.75rem;font-weight:600;color:#888;">Qty</div>
-                                </div>
-                            `;
-                            cat.items.forEach(item => {
-                                // Sertakan sub_jenis agar tiap sub defect punya key unik (sebelumnya saling menimpa)
-                                const label_defect = [item.jenis, item.sub_jenis, item.spesifikasi]
-                                    .filter(v => v && String(v).trim() !== '')
-                                    .join(' - ')
-                                    .replace(/[\[\]"]/g, '');
-                                const sub_jenis_display = item.sub_jenis
-                                    ? `<span class="badge badge-warning" style="font-size:0.75rem; white-space:normal; text-align:left;">${item.sub_jenis}</span>`
-                                    : '<span class="text-muted">-</span>';
-                                const spesifikasi_display = item.spesifikasi || '<span class="text-muted">-</span>';
-                                html += `
-                                    <div class="row no-gutters align-items-center mb-2 px-1">
-                                        <div class="col-4 text-dark pr-1" style="font-size:0.85rem;line-height:1.3;">${item.jenis}</div>
-                                        <div class="col-3 text-secondary pr-1" style="font-size:0.85rem;line-height:1.3;">${sub_jenis_display}</div>
-                                        <div class="col-3 text-secondary pr-1" style="font-size:0.85rem;line-height:1.3;">${spesifikasi_display}</div>
-                                        <div class="col-2">
-                                            <input type="text"
-                                                   class="form-control form-control-sm defect-qty-input entry-field"
-                                                   name="entries[${entryIndex}][sampling_defect_qty][${label_defect}]"
-                                                   placeholder="0"
-                                                   value=""
-                                                   style="border-radius:4px;text-align:center;">
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                        } else {
-                            html += `<div class="text-muted font-italic pl-2" style="font-size: 0.85rem;">Tidak ada item defect.</div>`;
-                        }
-                        html += `
-                                </div>
-                            </div>
-                        `;
-                    });
-                    $qtyContainer.html(html);
-                } else {
-                    $qtyContainer.html('<div class="text-warning"><i class="fas fa-exclamation-circle"></i> Tidak ada data defect untuk produsen ini.</div>');
-                }
-                updateTotalDefect(entryIndex);
-                updateSummary();
-            },
-            error: function(xhr) {
-                console.error(xhr);
-                $qtyContainer.html('<div class="text-danger"><i class="fas fa-times-circle"></i> Gagal memuat data defect.</div>');
-                updateTotalDefect(entryIndex);
-                updateSummary();
-            }
-        });
-    });
-
     // Update summary on field change
     $(document).on('input change', '.entry-field', function() {
         updateSummary();
-    });
-
-    function updateTotalDefect(entryIndex) {
-        const $entryCard = $('.entry-card').eq(entryIndex);
-        const $totalField = $entryCard.find(`#total_defect_${entryIndex}`);
-        if ($totalField.length === 0) return;
-
-        let total = 0;
-        $entryCard.find('.defect-qty-input').each(function() {
-            const v = $(this).val();
-            if (v !== null && v !== '' && !isNaN(v)) {
-                total += parseFloat(v);
-            }
-        });
-        $totalField.val(total);
-    }
-
-    $(document).on('input', '.defect-qty-input', function() {
-        const $entryCard = $(this).closest('.entry-card');
-        const entryIndex = $entryCard.index();
-        updateTotalDefect(entryIndex);
     });
 
     // Form submit - simple validation only
