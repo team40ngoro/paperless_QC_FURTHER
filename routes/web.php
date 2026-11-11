@@ -1454,6 +1454,7 @@ Route::middleware('auth')->group(function () {
             'parameters' => ['verifikasi-berat-produk' => 'uuid'],
         ]);
         Route::post('verif-peralatan/bulk-approve', [VerifPeralatanController::class, 'bulkApprove'])->name('verif-peralatan.bulk-approve');
+        Route::put('verif-peralatan/{uuid}/qc-verification', [VerifPeralatanController::class, 'updateQcVerification'])->name('verif-peralatan.qc-verification');
 
         Route::resource('verif-peralatan', VerifPeralatanController::class, [
             'parameters' => ['verif-peralatan' => 'uuid'],

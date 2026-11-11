@@ -206,15 +206,15 @@
                                                 </td>
                                                 <td class="text-center align-middle">
                                                     <div class="d-flex flex-column align-items-center" style="gap: 2px;">
-                                                        @if($item->approved_by_qc)
-                                                            <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
-                                                        @endif
-                                                        @if($item->approved_by_produksi)
-                                                            <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> PRD</span>
-                                                        @endif
-                                                        @if($item->approved_by_spv)
-                                                            <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>
-                                                        @endif
+                                                        <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }}" style="font-size: 0.65rem; width: 50px;">
+                                                            <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }}"></i> QC
+                                                        </span>
+                                                        <span class="badge {{ $item->approved_by_produksi ? 'badge-primary' : 'badge-light border' }}" style="font-size: 0.65rem; width: 50px;">
+                                                            <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }}"></i> PRD
+                                                        </span>
+                                                        <span class="badge {{ $item->approved_by_spv ? 'badge-dark' : 'badge-light border' }}" style="font-size: 0.65rem; width: 50px;">
+                                                            <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }}"></i> SPV
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td class="text-center align-middle" style="white-space: nowrap;">
