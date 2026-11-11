@@ -667,6 +667,10 @@ Route::middleware('auth')->group(function () {
         Route::post('shoestring/{uuid}/approve', [ShoestringController::class, 'approve'])
             ->name('shoestring.approve');
 
+        // untuk verifikasi QC shoestring
+        Route::post('shoestring/{uuid}/qc-verifications', [ShoestringController::class, 'storeQcVerification'])
+            ->name('shoestring.qc-verifications.store');
+
         // untuk approval rebox
         Route::post('rebox/{uuid}/approve', [ReboxController::class, 'approve'])
             ->name('rebox.approve');

@@ -36,6 +36,18 @@ class ShoestringController extends Controller
     protected function auditShiftRelation(): string { return 'shift'; }
     protected function auditShiftColumn(): string { return 'shift_id'; }
 
+    private function canApproveProduksiSvp($user): bool
+    {
+        $idRole = (int) ($user->id_role ?? 0);
+        if (in_array($idRole, [1, 5, 8], true)) {
+            return true;
+        }
+
+        $roleName = strtolower(trim($user->roleModel->role ?? $user->role ?? ''));
+
+        return in_array($roleName, ['produksi spv', 'spv produksi', 'foreman produksi'], true);
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -48,7 +60,7 @@ class ShoestringController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+        $query = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion'])
             ->operasional()
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -93,7 +105,7 @@ class ShoestringController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion'])
+            $query = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion'])
                 ->operasional()
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -163,8 +175,6 @@ class ShoestringController extends Controller
             'entries.*.kode_produksi' => 'required|string',
             'entries.*.best_before' => 'required|string',
             'entries.*.berat_sampling' => 'nullable|string',
-            'entries.*.sampling_defect' => 'nullable|array',
-            'entries.*.sampling_defect_qty' => 'nullable|array',
             'entries.*.catatan' => 'nullable|string',
             'entries.*.dokumentasi_base64' => 'nullable|array',
             'entries.*.dokumentasi_base64.*' => 'string',
@@ -173,35 +183,7 @@ class ShoestringController extends Controller
         $user = auth()->user();
         try {
             foreach ($data['entries'] as $entry) {
-                // 1. Process sampling_defect_qty mapping
-                $qtyMap = [];
-                $totalDefect = 0;
-                $filledDefects = [];
-                
-              if (!empty($entry['sampling_defect_qty'])) {
-                    foreach ($entry['sampling_defect_qty'] as $defectKey => $qtyVal) {
-                        if ($qtyVal !== null && $qtyVal !== '' && $qtyVal !== 'null') {
-                            $qtyMap[$defectKey] = (string)$qtyVal;
-                            $totalDefect += (float)$qtyVal;
-                            
-                            // Get name of defect for sampling_defect string log
-                            if (is_numeric($defectKey)) {
-                                $def = \App\Models\DataDefect::find($defectKey);
-                                if ($def) {
-                                    $filledDefects[] = $def->jenis_defect;
-                                } else {
-                                    $filledDefects[] = "Defect #" . $defectKey;
-                                }
-                            } else {
-                                $filledDefects[] = $defectKey;
-                            }
-                        }
-                    }
-                }
-
-                 $samplingDefectNamesStr = !empty($filledDefects) ? Str::limit(implode(', ', $filledDefects), 250, '...') : null;
-
-                // 3. Process base64 documentation
+                // Process base64 documentation
                 $dokumentasiPaths = [];
                 if (!empty($entry['dokumentasi_base64'])) {
                     foreach ($entry['dokumentasi_base64'] as $base64Image) {
@@ -233,9 +215,6 @@ class ShoestringController extends Controller
                     'kode_produksi' => $entry['kode_produksi'],
                     'best_before' => $entry['best_before'],
                     'berat_sampling' => $entry['berat_sampling'] ?? null,
-                    'sampling_defect' => $samplingDefectNamesStr,
-                    'sampling_defect_qty' => !empty($qtyMap) ? $qtyMap : null,
-                    'total_defect' => $totalDefect > 0 ? (string)$totalDefect : null,
                     'catatan' => $entry['catatan'] ?? null,
                     'dokumentasi' => !empty($dokumentasiPaths) ? $dokumentasiPaths : null,
                 ]);
@@ -248,7 +227,7 @@ class ShoestringController extends Controller
 
     public function show($uuid)
     {
-        $shoestring = Shoestring::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy'])->where('uuid', $uuid)->firstOrFail();
+        $shoestring = Shoestring::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'latestQcVerification.verifiedBy.roleModel', 'qcVerifications.verifiedBy.roleModel'])->where('uuid', $uuid)->firstOrFail();
         $user = auth()->user();
         if ($user->role !== 'superadmin' && (int) $shoestring->id_plan !== (int) $user->id_plan) {
             abort(403, 'Anda tidak memiliki akses ke data ini.');
@@ -258,7 +237,12 @@ class ShoestringController extends Controller
             return $redirect;
         }
 
-        $qtyMap = !empty($shoestring->sampling_defect_qty) ? $shoestring->sampling_defect_qty : [];
+        $latestQcVerification = $shoestring->latestQcVerification;
+        $qcVerifications = $shoestring->qcVerifications;
+        $verificationQtyMap = $latestQcVerification
+            ? $latestQcVerification->sampling_defect_qty
+            : $shoestring->sampling_defect_qty;
+        $qtyMap = !empty($verificationQtyMap) ? $verificationQtyMap : [];
         if (is_string($qtyMap)) {
             $qtyMap = json_decode($qtyMap, true) ?: [];
         }
@@ -326,7 +310,7 @@ class ShoestringController extends Controller
             $defectRows[] = $meta + ['qty' => $qty];
         }
 
-        return view('qc-sistem.shoestring.show', compact('shoestring', 'qtyMap', 'defectRows'));
+        return view('qc-sistem.shoestring.show', compact('shoestring', 'qtyMap', 'defectRows', 'latestQcVerification', 'qcVerifications'));
     }
 
     public function edit($uuid)
@@ -382,6 +366,81 @@ class ShoestringController extends Controller
         ]);
     }
 
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        $item = Shoestring::where('uuid', $uuid)->firstOrFail();
+        $user = auth()->user();
+
+        if (!in_array((int) $user->id_role, [1, 3, 5], true)) {
+            abort(403, 'Hanya QC Inspector yang dapat melakukan verifikasi ini.');
+        }
+
+        if ((int) $item->id_plan !== (int) $user->id_plan && !$user->isSuperAdmin()) {
+            abort(403, 'Anda tidak memiliki akses ke data ini.');
+        }
+
+        $validated = $request->validate([
+            'verifikasi' => 'required|in:OK,NOT_OK',
+            'sampling_defect_qty' => 'nullable|array',
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        $qtyMap = [];
+        $totalDefect = 0;
+        $filledDefects = [];
+
+        if (!empty($validated['sampling_defect_qty'])) {
+            foreach ($validated['sampling_defect_qty'] as $defectKey => $qtyVal) {
+                if ($qtyVal !== null && $qtyVal !== '' && $qtyVal !== 'null') {
+                    $qtyMap[$defectKey] = (string) $qtyVal;
+                    $totalDefect += (float) $qtyVal;
+                    $filledDefects[] = $defectKey;
+                }
+            }
+        }
+
+        $samplingDefectNames = !empty($filledDefects) ? Str::limit(implode(', ', $filledDefects), 250, '...') : null;
+        $latest = $item->latestQcVerification;
+
+        $verification = $item->qcVerifications()->create([
+            'shoestring_uuid' => $item->uuid,
+            'verifikasi' => $validated['verifikasi'],
+            'sampling_defect' => $samplingDefectNames,
+            'sampling_defect_qty' => !empty($qtyMap) ? $qtyMap : null,
+            'total_defect' => $totalDefect > 0 ? (string) $totalDefect : null,
+            'note' => $validated['note'] ?? null,
+            'verified_by' => $user->id,
+            'verified_at' => now(),
+        ]);
+
+        ShoestringLog::create([
+            'shoestring_id' => $item->id,
+            'shoestring_uuid' => $item->uuid,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role ?? 'QC Inspector',
+            'aksi' => 'qc_verification',
+            'field_yang_diubah' => ['verifikasi', 'sampling_defect', 'total_defect', 'catatan'],
+            'nilai_lama' => [
+                'verifikasi' => $latest->verifikasi ?? '-',
+                'sampling_defect' => $latest->sampling_defect ?? '-',
+                'total_defect' => $latest->total_defect ?? '-',
+                'catatan' => $latest->note ?? '-',
+            ],
+            'nilai_baru' => [
+                'verifikasi' => $verification->verifikasi,
+                'sampling_defect' => $verification->sampling_defect ?? '-',
+                'total_defect' => $verification->total_defect ?? '-',
+                'catatan' => $verification->note ?? '-',
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'keterangan' => $validated['note'] ?? 'Verifikasi QC',
+        ]);
+
+        return redirect()->back()->with('success', 'Verifikasi QC berhasil disimpan.');
+    }
+
     public function update(Request $request, $uuid)
     {
         $shoestring = Shoestring::where('uuid', $uuid)->firstOrFail();
@@ -406,44 +465,14 @@ class ShoestringController extends Controller
             'kode_produksi' => 'required|string',
             'tgl_exp' => 'required|string',
             'berat_sampling' => 'nullable|string',
-            'sampling_defect_qty' => 'nullable|array',
             'catatan' => 'nullable|string',
             'dokumentasi_base64' => 'nullable|array',
             'dokumentasi_base64.*' => 'string',
         ]);
 
         $user = auth()->user();
-        
-         // 1. Process sampling_defect_qty mapping
-        $qtyMap = [];
-        $totalDefect = 0;
-        $filledDefects = [];
 
-        if (!empty($request->sampling_defect_qty)) {
-            foreach ($request->sampling_defect_qty as $defectKey => $qtyVal) {
-                if ($qtyVal !== null && $qtyVal !== '' && $qtyVal !== 'null') {
-                    $qtyMap[$defectKey] = (string)$qtyVal;
-                    $totalDefect += (float)$qtyVal;
-                    
-                    // Get name of defect for sampling_defect string log
-                    if (is_numeric($defectKey)) {
-                        $def = \App\Models\DataDefect::find($defectKey);
-                        if ($def) {
-                            $filledDefects[] = $def->jenis_defect;
-                        } else {
-                            $filledDefects[] = "Defect #" . $defectKey;
-                        }
-                    } else {
-                        $filledDefects[] = $defectKey;
-                    }
-                }
-            }
-        }
-
-        $samplingDefectNamesStr = !empty($filledDefects) ? Str::limit(implode(', ', $filledDefects), 250, '...') : null;
-
-
-        // 3. Process base64 documentation
+        // Process base64 documentation
         $dokumentasiPaths = $shoestring->dokumentasi ?? [];
         if (!empty($request->dokumentasi_base64)) {
             foreach ($request->dokumentasi_base64 as $base64Image) {
@@ -472,9 +501,6 @@ class ShoestringController extends Controller
             'kode_produksi' => $request->kode_produksi,
             'best_before' => $request->tgl_exp,
             'berat_sampling' => $request->berat_sampling,
-            'sampling_defect' => $samplingDefectNamesStr,
-            'sampling_defect_qty' => !empty($qtyMap) ? $qtyMap : null,
-            'total_defect' => $totalDefect > 0 ? (string)$totalDefect : null,
             'catatan' => $request->catatan,
             'dokumentasi' => !empty($dokumentasiPaths) ? array_values($dokumentasiPaths) : null,
         ]);
@@ -576,7 +602,25 @@ class ShoestringController extends Controller
         $item = Shoestring::where('uuid', $uuid)->firstOrFail();
         $type = $request->type; // qc, produksi, spv
         $user = auth()->user();
-        
+
+        if (!in_array($type, ['qc', 'produksi', 'spv'], true)) {
+            abort(403, 'Tipe approval tidak valid.');
+        }
+
+        $allowedRoles = [
+            'qc' => [1, 3, 5],
+            'produksi' => [1, 5, 8],
+            'spv' => [1, 4, 5],
+        ];
+
+        $authorized = $type === 'produksi'
+            ? $this->canApproveProduksiSvp($user)
+            : in_array((int) $user->id_role, $allowedRoles[$type], true);
+
+        if (!$authorized) {
+            abort(403, 'Anda tidak memiliki otoritas untuk approval ini.');
+        }
+
         $item->update([
             'approved_by_' . $type => true,
             $type . '_approved_by' => $user->id,
@@ -608,11 +652,15 @@ class ShoestringController extends Controller
 
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
+                'produksi' => [1, 5, 8],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($user->id_role, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $this->canApproveProduksiSvp($user)
+                : in_array((int) $user->id_role, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || !$authorized) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
@@ -676,11 +724,15 @@ class ShoestringController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
+                'produksi' => [1, 5, 8],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $this->canApproveProduksiSvp($user)
+                : in_array((int) $userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || !$authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'

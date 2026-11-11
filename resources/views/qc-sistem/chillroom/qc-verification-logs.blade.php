@@ -68,13 +68,15 @@
                                         <thead class="bg-light">
                                             <tr>
                                                 <th style="width: 5%;">No</th>
-                                                <th style="width: 14%;">Tanggal & Waktu</th>
-                                                <th style="width: 11%;">Status</th>
-                                                <th style="width: 11%;">Suhu RM (°C)</th>
-                                                <th style="width: 11%;">Sensori</th>
-                                                <th style="width: 21%;">Catatan</th>
-                                                <th style="width: 16%;">Diverifikasi Oleh</th>
-                                                <th style="width: 11%;">Role</th>
+                                                <th style="width: 12%;">Tanggal & Waktu</th>
+                                                <th style="width: 9%;">Status</th>
+                                                <th style="width: 9%;">Suhu RM (°C)</th>
+                                                <th style="width: 9%;">Sensori</th>
+                                                <th style="width: 12%;">Pemeriksaan Kedatangan Bahan Baku</th>
+                                                <th style="width: 12%;">Sampling Berat RM Daging (SPO)</th>
+                                                <th style="width: 15%;">Catatan</th>
+                                                <th style="width: 12%;">Diverifikasi Oleh</th>
+                                                <th style="width: 8%;">Role</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -100,6 +102,24 @@
                                                             <span class="badge badge-success">Oke</span>
                                                         @elseif(in_array($verification->sensori, ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']))
                                                             <span class="badge badge-danger">Tidak Oke</span>
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if($verification->pemeriksaan_kedatangan === 'OK')
+                                                            <span class="badge badge-success">v (Oke)</span>
+                                                        @elseif($verification->pemeriksaan_kedatangan === 'NOT_OK')
+                                                            <span class="badge badge-danger">x (Tidak Oke)</span>
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if($verification->sampling_berat_rm === 'OK')
+                                                            <span class="badge badge-success">v (Oke)</span>
+                                                        @elseif($verification->sampling_berat_rm === 'NOT_OK')
+                                                            <span class="badge badge-danger">x (Tidak Oke)</span>
                                                         @else
                                                             -
                                                         @endif

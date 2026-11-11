@@ -20,6 +20,8 @@ class ChillroomQcVerification extends Model
         'note',
         'suhu_rm',
         'sensori',
+        'pemeriksaan_kedatangan',
+        'sampling_berat_rm',
         'verified_by',
         'verified_at',
     ];

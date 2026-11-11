@@ -101,7 +101,7 @@
                                                             <div class="input-group-prepend">
                                                                 <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
                                                             </div>
-                                                            <input type="date" class="form-control" name="tanggal" id="tanggal" 
+                                                            <input type="date" class="form-control" name="tanggal" id="tanggal"
                                                                    value="{{ old('tanggal', \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d')) }}" required>
                                                         </div>
                                                     </div>
@@ -171,7 +171,7 @@
                                                     <div class="row">
                                                         <div class="col-md-6">
                                                             <div class="form-group">
-                                                                <label>Nama Seasoning <span class="text-danger">*</span></label>
+                                                                <label>Nama Raw Material <span class="text-danger">*</span></label>
                                                                 <select name="entries[0][nama_rm]" id="nama_rm_0" class="form-control entry-field select-nama-rm" required>
                                                                     <option value="">Pilih Nama Seasoning</option>
                                                                     @foreach($dataSeasoning as $seasoning)
@@ -181,13 +181,13 @@
                                                             </div>
                                                             <div class="form-group">
                                                                 <label>Kode Produksi <span class="text-danger">*</span></label>
-                                                                <input type="text" class="form-control entry-field" name="entries[0][kode_produksi]" 
+                                                                <input type="text" class="form-control entry-field" name="entries[0][kode_produksi]"
                                                                        placeholder="Masukkan kode produksi" required>
                                                             </div>
                                                             <div class="form-group">
                                                                 <label>Berat Per Pack (kg) <span class="text-danger">*</span></label>
                                                                 <div class="input-group">
-                                                                    <input type="text" class="form-control entry-field" name="entries[0][berat]" 
+                                                                    <input type="text" class="form-control entry-field" name="entries[0][berat]"
                                                                            placeholder="Masukkan berat" required>
                                                                     <div class="input-group-append">
                                                                         <span class="input-group-text">kg</span>
@@ -206,7 +206,7 @@
                                                             </div>
                                                             <div class="form-group">
                                                                 <label>Keterangan</label>
-                                                                <textarea class="form-control entry-field" name="entries[0][keterangan]" 
+                                                                <textarea class="form-control entry-field" name="entries[0][keterangan]"
                                                                           rows="3" placeholder="Masukkan keterangan tambahan"></textarea>
                                                             </div>
                                                         </div>
@@ -240,65 +240,65 @@
 <script>
 $(document).ready(function() {
     let entryCounter = 0;
-    
+
     // Initialize Select2 untuk form pertama
     $('.select-nama-rm').select2({
         placeholder: "Pilih Nama RM",
         allowClear: true,
         width: '100%'
     });
-    
+
     // Function to update summary
     function updateSummary() {
         const totalEntries = $('.entry-card').length;
         let validEntries = 0;
         let incompleteEntries = 0;
-        
+
         $('.entry-card').each(function() {
             const requiredFields = $(this).find('.entry-field[required]');
             let isComplete = true;
-            
+
             requiredFields.each(function() {
                 if (!$(this).val() || $(this).val().trim() === '') {
                     isComplete = false;
                     return false;
                 }
             });
-            
+
             if (isComplete) {
                 validEntries++;
             } else {
                 incompleteEntries++;
             }
         });
-        
+
         $('#total-entries').text(totalEntries);
         $('#valid-entries').text(validEntries);
         $('#incomplete-entries').text(incompleteEntries);
         $('#submit-count').text(totalEntries);
     }
-    
+
     // Function to reindex entries
     function reindexEntries() {
         $('.entry-card').each(function(index) {
             const entryNum = index;
             $(this).attr('data-entry', index + 1);
             $(this).find('.card-title').html(`<i class="fas fa-flask"></i> Entry #${index + 1}`);
-            
+
             // Update name attributes
             $(this).find('input, select, textarea').each(function() {
                 const name = $(this).attr('name');
                 if (name && name.startsWith('entries[')) {
                     const fieldName = name.split('][')[1];
                     $(this).attr('name', `entries[${entryNum}][${fieldName}`);
-                    
+
                     // Update ID untuk select nama_rm
                     if (fieldName === 'nama_rm]') {
                         $(this).attr('id', `nama_rm_${entryNum}`);
                     }
                 }
             });
-            
+
             // Show/hide remove button
             const removeBtn = $(this).find('.remove-entry-btn');
             if ($('.entry-card').length > 1) {
@@ -308,18 +308,18 @@ $(document).ready(function() {
             }
         });
     }
-    
+
     // Add new entry
     $('#add-entry-btn').click(function() {
         entryCounter++;
         const newEntryNum = $('.entry-card').length;
-        
+
         // Build options untuk dropdown Nama Seasoning
         let namaRmOptions = '<option value="">Pilih Nama Seasoning</option>';
         @foreach($dataSeasoning as $seasoning)
             namaRmOptions += '<option value="{{ $seasoning->nama_seasoning }}">{{ $seasoning->nama_seasoning }}</option>';
         @endforeach
-        
+
         const newEntryHtml = `
         <div class="entry-card" data-entry="${newEntryNum + 1}">
             <div class="card card-primary card-outline">
@@ -342,13 +342,13 @@ $(document).ready(function() {
                             </div>
                             <div class="form-group">
                                 <label>Kode Produksi <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][kode_produksi]" 
+                                <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][kode_produksi]"
                                        placeholder="Masukkan kode produksi" required>
                             </div>
                             <div class="form-group">
                                 <label>Berat Per Pack (kg) <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][berat]" 
+                                    <input type="text" class="form-control entry-field" name="entries[${newEntryNum}][berat]"
                                            placeholder="Masukkan berat" required>
                                     <div class="input-group-append">
                                         <span class="input-group-text">kg</span>
@@ -367,7 +367,7 @@ $(document).ready(function() {
                             </div>
                             <div class="form-group">
                                 <label>Keterangan</label>
-                                <textarea class="form-control entry-field" name="entries[${newEntryNum}][keterangan]" 
+                                <textarea class="form-control entry-field" name="entries[${newEntryNum}][keterangan]"
                                           rows="3" placeholder="Masukkan keterangan tambahan"></textarea>
                             </div>
                         </div>
@@ -376,31 +376,31 @@ $(document).ready(function() {
             </div>
         </div>
         `;
-        
+
         $('#entries-container').append(newEntryHtml);
-        
+
         // Initialize Select2 untuk dropdown yang baru ditambahkan
         $(`#nama_rm_${newEntryNum}`).select2({
             placeholder: "Pilih Nama RM",
             allowClear: true,
             width: '100%'
         });
-        
+
         reindexEntries();
         updateSummary();
-        
+
         // Show notification
         if (typeof toastr !== 'undefined') {
             toastr.success('Entry baru berhasil ditambahkan');
         }
-        
+
         // Scroll to new entry
         const newEntry = $('.entry-card').last();
         $('html, body').animate({
             scrollTop: newEntry.offset().top - 100
         }, 500);
     });
-    
+
     // Remove entry
     $(document).on('click', '.remove-entry-btn', function() {
         if ($('.entry-card').length > 1) {
@@ -408,7 +408,7 @@ $(document).ready(function() {
                 $(this).closest('.entry-card').remove();
                 reindexEntries();
                 updateSummary();
-                
+
                 if (typeof toastr !== 'undefined') {
                     toastr.info('Entry berhasil dihapus');
                 }
@@ -419,25 +419,25 @@ $(document).ready(function() {
             }
         }
     });
-    
+
     // Monitor changes in entry fields
     $(document).on('change keyup', '.entry-field', function() {
         updateSummary();
     });
-    
+
     // Initial summary update
     updateSummary();
     reindexEntries();
-    
+
     // Debug form submission
     $('#main-seasoning-form').on('submit', function(e) {
         e.preventDefault(); // Prevent submission temporarily for debugging
-        
+
         const formData = new FormData(this);
         const jamValue = formData.get('jam');
         const tanggalValue = formData.get('tanggal');
         const shiftValue = formData.get('shift_id');
-        
+
         console.log('=== FORM SUBMISSION DEBUG ===');
         console.log('Tanggal:', tanggalValue);
         console.log('Jam:', jamValue);
@@ -447,10 +447,10 @@ $(document).ready(function() {
             console.log(pair[0] + ': ' + pair[1]);
         }
         console.log('=== END DEBUG ===');
-        
+
         // Show alert with jam value
         // alert('DEBUG INFO:\n\nTanggal: ' + tanggalValue + '\nJam: ' + jamValue + '\nShift ID: ' + shiftValue + '\n\nCek console untuk detail lengkap!');
-        
+
         // ENABLE ACTUAL SUBMISSION
         this.submit();
     });

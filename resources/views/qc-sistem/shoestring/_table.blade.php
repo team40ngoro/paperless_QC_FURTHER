@@ -22,20 +22,44 @@
                 <div class="font-weight-bold">{{ $item->nama_produsen ?? '-' }}</div>
                 <small class="text-muted">{{ $item->catatan ?? '-' }}</small>
             </td>
-            <td class="text-center align-middle">
-                <span class="small text-muted">{{ $item->createdBy->name ?? '-' }}</span>
+            <td class="align-middle">
+                <div class="small">
+                    <i class="fas fa-user-edit text-muted mr-1"></i>{{ $item->createdBy->name ?? '-' }}
+                    @if($item->createdBy)
+                        <span class="text-muted">({{ $item->createdBy->roleModel->role ?? $item->createdBy->role ?? '-' }})</span>
+                    @endif
+                </div>
+                <div class="small">
+                    @if($item->approved_by_produksi)
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->produksiApprover->name ?? 'SPV Produksi' }}</span>
+                        @if($item->produksiApprover)
+                            <span class="text-muted">({{ $item->produksiApprover->roleModel->role ?? $item->produksiApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum diketahui</span>
+                    @endif
+                </div>
             </td>
             <td class="align-middle">
-                <div class="status-badges d-flex flex-column align-items-center">
-                    <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                        <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
-                    </span>
-                    <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                        <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
-                    </span>
-                    <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                        <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
-                    </span>
+                <div class="small">
+                    @if($item->approved_by_qc)
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->qcApprover->name ?? 'QC Inspector' }}</span>
+                        @if($item->qcApprover)
+                            <span class="text-muted">({{ $item->qcApprover->roleModel->role ?? $item->qcApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum verifikasi</span>
+                    @endif
+                </div>
+                <div class="small">
+                    @if($item->approved_by_spv)
+                        <span class="text-success"><i class="fas fa-check-circle mr-1"></i>{{ $item->spvApprover->name ?? 'SPV QC' }}</span>
+                        @if($item->spvApprover)
+                            <span class="text-muted">({{ $item->spvApprover->roleModel->role ?? $item->spvApprover->role ?? '-' }})</span>
+                        @endif
+                    @else
+                        <span class="text-muted"><i class="far fa-clock mr-1"></i>Belum disetujui</span>
+                    @endif
                 </div>
             </td>
             <td class="text-center align-middle">

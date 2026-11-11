@@ -81,7 +81,7 @@ class SeasoningController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion', 'latestQcVerification'])
+        $query = Seasoning::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion', 'latestQcVerification'])
             ->operasional() // filter is_audit = false via HasAudit scope
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -126,7 +126,7 @@ class SeasoningController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'auditVersion', 'latestQcVerification'])
+            $query = Seasoning::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'auditVersion', 'latestQcVerification'])
                 ->operasional() // filter is_audit = false via HasAudit scope
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -251,7 +251,7 @@ class SeasoningController extends Controller
      */
     public function show($uuid)
     {
-        $seasoning = Seasoning::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy', 'qcVerifications.verifiedBy'])
+        $seasoning = Seasoning::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel', 'qcVerifications.verifiedBy.roleModel'])
             ->where('uuid', $uuid)->firstOrFail();
         
         $user = auth()->user();

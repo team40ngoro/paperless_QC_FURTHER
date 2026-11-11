@@ -120,24 +120,57 @@
                                         </tr>
                                     </table>
 
-                                    <h5 class="text-info border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-check mr-2"></i> Verifikasi</h5>
-                                    <div class="row text-center">
-                                        <div class="col-6">
-                                            <div class="p-2 border rounded {{ $chillroom->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">QC</small>
-                                                <i class="fas {{ $chillroom->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $chillroom->qcApprover->name ?? 'Belum' }}</div>
-                                            </div>
+                                    <h5 class="text-info border-bottom pb-2 mb-3 mt-4"><i class="fas fa-signature mr-2"></i> Pengesahan</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Verifikasi</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_qc)
+                                                            <strong>{{ $chillroom->qcApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->qcApprover->roleModel->role ?? $chillroom->qcApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diverifikasi</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Disetujui</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_spv)
+                                                            <strong>{{ $chillroom->spvApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->spvApprover->roleModel->role ?? $chillroom->spvApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum disetujui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <div class="col-6">
-                                            <div class="p-2 border rounded {{ $chillroom->approved_by_spv ? 'bg-dark-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">SPV</small>
-                                                <i class="fas {{ $chillroom->approved_by_spv ? 'fa-check-circle text-dark' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $chillroom->spvApprover->name ?? 'Belum' }}</div>
-                                                @if($chillroom->approved_by_spv)
-                                                    <div class="small font-weight-bold text-dark">Sudah disetujui oleh SPV QC</div>
-                                                @endif
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Dibuat oleh</th>
+                                                    <td>:
+                                                        <strong>{{ $chillroom->user->name ?? '-' }}</strong>
+                                                        @if($chillroom->user)
+                                                            <span class="text-muted">({{ $chillroom->user->roleModel->role ?? $chillroom->user->role ?? '-' }})</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Diketahui oleh</th>
+                                                    <td>:
+                                                        @if($chillroom->approved_by_produksi)
+                                                            <strong>{{ $chillroom->produksiApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $chillroom->produksiApprover->roleModel->role ?? $chillroom->produksiApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diketahui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
@@ -234,6 +267,22 @@
                                             @endif
                                         </div>
                                     @endif
+                                    @if($latestQcVerification->pemeriksaan_kedatangan !== null)
+                                        <div class="small mt-1">
+                                            <strong>Pemeriksaan Kedatangan Bahan Baku:</strong>
+                                            <span class="badge {{ $latestQcVerification->pemeriksaan_kedatangan === 'OK' ? 'badge-success' : 'badge-danger' }}">
+                                                {{ $latestQcVerification->pemeriksaan_kedatangan === 'OK' ? 'v (Oke)' : 'x (Tidak Oke)' }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if($latestQcVerification->sampling_berat_rm !== null)
+                                        <div class="small mt-1">
+                                            <strong>Sampling Berat RM Daging (SPO):</strong>
+                                            <span class="badge {{ $latestQcVerification->sampling_berat_rm === 'OK' ? 'badge-success' : 'badge-danger' }}">
+                                                {{ $latestQcVerification->sampling_berat_rm === 'OK' ? 'v (Oke)' : 'x (Tidak Oke)' }}
+                                            </span>
+                                        </div>
+                                    @endif
                                     @if($latestQcVerification->note)
                                         <div class="small mt-1"><strong>Catatan:</strong> {{ $latestQcVerification->note }}</div>
                                     @endif
@@ -251,24 +300,109 @@
                                         <label class="font-weight-bold">Validasi Data <span class="text-danger">*</span></label>
                                         <div class="d-flex flex-wrap align-items-center">
                                             <div class="custom-control custom-checkbox mr-4 mb-2">
-                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcStatusOk" data-value="OK"
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcStatusOk" data-target="status" data-value="OK"
                                                     {{ old('status', $latestQcVerification->status ?? '') === 'OK' ? 'checked' : '' }}>
                                                 <label class="custom-control-label text-success font-weight-bold" for="qcStatusOk">
                                                     <i class="fas fa-check-circle mr-1"></i> Data Oke
                                                 </label>
                                             </div>
                                             <div class="custom-control custom-checkbox mb-2">
-                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcStatusNotOk" data-value="NOT_OK"
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcStatusNotOk" data-target="status" data-value="NOT_OK"
                                                     {{ old('status', $latestQcVerification->status ?? '') === 'NOT_OK' ? 'checked' : '' }}>
                                                 <label class="custom-control-label text-danger font-weight-bold" for="qcStatusNotOk">
                                                     <i class="fas fa-times-circle mr-1"></i> Data Tidak Oke
                                                 </label>
                                             </div>
                                         </div>
-                                        <input type="hidden" name="status" id="qcVerificationStatus" value="{{ old('status', $latestQcVerification->status ?? '') }}">
+                                        <input type="hidden" name="status" id="statusValue" value="{{ old('status', $latestQcVerification->status ?? '') }}">
                                         @error('status')
                                             <small class="text-danger d-block">{{ $message }}</small>
                                         @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Pemeriksaan Kedatangan Bahan Baku <span class="text-danger">*</span></label>
+                                        <div class="d-flex flex-wrap align-items-center">
+                                            <div class="custom-control custom-checkbox mr-4 mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="pemeriksaanKedatanganOk" data-target="pemeriksaan_kedatangan" data-value="OK"
+                                                    {{ old('pemeriksaan_kedatangan', $latestQcVerification->pemeriksaan_kedatangan ?? '') === 'OK' ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-success font-weight-bold" for="pemeriksaanKedatanganOk">
+                                                    <i class="fas fa-check mr-1"></i> v (Oke)
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="pemeriksaanKedatanganNotOk" data-target="pemeriksaan_kedatangan" data-value="NOT_OK"
+                                                    {{ old('pemeriksaan_kedatangan', $latestQcVerification->pemeriksaan_kedatangan ?? '') === 'NOT_OK' ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-danger font-weight-bold" for="pemeriksaanKedatanganNotOk">
+                                                    <i class="fas fa-times mr-1"></i> x (Tidak Oke)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="pemeriksaan_kedatangan" id="pemeriksaan_kedatanganValue" value="{{ old('pemeriksaan_kedatangan', $latestQcVerification->pemeriksaan_kedatangan ?? '') }}">
+                                        @error('pemeriksaan_kedatangan')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Sampling Berat RM Daging (SPO) <span class="text-danger">*</span></label>
+                                        <div class="d-flex flex-wrap align-items-center">
+                                            <div class="custom-control custom-checkbox mr-4 mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="samplingBeratRmOk" data-target="sampling_berat_rm" data-value="OK"
+                                                    {{ old('sampling_berat_rm', $latestQcVerification->sampling_berat_rm ?? '') === 'OK' ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-success font-weight-bold" for="samplingBeratRmOk">
+                                                    <i class="fas fa-check mr-1"></i> v (Oke)
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="samplingBeratRmNotOk" data-target="sampling_berat_rm" data-value="NOT_OK"
+                                                    {{ old('sampling_berat_rm', $latestQcVerification->sampling_berat_rm ?? '') === 'NOT_OK' ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-danger font-weight-bold" for="samplingBeratRmNotOk">
+                                                    <i class="fas fa-times mr-1"></i> x (Tidak Oke)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="sampling_berat_rm" id="sampling_berat_rmValue" value="{{ old('sampling_berat_rm', $latestQcVerification->sampling_berat_rm ?? '') }}">
+                                        @error('sampling_berat_rm')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        @php
+                                            $currentSensori = old('sensori', $latestQcVerification->sensori ?? '');
+                                            $sensoriOk = in_array($currentSensori, ['✔', '✓', 'OK', 'ok']);
+                                            $sensoriNotOk = in_array($currentSensori, ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']);
+                                        @endphp
+                                        <label class="font-weight-bold">Sensori <span class="text-danger">*</span></label>
+                                        <div class="d-flex flex-wrap align-items-center">
+                                            <div class="custom-control custom-checkbox mr-4 mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcSensoriOk" data-target="sensori" data-value="✔"
+                                                    {{ $sensoriOk ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-success font-weight-bold" for="qcSensoriOk">
+                                                    <i class="fas fa-check mr-1"></i> v (Oke)
+                                                </label>
+                                            </div>
+                                            <div class="custom-control custom-checkbox mb-2">
+                                                <input type="checkbox" class="custom-control-input qc-verification-checkbox" id="qcSensoriNotOk" data-target="sensori" data-value="✘"
+                                                    {{ $sensoriNotOk ? 'checked' : '' }}>
+                                                <label class="custom-control-label text-danger font-weight-bold" for="qcSensoriNotOk">
+                                                    <i class="fas fa-times mr-1"></i> x (Tidak Oke)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="sensori" id="sensoriValue" value="{{ $sensoriOk ? '✔' : ($sensoriNotOk ? '✘' : '') }}">
+                                        @error('sensori')
+                                            <small class="text-danger d-block">{{ $message }}</small>
+                                        @enderror
+                                        <div class="mt-2 p-2 border rounded bg-light">
+                                            <small class="d-block font-weight-bold">NB: Keterangan</small>
+                                            <small class="d-block">Berikan (√) Bila Sensori : OK</small>
+                                            <small class="d-block">Dikatakan OK, bila :</small>
+                                            <small class="d-block ml-2">1. Kondisi Kemasan : Kemasan dalam keadaan utuh, tidak sobek</small>
+                                            <small class="d-block ml-2">2. Aroma : Fresh dan tidak berbau busuk</small>
+                                            <small class="d-block ml-2">3. Tekstur : Kenyal dan tidak lembek</small>
+                                            <small class="d-block ml-2">4. Kenampakan secara fisik : Tidak memar, tidak berbulu, tulang tidak terpotong dan tidak ada kontaminasi benda asing</small>
+                                            <small class="d-block ml-2">5. Warna : Tidak mengalami perubahan warna</small>
+                                            <small class="d-block">Berikan (X) Bila Sensori dan kondisi kemasan Tidak OK</small>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="qcSuhuRm" class="font-weight-bold">Input Suhu RM (°C)</label>
@@ -277,17 +411,6 @@
                                             placeholder="Masukkan suhu RM"
                                             value="{{ old('suhu_rm', $latestQcVerification->suhu_rm ?? '') }}">
                                         @error('suhu_rm')
-                                            <small class="text-danger d-block">{{ $message }}</small>
-                                        @enderror
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="qcSensori" class="font-weight-bold">Sensori</label>
-                                        <select name="sensori" id="qcSensori" class="form-control @error('sensori') is-invalid @enderror">
-                                            <option value="">Pilih Status Sensori</option>
-                                            <option value="✔" {{ in_array(old('sensori', $latestQcVerification->sensori ?? ''), ['✔', '✓', 'OK', 'ok']) ? 'selected' : '' }}>✓ Oke</option>
-                                            <option value="✘" {{ in_array(old('sensori', $latestQcVerification->sensori ?? ''), ['✘', 'X', 'x', 'tidak ok', 'Tidak OK', 'NG']) ? 'selected' : '' }}>✘ Tidak Oke</option>
-                                        </select>
-                                        @error('sensori')
                                             <small class="text-danger d-block">{{ $message }}</small>
                                         @enderror
                                     </div>
@@ -325,19 +448,24 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const checkboxes = document.querySelectorAll('.qc-verification-checkbox');
-        const statusInput = document.getElementById('qcVerificationStatus');
 
         checkboxes.forEach(function (checkbox) {
             checkbox.addEventListener('change', function () {
+                const target = this.dataset.target;
+                const group = document.querySelectorAll('.qc-verification-checkbox[data-target="' + target + '"]');
+                const hiddenInput = document.getElementById(target + 'Value');
+
                 if (this.checked) {
-                    checkboxes.forEach(function (other) {
+                    group.forEach(function (other) {
                         if (other !== checkbox) {
                             other.checked = false;
                         }
                     });
-                    statusInput.value = this.dataset.value;
-                } else {
-                    statusInput.value = '';
+                    if (hiddenInput) {
+                        hiddenInput.value = this.dataset.value;
+                    }
+                } else if (hiddenInput) {
+                    hiddenInput.value = '';
                 }
             });
         });

@@ -116,8 +116,8 @@
                                             <th class="py-3 text-left">Produk</th>
                                             <th class="py-3 text-center">Isi/Jumlah</th>
                                             <th class="py-3 text-center">Labelisasi</th>
-                                            <th class="py-3 text-center">Dibuat Oleh</th>
-                                            <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
+                                            <th class="py-3 text-center">Produksi</th>
+                                            <th class="py-3 text-center" style="width: 110px;">QC</th>
                                             <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                         </tr>
                                     </thead>

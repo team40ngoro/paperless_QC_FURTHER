@@ -33,7 +33,7 @@ class ChillroomController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'auditVersion'])
+        $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'auditVersion'])
             ->where('is_audit', false)
             ->when($user->role !== 'superadmin', function ($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -81,7 +81,7 @@ class ChillroomController extends Controller
 
             $isAudit = $request->get('is_audit', 0);
 
-            $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'auditVersion'])
+            $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'auditVersion'])
                 ->where('is_audit', $isAudit)
                 ->when($user->role !== 'superadmin', function ($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -292,7 +292,7 @@ class ChillroomController extends Controller
     // Tampilkan detail data
     public function show($uuid)
     {
-        $chillroom = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'qcVerifications.verifiedBy'])
+        $chillroom = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'qcVerifications.verifiedBy.roleModel'])
             ->where('uuid', $uuid)->firstOrFail();
 
         $user = auth()->user();
@@ -592,7 +592,9 @@ class ChillroomController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:OK,NOT_OK',
             'suhu_rm' => 'nullable|numeric|between:-60,60',
-            'sensori' => 'nullable|in:✔,✘',
+            'sensori' => 'required|in:✔,✘',
+            'pemeriksaan_kedatangan' => 'required|in:OK,NOT_OK',
+            'sampling_berat_rm' => 'required|in:OK,NOT_OK',
             'note' => 'nullable|string|max:1000',
         ]);
 
@@ -603,6 +605,8 @@ class ChillroomController extends Controller
             'status' => $validated['status'],
             'suhu_rm' => $validated['suhu_rm'] ?? null,
             'sensori' => $validated['sensori'] ?? null,
+            'pemeriksaan_kedatangan' => $validated['pemeriksaan_kedatangan'],
+            'sampling_berat_rm' => $validated['sampling_berat_rm'],
             'note' => $validated['note'] ?? null,
             'verified_by' => $user->id,
             'verified_at' => now(),
@@ -621,9 +625,9 @@ class ChillroomController extends Controller
             'user_name' => $user->name,
             'user_role' => $user->role ?? 'QC',
             'aksi' => 'qc_verification',
-            'field_yang_diubah' => ['qc_verification_status', 'suhu_rm', 'sensori'],
-            'nilai_lama' => ['qc_verification_status' => $latest->status ?? '-', 'suhu_rm' => $latest->suhu_rm ?? null, 'sensori' => $latest->sensori ?? null],
-            'nilai_baru' => ['qc_verification_status' => $verification->status, 'suhu_rm' => $verification->suhu_rm, 'sensori' => $verification->sensori],
+            'field_yang_diubah' => ['qc_verification_status', 'suhu_rm', 'sensori', 'pemeriksaan_kedatangan', 'sampling_berat_rm'],
+            'nilai_lama' => ['qc_verification_status' => $latest->status ?? '-', 'suhu_rm' => $latest->suhu_rm ?? null, 'sensori' => $latest->sensori ?? null, 'pemeriksaan_kedatangan' => $latest->pemeriksaan_kedatangan ?? null, 'sampling_berat_rm' => $latest->sampling_berat_rm ?? null],
+            'nilai_baru' => ['qc_verification_status' => $verification->status, 'suhu_rm' => $verification->suhu_rm, 'sensori' => $verification->sensori, 'pemeriksaan_kedatangan' => $verification->pemeriksaan_kedatangan, 'sampling_berat_rm' => $verification->sampling_berat_rm],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'keterangan' => $validated['note'] ?? 'Verifikasi QC',
@@ -1018,7 +1022,7 @@ class ChillroomController extends Controller
             ->pluck('source_uuid')
             ->toArray();
 
-        $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'originalVersion'])
+        $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'originalVersion'])
             ->where(function ($q) use ($auditedSourceUuids) {
                 $q->where('is_audit', true)
                     ->orWhere(function ($subQ) use ($auditedSourceUuids) {
@@ -1078,7 +1082,7 @@ class ChillroomController extends Controller
                 ->pluck('source_uuid')
                 ->toArray();
 
-            $query = PenerimaanChillroom::with(['plan', 'user', 'datashift', 'qcApprover', 'produksiApprover', 'spvApprover', 'latestQcVerification', 'originalVersion'])
+            $query = PenerimaanChillroom::with(['plan', 'user.roleModel', 'datashift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'latestQcVerification', 'originalVersion'])
                 ->where(function ($q) use ($auditedSourceUuids) {
                     $q->where('is_audit', true)
                         ->orWhere(function ($subQ) use ($auditedSourceUuids) {

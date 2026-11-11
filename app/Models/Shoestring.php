@@ -94,6 +94,18 @@ class Shoestring extends Model implements ImportableModel
         return $this->belongsTo(\App\Models\User::class, 'spv_approved_by');
     }
 
+    public function qcVerifications()
+    {
+        return $this->hasMany(ShoestringQcVerification::class, 'shoestring_id')
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id');
+    }
+
+    public function latestQcVerification()
+    {
+        return $this->hasOne(ShoestringQcVerification::class, 'shoestring_id')->latestOfMany();
+    }
+
     // ===== ImportableModel Interface Implementation =====
 
     public static function getImportMapping(): array

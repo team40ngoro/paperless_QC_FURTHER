@@ -77,7 +77,7 @@ class ReboxController extends Controller
         $search = $request->get('search');
         $perPage = $request->get('per_page', 5);
 
-        $query = Rebox::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy' , 'auditVersion'])
+        $query = Rebox::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel' , 'auditVersion'])
             ->operasional() 
             ->when($user->role !== 'superadmin', function($q) use ($user) {
                 $q->where('id_plan', $user->id_plan);
@@ -115,7 +115,7 @@ class ReboxController extends Controller
             $perPage = (int) $request->get('per_page', 5);
             $page = (int) $request->get('page', 1);
 
-            $query = Rebox::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy' ,'auditVersion'])
+            $query = Rebox::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel' ,'auditVersion'])
                 ->operasional() 
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -218,7 +218,7 @@ class ReboxController extends Controller
      */
     public function show($uuid)
     {
-        $rebox = Rebox::with(['plan', 'shift', 'qcApprover', 'produksiApprover', 'spvApprover', 'createdBy'])
+        $rebox = Rebox::with(['plan', 'shift', 'qcApprover.roleModel', 'produksiApprover.roleModel', 'spvApprover.roleModel', 'createdBy.roleModel'])
             ->where('uuid', $uuid)->firstOrFail();
         
         $user = auth()->user();

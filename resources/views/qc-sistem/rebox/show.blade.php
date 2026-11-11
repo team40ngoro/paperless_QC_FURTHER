@@ -82,28 +82,57 @@
                                         </tr>
                                     </table>
 
-                                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-check mr-2"></i> Verifikasi</h5>
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_qc ? 'bg-success-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">QC</small>
-                                                <i class="fas {{ $rebox->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->qcApprover->name ?? 'Belum' }}</div>
-                                            </div>
+                                    <h5 class="text-primary border-bottom pb-2 mb-3 mt-4"><i class="fas fa-signature mr-2"></i> Pengesahan</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Verifikasi</th>
+                                                    <td>:
+                                                        @if($rebox->approved_by_qc)
+                                                            <strong>{{ $rebox->qcApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $rebox->qcApprover->roleModel->role ?? $rebox->qcApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diverifikasi</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Disetujui</th>
+                                                    <td>:
+                                                        @if($rebox->approved_by_spv)
+                                                            <strong>{{ $rebox->spvApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $rebox->spvApprover->roleModel->role ?? $rebox->spvApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum disetujui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_produksi ? 'bg-primary-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">Produksi</small>
-                                                <i class="fas {{ $rebox->approved_by_produksi ? 'fa-check-circle text-primary' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->produksiApprover->name ?? 'Belum' }}</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="p-2 border rounded {{ $rebox->approved_by_spv ? 'bg-dark-light' : 'bg-light' }}">
-                                                <small class="d-block text-muted">SPV</small>
-                                                <i class="fas {{ $rebox->approved_by_spv ? 'fa-check-circle text-dark' : 'fa-clock text-muted' }} fa-lg my-2"></i>
-                                                <div class="small">{{ $rebox->spvApprover->name ?? 'Belum' }}</div>
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th style="width: 35%;">Dibuat oleh</th>
+                                                    <td>:
+                                                        <strong>{{ $rebox->createdBy->name ?? '-' }}</strong>
+                                                        @if($rebox->createdBy)
+                                                            <span class="text-muted">({{ $rebox->createdBy->roleModel->role ?? $rebox->createdBy->role ?? '-' }})</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Diketahui oleh</th>
+                                                    <td>:
+                                                        @if($rebox->approved_by_produksi)
+                                                            <strong>{{ $rebox->produksiApprover->name ?? '-' }}</strong>
+                                                            <span class="text-muted">({{ $rebox->produksiApprover->roleModel->role ?? $rebox->produksiApprover->role ?? '-' }})</span>
+                                                        @else
+                                                            <span class="text-muted font-italic">Belum diketahui</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
