@@ -167,20 +167,27 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Standar Suhu Produk Keluar IQF (ºC)</label>
-                                                <input type="text" name="step1[std_suhu_produk_iqf]" class="form-control" value="{{ $pembekuan->pengemasanProduk->std_suhu_produk_iqf }}" placeholder="Misal: Max -18 ºC" required>
+                                                <input type="text" name="step1[std_suhu_produk_iqf]" class="form-control" value="{{ $pembekuan->pengemasanProduk->std_suhu_produk_iqf ?: '-18°C' }}" placeholder="Misal: -18°C" readonly>
                                             </div>
                                         </div>
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Waktu Pengecekan After IQF</label>
                                                 <input type="text" name="step1[waktu_awal_packing]" class="form-control" value="{{ $pembekuan->pengemasanProduk->waktu_awal_packing }}">
                                             </div>
                                         </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Suhu IQF (°C) (Produksi)</label>
+                                                <input type="text" name="step1[suhu_iqf]" class="form-control" value="{{ $pembekuan->pengemasanProduk->suhu_iqf }}" placeholder="Contoh: -35">
+                                            </div>
+                                        </div>
                                         <div class="col-md-12">
                                             <div class="form-group" id="edit-suhu-produk-container">
-                                                <label>Aktual Suhu (°C)</label>
+                                                <label>Suhu Aktual Produk Pembekuan (°C) (QC)</label>
                                                 @php
                                                     $suhuRaw = $pembekuan->pengemasanProduk->aktual_suhu_produk;
                                                     $suhuArray = explode(',', $suhuRaw ?? '');
@@ -192,9 +199,9 @@
                                                         $suhuArray = [''];
                                                     }
                                                 @endphp
-                                                @foreach($suhuArray as $index => $suhu)
+                                                @foreach(array_values($suhuArray) as $index => $suhu)
                                                 <div class="input-group mb-2 edit-suhu-produk-group">
-                                                    <input type="text" name="step1[aktual_suhu_produk][]" class="form-control" value="{{ $suhu }}" placeholder="Misal: -18.5" required>
+                                                    <input type="text" name="step1[aktual_suhu_produk][]" class="form-control" value="{{ $suhu }}" placeholder="Misal: -18.5">
                                                     <div class="input-group-append">
                                                         @if($index === 0)
                                                             <button type="button" class="btn btn-success add-edit-suhu"><i class="fas fa-plus"></i></button>
@@ -517,6 +524,87 @@
                                             @endforeach
                                         </div>
                                     </div>
+
+                                    <hr>
+                                    <h5 class="font-weight-bold text-info mb-3"><i class="fas fa-pallet mr-1"></i> Hasil Finish Good, Reject &amp; Rework</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">Hasil Finish Good in Box / Pallet</label>
+                                                <input type="text" name="step5[hasil_finish_good_box_pallet]" class="form-control" value="{{ $pembekuan->pengemasanKarton->hasil_finish_good_box_pallet }}" placeholder="Contoh: 120 Box / 2 Pallet">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="font-weight-bold">Total Reject Kemasan (Angka)</label>
+                                                <input type="number" step="0.01" name="step5[total_reject_kemasan]" class="form-control" value="{{ $pembekuan->pengemasanKarton->total_reject_kemasan }}" placeholder="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card card-outline card-danger mb-3">
+                                                <div class="card-header py-2">
+                                                    <h6 class="card-title font-weight-bold mb-0"><i class="fas fa-times-circle text-danger mr-1"></i> Input Total Reject Produk (Angka)</h6>
+                                                </div>
+                                                <div class="card-body py-2">
+                                                    <div class="row">
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">MP</label>
+                                                            <input type="number" step="0.01" name="step5[reject_produk_mp]" class="form-control form-control-sm edit-calc-reject" value="{{ $pembekuan->pengemasanKarton->reject_produk_mp }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">Cooking</label>
+                                                            <input type="number" step="0.01" name="step5[reject_produk_cooking]" class="form-control form-control-sm edit-calc-reject" value="{{ $pembekuan->pengemasanKarton->reject_produk_cooking }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">IQF</label>
+                                                            <input type="number" step="0.01" name="step5[reject_produk_iqf]" class="form-control form-control-sm edit-calc-reject" value="{{ $pembekuan->pengemasanKarton->reject_produk_iqf }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">Packing</label>
+                                                            <input type="number" step="0.01" name="step5[reject_produk_packing]" class="form-control form-control-sm edit-calc-reject" value="{{ $pembekuan->pengemasanKarton->reject_produk_packing }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-12 form-group mb-1 mt-1">
+                                                            <label class="font-weight-bold small mb-1">Total Reject Produk</label>
+                                                            <input type="number" step="0.01" name="step5[total_reject_produk]" id="edit_total_reject_produk" class="form-control font-weight-bold" value="{{ $pembekuan->pengemasanKarton->total_reject_produk }}" placeholder="0">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card card-outline card-warning mb-3">
+                                                <div class="card-header py-2">
+                                                    <h6 class="card-title font-weight-bold mb-0"><i class="fas fa-sync-alt text-warning mr-1"></i> Input Total Rework Produk (Angka)</h6>
+                                                </div>
+                                                <div class="card-body py-2">
+                                                    <div class="row">
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">MP</label>
+                                                            <input type="number" step="0.01" name="step5[rework_produk_mp]" class="form-control form-control-sm edit-calc-rework" value="{{ $pembekuan->pengemasanKarton->rework_produk_mp }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">Cooking</label>
+                                                            <input type="number" step="0.01" name="step5[rework_produk_cooking]" class="form-control form-control-sm edit-calc-rework" value="{{ $pembekuan->pengemasanKarton->rework_produk_cooking }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">IQF</label>
+                                                            <input type="number" step="0.01" name="step5[rework_produk_iqf]" class="form-control form-control-sm edit-calc-rework" value="{{ $pembekuan->pengemasanKarton->rework_produk_iqf }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-6 form-group mb-2">
+                                                            <label class="small mb-1">Packing</label>
+                                                            <input type="number" step="0.01" name="step5[rework_produk_packing]" class="form-control form-control-sm edit-calc-rework" value="{{ $pembekuan->pengemasanKarton->rework_produk_packing }}" placeholder="0">
+                                                        </div>
+                                                        <div class="col-12 form-group mb-1 mt-1">
+                                                            <label class="font-weight-bold small mb-1">Total Rework Produk</label>
+                                                            <input type="number" step="0.01" name="step5[total_rework_produk]" id="edit_total_rework_produk" class="form-control font-weight-bold" value="{{ $pembekuan->pengemasanKarton->total_rework_produk }}" placeholder="0">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             @endif
@@ -731,20 +819,26 @@
                                         </div>
                                     </div>
 
+                                    @php
+                                        $editVerif = $pembekuan->pengemasanProduk->verifikasi_akhir_pengemasan ?? '';
+                                        if ($editVerif === '' && !empty($pembekuan->pengemasanProduk->status_release_produk)) {
+                                            $editVerif = $pembekuan->pengemasanProduk->status_release_produk === 'ya' ? '✔' : '✘';
+                                        }
+                                    @endphp
                                     <div class="row mt-3">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label>Status Release Produk <span class="text-danger">*</span></label>
-                                                <select name="step6[status_release_produk]" class="form-control" required>
-                                                    <option value="">Pilih Status</option>
-                                                    <option value="ya" {{ ($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'ya' ? 'selected' : '' }}>Ya</option>
-                                                    <option value="tidak" {{ ($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'tidak' ? 'selected' : '' }}>Tidak</option>
+                                                <label>Verifikasi Hasil Akhir Pengemasan (QC)</label>
+                                                <select name="step6[verifikasi_akhir_pengemasan]" class="form-control">
+                                                    <option value="">-- Menunggu Verifikasi QC --</option>
+                                                    <option value="✔" {{ $editVerif === '✔' ? 'selected' : '' }}>✔ OK (Release)</option>
+                                                    <option value="✘" {{ $editVerif === '✘' ? 'selected' : '' }}>✘ Tidak OK (Hold / Reject)</option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label>Tindakan Koreksi</label>
+                                                <label>Tindakan Koreksi (QC)</label>
                                                 <textarea name="step6[tindakan_koreksi]" class="form-control" rows="2" placeholder="Masukkan tindakan koreksi jika diperlukan...">{{ $pembekuan->pengemasanProduk->tindakan_koreksi ?? '' }}</textarea>
                                             </div>
                                         </div>
@@ -866,22 +960,44 @@
         });
     });
 
+    // Auto-calculate Reject Produk & Rework Produk on Edit
+    $(document).on('input', '.edit-calc-reject', function() {
+        let sum = 0, hasVal = false;
+        $('.edit-calc-reject').each(function() {
+            let v = parseFloat($(this).val());
+            if (!isNaN(v)) { sum += v; hasVal = true; }
+        });
+        if (hasVal) {
+            $('#edit_total_reject_produk').val(Number.isInteger(sum) ? sum : sum.toFixed(2));
+        }
+    });
+    $(document).on('input', '.edit-calc-rework', function() {
+        let sum = 0, hasVal = false;
+        $('.edit-calc-rework').each(function() {
+            let v = parseFloat($(this).val());
+            if (!isNaN(v)) { sum += v; hasVal = true; }
+        });
+        if (hasVal) {
+            $('#edit_total_rework_produk').val(Number.isInteger(sum) ? sum : sum.toFixed(2));
+        }
+    });
+
     // ===== PEMBAGIAN ROLE (E-QF 15): kunci field milik role lain =====
     $(function() {
         const MODE = @json($roleMode ?? 'all');
         if (MODE === 'all') return;
 
         const produksiRe = [
-            /^step1\[(tanggal|jam|id_shift|id_produk|berat|tanggal_expired|kode_produksi|is_kombinasi|id_produk_2|berat_produk_2|tanggal_expired_2|kode_produksi_2|waktu_awal_packing)\]/,
-            /^step2\[(line|waktu_pengemasan|proses_penimbangan|proses_sealing|kode_kemasan_plastik|nomor_md)\]/,
-            /^step5\[aktual_jumlah_karton\]/
+            /^step1\[(tanggal|jam|id_shift|id_produk|berat|tanggal_expired|kode_produksi|is_kombinasi|id_produk_2|berat_produk_2|tanggal_expired_2|kode_produksi_2|suhu_iqf)\]/,
+            /^step2\[/,
+            /^step3\[/,
+            /^step4\[/,
+            /^step5\[/,
+            /^step6\[(foto_kode_produksi|foto_kode_produksi_sekunder|foto_kode_produksi_sekunder_status|qr_code|label_polyroll|label_supplier)\]/
         ];
         const qcRe = [
             /^step1\[aktual_suhu_produk\]/,
-            /^step2\[(identitas_produk|kesesuaian_label_plastik|kekuatan_seal)\]/,
-            /^step3\[/, /^step4\[/,
-            /^step5\[(?!aktual_jumlah_karton)/,
-            /^step6\[/
+            /^step6\[(verifikasi_akhir_pengemasan|status_release_produk|tindakan_koreksi)\]/
         ];
         const lockedRe = MODE === 'qc' ? produksiRe : (MODE === 'produksi' ? qcRe : produksiRe.concat(qcRe));
 
@@ -897,8 +1013,8 @@
 
         // Tombol tambah/hapus baris dinamis milik bagian yang terkunci
         const lockedBtn = MODE === 'qc'
-            ? '.add-line-plastik-edit, .remove-line-plastik-edit'
-            : '.add-berat-aktual-edit, .remove-berat-aktual-edit, .add-edit-berat-box, .remove-edit-berat-box, .add-edit-suhu, .remove-edit-suhu, .add-edit-kesesuaian-isi, .remove-edit-kesesuaian-isi';
+            ? '.add-line-plastik-edit, .remove-line-plastik-edit, .add-berat-aktual-edit, .remove-berat-aktual-edit, .add-edit-berat-box, .remove-edit-berat-box, .add-edit-kesesuaian-isi, .remove-edit-kesesuaian-isi'
+            : '.add-edit-suhu, .remove-edit-suhu';
         document.querySelectorAll(lockedBtn).forEach(function(b) { b.disabled = true; });
 
         const style = document.createElement('style');

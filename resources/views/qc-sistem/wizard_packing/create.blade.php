@@ -181,18 +181,22 @@
                                         <label>Standar Suhu Produk IQF</label>
                                         <input type="text" name="std_suhu_produk_iqf" class="form-control" value="-18°C" readonly>
                                     </div>
+                                    <div class="form-group">
+                                        <label>Waktu Pengecekan After IQF <span class="text-danger">*</span></label>
+                                        <input type="text" name="waktu_awal_packing" class="form-control" placeholder="Contoh: 08:30" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Input Suhu IQF (°C) <span class="text-danger">*</span></label>
+                                        <input type="text" name="suhu_iqf" class="form-control" placeholder="Contoh: -35" required>
+                                    </div>
                                     <div class="form-group" id="suhu-produk-container">
-                                        <label>Aktual Suhu Produk (°C) <span class="text-danger">*</span></label>
+                                        <label>Aktual Suhu Produk Pembekuan (°C) <small class="text-muted">(Diisi QC)</small></label>
                                         <div class="input-group mb-2 suhu-produk-group">
-                                            <input type="text" name="aktual_suhu_produk[]" class="form-control" placeholder="Misal: -18.5" required>
+                                            <input type="text" name="aktual_suhu_produk[]" class="form-control" placeholder="Misal: -18.5">
                                             <div class="input-group-append">
                                                 <button type="button" class="btn btn-success add-suhu"><i class="fas fa-plus"></i></button>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Waktu Pengecekan After IQF</label>
-                                        <input type="text" name="waktu_awal_packing" class="form-control">
                                     </div>
                                 </div>
                             </div>
@@ -527,6 +531,91 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <hr>
+                            <h5 class="font-weight-bold text-info mb-3"><i class="fas fa-pallet mr-1"></i> Hasil Finish Good, Reject &amp; Rework</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Hasil Finish Good in Box / Pallet</label>
+                                        <input type="text" name="hasil_finish_good_box_pallet" class="form-control" placeholder="Contoh: 120 Box / 2 Pallet">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Total Reject Kemasan (Angka)</label>
+                                        <input type="number" step="0.01" name="total_reject_kemasan" class="form-control" placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Total Reject Produk -->
+                                <div class="col-md-6">
+                                    <div class="card card-outline card-danger mb-3">
+                                        <div class="card-header py-2">
+                                            <h6 class="card-title font-weight-bold mb-0"><i class="fas fa-times-circle text-danger mr-1"></i> Input Total Reject Produk (Angka)</h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="row">
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">MP</label>
+                                                    <input type="number" step="0.01" name="reject_produk_mp" class="form-control form-control-sm calc-reject-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">Cooking</label>
+                                                    <input type="number" step="0.01" name="reject_produk_cooking" class="form-control form-control-sm calc-reject-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">IQF</label>
+                                                    <input type="number" step="0.01" name="reject_produk_iqf" class="form-control form-control-sm calc-reject-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">Packing</label>
+                                                    <input type="number" step="0.01" name="reject_produk_packing" class="form-control form-control-sm calc-reject-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-12 form-group mb-1 mt-1">
+                                                    <label class="font-weight-bold small mb-1">Total Reject Produk</label>
+                                                    <input type="number" step="0.01" name="total_reject_produk" id="total_reject_produk" class="form-control font-weight-bold" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Total Rework Produk -->
+                                <div class="col-md-6">
+                                    <div class="card card-outline card-warning mb-3">
+                                        <div class="card-header py-2">
+                                            <h6 class="card-title font-weight-bold mb-0"><i class="fas fa-sync-alt text-warning mr-1"></i> Input Total Rework Produk (Angka)</h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="row">
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">MP</label>
+                                                    <input type="number" step="0.01" name="rework_produk_mp" class="form-control form-control-sm calc-rework-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">Cooking</label>
+                                                    <input type="number" step="0.01" name="rework_produk_cooking" class="form-control form-control-sm calc-rework-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">IQF</label>
+                                                    <input type="number" step="0.01" name="rework_produk_iqf" class="form-control form-control-sm calc-rework-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-6 form-group mb-2">
+                                                    <label class="small mb-1">Packing</label>
+                                                    <input type="number" step="0.01" name="rework_produk_packing" class="form-control form-control-sm calc-rework-produk" placeholder="0">
+                                                </div>
+                                                <div class="col-12 form-group mb-1 mt-1">
+                                                    <label class="font-weight-bold small mb-1">Total Rework Produk</label>
+                                                    <input type="number" step="0.01" name="total_rework_produk" id="total_rework_produk" class="form-control font-weight-bold" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
@@ -630,20 +719,20 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="row mt-3">
+                            <div class="row mt-3" id="qc-final-release-row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Status Release Produk <span class="text-danger">*</span></label>
-                                        <select name="status_release_produk" class="form-control" required>
-                                            <option value="">Pilih Status</option>
-                                            <option value="ya">Ya</option>
-                                            <option value="tidak">Tidak</option>
+                                        <label>Verifikasi Hasil Pengemasan (OK / Tidak OK) <small class="text-muted">(Diisi QC)</small></label>
+                                        <select name="verifikasi_akhir_pengemasan" class="form-control">
+                                            <option value="">-- Menunggu Verifikasi QC --</option>
+                                            <option value="✔">✔ OK</option>
+                                            <option value="✘">✘ Tidak OK</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Tindakan Koreksi</label>
+                                        <label>Tindakan Koreksi <small class="text-muted">(Diisi QC)</small></label>
                                         <textarea name="tindakan_koreksi" class="form-control" rows="2" placeholder="Masukkan tindakan koreksi jika diperlukan..."></textarea>
                                     </div>
                                 </div>
@@ -698,16 +787,16 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     // ===== PEMBAGIAN ROLE (E-QF 15) =====
-    // produksi : hanya mengisi bagian Produksi (Langkah 1, 2, 3, 6). Verifikasi QC (suhu, label/seal,
-    //            berat bag & box, kesesuaian karton, dokumentasi, release) diisi QC lewat menu Edit.
+    // produksi : mengisi seluruh Langkah 1 s/d 7 (Detail Pengemasan, Pembekuan Waktu+Suhu IQF,
+    //            Pengemasan Plastik, Berat Pack, Berat Box, Karton + FG/Reject/Rework, Dokumentasi Foto).
+    //            Verifikasi QC (Suhu Aktual Produk Pembekuan & Verifikasi Akhir OK/Tidak OK) diisi QC melalui Ikon Mata.
     // all      : Admin/Superadmin mengisi seluruh langkah.
     const ROLE_MODE = @json($roleMode ?? 'all');
     const IS_PRODUKSI = ROLE_MODE === 'produksi';
 
     (function applyRoleLock() {
         if (!IS_PRODUKSI) return;
-        ['aktual_suhu_produk[]', 'identitas_produk', 'kesesuaian_label_plastik', 'kekuatan_seal',
-         'identitas_produk_pada_karton', 'standar_jumlah_karton', 'kesesuaian_isi_pack[]'].forEach(function(name) {
+        ['aktual_suhu_produk[]', 'verifikasi_akhir_pengemasan', 'status_release_produk', 'tindakan_koreksi'].forEach(function(name) {
             document.querySelectorAll('[name="' + name + '"]').forEach(function(el) {
                 el.required = false;
                 el.disabled = true;
@@ -715,20 +804,45 @@
                 if (group) group.style.display = 'none';
             });
         });
-        [4, 5, 7].forEach(function(i) {
-            const ind = document.getElementById('step-indicator-' + i);
-            if (ind) ind.style.display = 'none';
-        });
+        const qcRow = document.getElementById('qc-final-release-row');
+        if (qcRow) qcRow.style.display = 'none';
+
         const alertEl = document.getElementById('wizardAlert');
         if (alertEl) {
             alertEl.insertAdjacentHTML('beforebegin',
-                '<div class="alert alert-info"><i class="fas fa-user-lock mr-1"></i> ' +
-                'Anda login sebagai <strong>Produksi</strong>. Anda hanya mengisi bagian Produksi; ' +
-                'bagian verifikasi <strong>QC</strong> (suhu produk, label/seal plastik, berat pack &amp; box, kesesuaian karton, dokumentasi, status release) akan dilengkapi oleh QC.</div>');
+                '<div class="alert alert-info"><i class="fas fa-industry mr-1"></i> ' +
+                'Anda login sebagai <strong>Produksi</strong>. Silakan lengkapi data Pengemasan (Langkah 1 s/d 7). ' +
+                'Bagian verifikasi <strong>QC Inspector</strong> (Suhu Aktual Produk Pembekuan &amp; Verifikasi Akhir Hasil Pengemasan) akan diverifikasi oleh QC melalui ikon <strong>Mata (Detail)</strong>.</div>');
         }
-        const btnKarton = document.querySelector('#step-6 .next-step');
-        if (btnKarton) btnKarton.innerHTML = 'Simpan &amp; Selesai <i class="fas fa-check ml-1"></i>';
     })();
+
+    // Auto-calculate Total Reject Produk & Total Rework Produk
+    function recalcRejectProduk() {
+        let sum = 0, hasVal = false;
+        document.querySelectorAll('.calc-reject-produk').forEach(el => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) { sum += v; hasVal = true; }
+        });
+        const totalEl = document.getElementById('total_reject_produk');
+        if (totalEl && hasVal) {
+            totalEl.value = Number.isInteger(sum) ? sum : sum.toFixed(2);
+        }
+    }
+
+    function recalcReworkProduk() {
+        let sum = 0, hasVal = false;
+        document.querySelectorAll('.calc-rework-produk').forEach(el => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) { sum += v; hasVal = true; }
+        });
+        const totalEl = document.getElementById('total_rework_produk');
+        if (totalEl && hasVal) {
+            totalEl.value = Number.isInteger(sum) ? sum : sum.toFixed(2);
+        }
+    }
+
+    document.querySelectorAll('.calc-reject-produk').forEach(el => el.addEventListener('input', recalcRejectProduk));
+    document.querySelectorAll('.calc-rework-produk').forEach(el => el.addEventListener('input', recalcReworkProduk));
     
     const state = {
         currentStep: 1,
@@ -1316,7 +1430,7 @@
                 document.getElementById('p4_id_pengemasan_plastik').value = res.id;
                 document.getElementById('p5_id_pengemasan_plastik').value = res.id;
                 document.getElementById('p6_id_pengemasan_plastik').value = res.id;
-                goToStep(IS_PRODUKSI ? 6 : 4);
+                goToStep(4);
             } else {
                 if (res.errors) showErrors(res.errors);
                 else showAlert('danger', res.message || 'Tolong Lengkapi Pengisian Datanya.');
@@ -1374,7 +1488,7 @@
             if (res.success) {
                 state.id_pengemasan_karton = res.id;
                 document.getElementById('p6_id_pengemasan_karton').value = res.id;
-                if (IS_PRODUKSI) { finalizeProduksi(); } else { goToStep(7); }
+                goToStep(7);
             } else {
                 if (res.errors) showErrors(res.errors);
                 else showAlert('danger', res.message || 'Tolong Lengkapi Pengisian Datanya.');
@@ -1419,7 +1533,6 @@
         if (e.target && (e.target.classList.contains('prev-step') || e.target.closest('.prev-step'))) {
             const btn = e.target.closest('.prev-step');
             let step = parseInt(btn.getAttribute('data-step'));
-            if (IS_PRODUKSI && (step === 4 || step === 5)) step = 3;
             goToStep(step);
         }
     });

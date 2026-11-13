@@ -31,9 +31,11 @@ class PengemasanProduk extends Model
         'berat_produk_2',
         'tanggal_expired_2',
         'std_suhu_produk_iqf',
+        'suhu_iqf',
         'aktual_suhu_produk',
         'waktu_awal_packing',
         'status_release_produk',
+        'verifikasi_akhir_pengemasan',
         'tindakan_koreksi',
     ];
 

@@ -95,11 +95,16 @@ class WizardPackingSheet implements FromArray, WithTitle, WithEvents
 
         if ($pembekuan->pengemasanProduk) {
             $rows[] = ['A. PEMBEKUAN PRODUK (LANGKAH 2)'];
-            $rows[] = ['Std Suhu IQF (°C)', 'Aktual Suhu Produk'];
+            $rows[] = ['Std Suhu IQF (°C)', 'Waktu Pengecekan After IQF', 'Suhu IQF (Produksi)', 'Suhu Aktual Produk Pembekuan (QC)'];
             $suhus = explode(',', $pembekuan->pengemasanProduk->aktual_suhu_produk ?? '');
-            $suhus = array_filter(array_map('trim', $suhus));
+            $suhus = array_filter(array_map('trim', $suhus), fn($v) => $v !== '');
             $aktualSuhu = !empty($suhus) ? implode(' °C, ', $suhus) . ' °C' : '-';
-            $rows[] = [$pembekuan->pengemasanProduk->std_suhu_produk_iqf ?? '-', $aktualSuhu];
+            $rows[] = [
+                $pembekuan->pengemasanProduk->std_suhu_produk_iqf ?? '-18°C',
+                $pembekuan->pengemasanProduk->waktu_awal_packing ?? '-',
+                $pembekuan->pengemasanProduk->suhu_iqf ?? '-',
+                $aktualSuhu
+            ];
             $rows[] = [];
         }
 
@@ -151,7 +156,7 @@ class WizardPackingSheet implements FromArray, WithTitle, WithEvents
 
         if ($pembekuan->pengemasanKarton) {
             $rows[] = ['E. PENGEMASAN KARTON (LANGKAH 6)'];
-            $rows[] = ['Kesesuaian Label Karton', 'Standar isi pack dalam karton', 'Aktual isi pack dalam karton', 'Kesesuaian Standar Isi Pack'];
+            $rows[] = ['Jam Kartoning', 'Kesesuaian Label Karton', 'Standar isi pack dalam karton', 'Aktual isi pack dalam karton', 'Kesesuaian Standar Isi Pack', 'Hasil Finish Good in Box/Pallet', 'Total Reject Kemasan'];
             $isiPack = $pembekuan->pengemasanKarton->kesesuaian_isi_pack;
             if (is_string($isiPack)) $isiPack = json_decode($isiPack, true);
             if (is_array($isiPack)) {
@@ -159,10 +164,26 @@ class WizardPackingSheet implements FromArray, WithTitle, WithEvents
             }
             $isiPackStr = (is_array($isiPack) && count($isiPack) > 0) ? implode(', ', $isiPack) : '-';
             $rows[] = [
-                $pembekuan->pengemasanKarton->identitas_produk_pada_karton == '✔' ? 'OK' : 'Tidak Sesuai',
+                $pembekuan->pengemasanKarton->jam ?? '-',
+                $pembekuan->pengemasanKarton->identitas_produk_pada_karton == '✔' ? 'OK' : ($pembekuan->pengemasanKarton->identitas_produk_pada_karton ? 'Tidak Sesuai' : '-'),
                 $pembekuan->pengemasanKarton->standar_jumlah_karton ?? '-',
                 $pembekuan->pengemasanKarton->aktual_jumlah_karton ?? '-',
-                $isiPackStr
+                $isiPackStr,
+                $pembekuan->pengemasanKarton->hasil_finish_good_box_pallet ?? '-',
+                $pembekuan->pengemasanKarton->total_reject_kemasan ?? '-',
+            ];
+            $rows[] = ['Reject Produk MP', 'Reject Produk Cooking', 'Reject Produk IQF', 'Reject Produk Packing', 'Total Reject Produk', 'Rework Produk MP', 'Rework Produk Cooking', 'Rework Produk IQF', 'Rework Produk Packing', 'Total Rework Produk'];
+            $rows[] = [
+                $pembekuan->pengemasanKarton->reject_produk_mp ?? '-',
+                $pembekuan->pengemasanKarton->reject_produk_cooking ?? '-',
+                $pembekuan->pengemasanKarton->reject_produk_iqf ?? '-',
+                $pembekuan->pengemasanKarton->reject_produk_packing ?? '-',
+                $pembekuan->pengemasanKarton->total_reject_produk ?? '-',
+                $pembekuan->pengemasanKarton->rework_produk_mp ?? '-',
+                $pembekuan->pengemasanKarton->rework_produk_cooking ?? '-',
+                $pembekuan->pengemasanKarton->rework_produk_iqf ?? '-',
+                $pembekuan->pengemasanKarton->rework_produk_packing ?? '-',
+                $pembekuan->pengemasanKarton->total_rework_produk ?? '-',
             ];
             $rows[] = [];
         }
@@ -176,21 +197,27 @@ class WizardPackingSheet implements FromArray, WithTitle, WithEvents
             $pembekuan->label_polyroll ? '[GAMBAR]' : 'Tidak ada foto',
             $pembekuan->label_supplier ? '[GAMBAR]' : 'Tidak ada foto'
         ];
-        $rows[] = ['Keterangan:', $pembekuan->pengemasanKarton->keterangan ?? '-'];
+        $rows[] = ['Keterangan:', $pembekuan->keterangan ?: ($pembekuan->pengemasanKarton->keterangan ?? '-')];
         
-        $statusRelease = '';
-        if (($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'ya') $statusRelease = 'Ya';
-        elseif (($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'tidak') $statusRelease = 'Tidak';
+        $verifAkhir = $pembekuan->pengemasanProduk->verifikasi_akhir_pengemasan ?? null;
+        $statusReleaseRaw = $pembekuan->pengemasanProduk->status_release_produk ?? null;
+        if ($verifAkhir === '✔' || $statusReleaseRaw === 'ya') $statusRelease = 'OK (Release)';
+        elseif ($verifAkhir === '✘' || $statusReleaseRaw === 'tidak') $statusRelease = 'Tidak OK (Hold/Reject)';
         else $statusRelease = '-';
         
-        $rows[] = ['Status Release Produk:', $statusRelease, 'Tindakan Koreksi:', $pembekuan->pengemasanProduk->tindakan_koreksi ?? '-'];
+        $rows[] = ['Verifikasi Akhir Pengemasan:', $statusRelease, 'Tindakan Koreksi:', $pembekuan->pengemasanProduk->tindakan_koreksi ?? '-'];
         $rows[] = [];
         $rows[] = ['QF 15/00'];
         $rows[] = [];
-        $rows[] = ['Dibuat Oleh:', 'Diperiksa Oleh:', 'Diketahui Oleh:'];
-        $rows[] = ['', '', ''];
-        $rows[] = ['', '', ''];
-        $rows[] = ['QC', 'SUPERVISOR QC', 'FM/FL PRODUKSI'];
+        $rows[] = ['1. Dibuat Oleh:', '2. Diverifikasi Oleh:', '3. Diketahui Oleh:', '4. Disetujui Oleh:'];
+        $rows[] = ['', '', '', ''];
+        $rows[] = ['', '', '', ''];
+        $rows[] = [
+            $pembekuan->user->name ?? 'PRODUKSI',
+            optional($pembekuan->qcApprover)->name ?? 'QC INSPEKTOR',
+            optional($pembekuan->produksiApprover)->name ?? 'FOREMAN / SPV PRODUKSI',
+            optional($pembekuan->spvApprover)->name ?? 'SPV QC'
+        ];
 
         return $rows;
     }
