@@ -331,7 +331,7 @@
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group col-md-6">
-                            <label for="tanggal_awal">Tanggal Awal</label>
+                            <label for="  tanggal_awal">Tanggal Awal</label>
                             <input type="date" class="form-control" id="tanggal_awal" name="tanggal_awal">
                         </div>
                         <div class="form-group col-md-6">
