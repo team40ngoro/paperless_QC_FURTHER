@@ -37,212 +37,306 @@
                         @csrf
                           <div id="form-container-chillroom">
                             <div class="chillroom-form">
-                                <div class="form-group mb-2">
-                                    <label>Shift</label>
-                                    <select name="shift_id" class="form-control" required>
-                                        <option value="">Pilih Shift</option>
-                                        @foreach($shifts as $shift)
-                                            <option value="{{ $shift->id }}">{{ $shift->shift }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="mb-3">
+                                    <h4 class="font-weight-bold text-primary mb-1">
+                                        <i class="fas fa-edit mr-2"></i>Detail Verifikasi Persiapan Cold Mixing
+                                    </h4>
+                                    <p class="text-muted small mb-0">Input data awal persiapan cold mixing oleh Tim Produksi (1. Dibuat oleh = Produksi).</p>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Tanggal <span class="text-danger">*</span></label>
+                                <hr class="mt-1 mb-4">
+
+                                {{-- 1. INPUT TANGGAL PRODUKSI --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Tanggal Produksi <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control @error('tanggal') is-invalid @enderror" 
                                            name="tanggal" value="{{ old('tanggal', \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d')) }}" required>
                                     @error('tanggal')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Jam <span class="text-danger">*</span></label>
-                                    <input type="time" class="form-control @error('jam') is-invalid @enderror" name="jam" value="{{ old('jam', \Carbon\Carbon::now('Asia/Jakarta')->format('H:i')) }}" required>
-                                    @error('jam')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+
+                                {{-- 2. INPUT SHIFT (PAGI, SORE, MALAM) --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Shift <span class="text-danger">*</span></label>
+                                    <select name="shift_id" id="shift_id" class="form-control @error('shift_id') is-invalid @enderror" required>
+                                        <option value="">-- Pilih Shift (Pagi, Sore, Malam) --</option>
+                                        @if(isset($shifts) && $shifts->count() > 0)
+                                            @foreach($shifts as $shift)
+                                                @php
+                                                    $sText = trim($shift->shift);
+                                                    $displayShift = $sText;
+                                                    if ($sText === '1' || strcasecmp($sText, 'shift 1') === 0) {
+                                                        $displayShift = 'Pagi (Shift 1)';
+                                                    } elseif ($sText === '2' || strcasecmp($sText, 'shift 2') === 0) {
+                                                        $displayShift = 'Sore (Shift 2)';
+                                                    } elseif ($sText === '3' || strcasecmp($sText, 'shift 3') === 0) {
+                                                        $displayShift = 'Malam (Shift 3)';
+                                                    }
+                                                @endphp
+                                                <option value="{{ $shift->id }}" {{ old('shift_id') == $shift->id ? 'selected' : '' }}>
+                                                    {{ $displayShift }}
+                                                </option>
+                                            @endforeach
+                                        @else
+                                            <option value="1" {{ old('shift_id') == '1' ? 'selected' : '' }}>Pagi (Shift 1)</option>
+                                            <option value="2" {{ old('shift_id') == '2' ? 'selected' : '' }}>Sore (Shift 2)</option>
+                                            <option value="3" {{ old('shift_id') == '3' ? 'selected' : '' }}>Malam (Shift 3)</option>
+                                        @endif
+                                    </select>
+                                    @error('shift_id')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Nama Produk</label>
-                                    <select name="id_produk" id="id_produk_select" class="form-control" required>
-                                        <option value="">Pilih Produk</option>
+
+                                {{-- 3. INPUT JAM PRODUKSI --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Jam Produksi <span class="text-danger">*</span></label>
+                                    <input type="time" class="form-control @error('jam') is-invalid @enderror" 
+                                           name="jam" value="{{ old('jam', \Carbon\Carbon::now('Asia/Jakarta')->format('H:i')) }}" required>
+                                    @error('jam')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                {{-- 4. INPUT NAMA PRODUK --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Nama Produk <span class="text-danger">*</span></label>
+                                    <select name="id_produk" id="id_produk_select" class="form-control @error('id_produk') is-invalid @enderror" required>
+                                        <option value="">-- Pilih Nama Produk --</option>
                                         @foreach($jenis_produk as $produk)
                                             <option value="{{ $produk->id }}" data-status-bahan="{{ strtolower($produk->status_bahan ?? '') }}" {{ (old('id_produk', $selectedProdukId ?? null) == $produk->id) ? 'selected' : '' }}>{{ $produk->nama_produk }}</option>
                                         @endforeach
                                     </select>
+                                    @error('id_produk')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Kode Produksi</label>
-                                    <input type="text" name="kode_produksi_emulsi" class="form-control">
+
+                                {{-- 5. INPUT NOMOR FORMULASI --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Nomor Formulasi <span class="text-danger">*</span></label>
+                                    <select name="id_formula" id="id_formula_select" class="form-control @error('id_formula') is-invalid @enderror" required>
+                                        <option value="">-- Pilih Nomor Formulasi --</option>
+                                        {{-- Diisi secara otomatis via AJAX berdasarkan produk yang dipilih --}}
+                                    </select>
+                                    @error('id_formula')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Kode Produksi Emulsi Oil</label>
+
+                                {{-- 6. INPUT GRAMASI --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold" for="nilai_select_berat_sampling">Input Gramasi (gram)</label>
+                                    <select name="berat_sampling" id="nilai_select_berat_sampling" class="form-control" data-nilai-berat data-selected="{{ old('berat_sampling') }}">
+                                        <option value="">-- Pilih Gramasi --</option>
+                                    </select>
+                                </div>
+
+                                {{-- 7. INPUT KODE PRODUKSI PRODUK --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Kode Produksi Produk</label>
+                                    <input type="text" name="kode_produksi_emulsi" class="form-control" placeholder="Masukkan kode produksi produk" value="{{ old('kode_produksi_emulsi') }}">
+                                </div>
+
+                                {{-- 8. INPUT KODE PRODUKSI EMULSI OIL --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Kode Produksi Emulsi Oil</label>
                                     <div id="kode-emulsi-oil-container">
                                         <div class="input-group mb-2 kode-emulsi-oil-item">
                                             <input type="text" name="kode_produksi_emulsi_oil[]" class="form-control" placeholder="Masukkan kode produksi emulsi oil">
                                             <div class="input-group-append">
-                                                <button type="button" class="btn btn-success btn-sm add-kode-emulsi-oil">
+                                                <button type="button" class="btn btn-success btn-sm add-kode-emulsi-oil" title="Tambah Kode">
                                                     <i class="fas fa-plus"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-danger btn-sm remove-kode-emulsi-oil" style="display: none;">
+                                                <button type="button" class="btn btn-danger btn-sm remove-kode-emulsi-oil" style="display: none;" title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
+                                    <small class="text-muted">Klik tombol (+) untuk menambah baris kode produksi emulsi oil.</small>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Pilih Nomor Formula</label>
-                                    <select name="id_formula" id="id_formula_select" class="form-control" required>
-                                        <option value="">Pilih Nomor Formula</option>
-                                        {{-- Akan diisi AJAX --}}
-                                    </select>
+
+                                {{-- 9 & 10. INPUT WAKTU MULAI & SELESAI MIXING --}}
+                                <div class="form-row mb-3">
+                                    <div class="form-group col-md-6">
+                                        <label class="font-weight-bold">Input Waktu Mulai</label>
+                                        <input type="time" name="waktu_mulai_mixing" class="form-control" value="{{ old('waktu_mulai_mixing') }}">
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label class="font-weight-bold">Input Waktu Selesai Mixing</label>
+                                        <input type="time" name="waktu_selesai_mixing" class="form-control" value="{{ old('waktu_selesai_mixing') }}">
+                                    </div>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label for="berat_sampling">Gramase (gram)</label>
-                                    <select name="berat_sampling" id="nilai_select_berat_sampling" class="form-control" data-nilai-berat data-selected="{{ old('berat_sampling') }}"></select>
+
+                                {{-- 11. INPUT REWORK (KOLOM BISA DITAMBAH) --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold"><i class="fas fa-recycle text-success mr-1"></i> Input Rework</label>
+                                    <div id="rework-container">
+                                        <div class="row mb-2 rework-item align-items-center">
+                                            <div class="col-md-6 mb-1">
+                                                <label class="small text-muted mb-0">Pilihan Produk Rework</label>
+                                                <select name="produk_rework_id[]" class="form-control select-rework-item" data-placeholder="Pilih produk rework...">
+                                                    <option value="">- Pilih Produk Rework -</option>
+                                                    @foreach($jenis_produk as $p)
+                                                        <option value="{{ $p->id }}">{{ $p->nama_produk }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 mb-1">
+                                                <label class="small text-muted mb-0">Jumlah Rework (kg)</label>
+                                                <div class="input-group">
+                                                    <input type="number" step="0.01" name="rework[]" class="form-control" placeholder="0.00">
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text">kg</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 mb-1 pt-3">
+                                                <button type="button" class="btn btn-success btn-sm add-rework" title="Tambah Baris Rework">
+                                                    <i class="fas fa-plus mr-1"></i> Tambah
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm remove-rework" style="display: none;" title="Hapus Baris">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Klik tombol (+) Tambah untuk menambah kolom rework jika terdapat lebih dari 1 produk rework.</small>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Suhu Adonan (STD) <small class="text-muted">(filter by produk)</small></label>
-                                    <select name="id_suhu_adonan" id="id_suhu_adonan_select" class="form-control" required>
+
+                                {{-- 12. INPUT KETERANGAN --}}
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Input Keterangan</label>
+                                    <textarea name="catatan" class="form-control" rows="3" placeholder="Masukkan keterangan (opsional)">{{ old('catatan') }}</textarea>
+                                </div>
+
+                                {{-- SUHU ADONAN STANDAR (Tersimpan otomatis sesuai produk) --}}
+                                <div class="form-group mb-3" style="display: none;">
+                                    <label>Suhu Adonan (STD)</label>
+                                    <select name="id_suhu_adonan" id="id_suhu_adonan_select" class="form-control">
                                         <option value="">Pilih Suhu Adonan</option>
                                     </select>
                                 </div>
-                                <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label>Waktu Mulai Mixing</label>
-                                        <input type="text" name="waktu_mulai_mixing" class="form-control">
+
+                                {{-- TABEL BAHAN FORMING SESUAI FORMULA --}}
+                                <div class="card card-outline card-secondary mb-4 mt-4">
+                                    <div class="card-header py-2">
+                                        <h6 class="card-title text-sm font-weight-bold mb-0">
+                                            <i class="fas fa-list-alt mr-1"></i> Data Bahan Forming Berdasarkan Nomor Formula
+                                        </h6>
                                     </div>
-                                    <div class="form-group col-md-6">
-                                        <label>Waktu Selesai Mixing</label>
-                                        <input type="text" name="waktu_selesai_mixing" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label>Data Bahan Forming Berdasarkan Nomor Formula</label>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-striped" id="tabel-bahan-forming">
-                                            <thead>
-                                                <tr>
-                                                    <th>No</th>
-                                                    <th>Nomor Formula</th>
-                                                    <th>Nama RM</th>
-                                                    <th>Berat RM</th>
-                                                    <th>Kode Produksi Bahan</th>
-                                                    <th>Suhu</th>
-                                                    <th>Sensori</th>
-                                                    <th>Keterangan</th>
-                                                    <th class="text-center">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($bahan as $b)
-                                                    <tr data-berat-rm="{{ $b->berat_rm }}">
-                                                        <td>{{ $loop->iteration }}</td>
-                                                        <td>{{ $b->formula->nomor_formula ?? '-' }}</td>
-                                                        <td>{{ $b->nama_rm }}</td>
-                                                        <td class="text-center">{{ $b->berat_rm }}</td>
-                                                        <td>
-                                                            <input type="text" name="kode_produksi_bahan[]" value="" class="form-control" placeholder="Kode Produksi Bahan">
-                                                        </td>
-                                                        <td>
-                                                            <input type="hidden" name="id_bahan_forming[]" value="{{ $b->id }}">
-                                                            <input type="text" name="suhu[]" value="" class="form-control" placeholder="Suhu">
-                                                        </td>
-                                                        <td>
-                                                            <select name="sensori[]" class="form-control">
-                                                                <option value="OK">OK</option>
-                                                                <option value="Tidak OK">Tidak OK</option>
-                                                            </select>
-                                                        </td>
-                                                        <td>
-                                                            <input type="text" name="keterangan_bahan[]" value="" class="form-control" placeholder="Keterangan">
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <button type="button" class="btn btn-danger btn-sm hapus-baris-bahan" title="Hapus Bahan">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </td>
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm table-striped mb-0" id="tabel-bahan-forming">
+                                                <thead class="bg-light">
+                                                    <tr>
+                                                        <th class="text-center" style="width: 40px;">No</th>
+                                                        <th>Nomor Formula</th>
+                                                        <th>Nama RM</th>
+                                                        <th class="text-center">Berat RM</th>
+                                                        <th>Kode Produksi Bahan</th>
+                                                        <th>Suhu</th>
+                                                        <th>Sensori</th>
+                                                        <th>Keterangan</th>
+                                                        <th class="text-center" style="width: 60px;">Aksi</th>
                                                     </tr>
-                                                @endforeach
-                                            </tbody>
-                                            @php
-                                                $getFloatCreate = function($val) {
-                                                    if (is_null($val) || $val === '' || is_array($val)) return 0.0;
-                                                    $clean = preg_replace('/[^\d\.\-]/', '', str_replace(',', '.', (string)$val));
-                                                    return is_numeric($clean) ? (float)$clean : 0.0;
-                                                };
-                                                $beratListCreate = collect($bahan)->map(fn($b) => $getFloatCreate($b->berat_rm ?? 0));
-                                                $totalBeratCreate = $beratListCreate->sum();
-                                                $avgBeratCreate   = $beratListCreate->count() > 0 ? $beratListCreate->avg() : 0;
-                                            @endphp
-                                            <tfoot class="bg-light font-weight-bold" id="tfoot-bahan-forming">
-                                                <tr>
-                                                    <td colspan="3" class="text-right">Total Berat RM:</td>
-                                                    <td class="text-center text-primary" id="total-berat-rm-create">{{ number_format($totalBeratCreate, 3) }}</td>
-                                                    <td colspan="5"></td>
-                                                </tr>
-                                                <!-- <tr>
-                                                    <td colspan="3" class="text-right">Rata-Rata Berat RM:</td>
-                                                    <td class="text-center text-success" id="avg-berat-rm-create">{{ number_format($avgBeratCreate, 3) }}</td>
-                                                    <td colspan="5"></td>
-                                                </tr> -->
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <h5 class="mt-3">Suhu Aktual</h5>
-                                    </div>
-                                    @for($i=1;$i<=5;$i++)
-                                        <div class="form-group col-md-2">
-                                            <label>Aktual {{ $i }}</label>
-                                            <input type="number" step="0.1" name="aktual_suhu_{{ $i }}" class="form-control" placeholder="0.0" id="aktual_suhu_{{ $i }}">
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($bahan as $b)
+                                                        <tr data-berat-rm="{{ $b->berat_rm }}">
+                                                            <td class="text-center">{{ $loop->iteration }}</td>
+                                                            <td>{{ $b->formula->nomor_formula ?? '-' }}</td>
+                                                            <td>{{ $b->nama_rm }}</td>
+                                                            <td class="text-center">{{ $b->berat_rm }}</td>
+                                                            <td>
+                                                                <input type="text" name="kode_produksi_bahan[]" value="" class="form-control form-control-sm" placeholder="Kode Produksi Bahan">
+                                                            </td>
+                                                            <td>
+                                                                <input type="hidden" name="id_bahan_forming[]" value="{{ $b->id }}">
+                                                                <input type="text" name="suhu[]" value="" class="form-control form-control-sm" placeholder="Suhu">
+                                                            </td>
+                                                            <td>
+                                                                <select name="sensori[]" class="form-control form-control-sm">
+                                                                    <option value="OK">OK</option>
+                                                                    <option value="Tidak OK">Tidak OK</option>
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" name="keterangan_bahan[]" value="" class="form-control form-control-sm" placeholder="Keterangan">
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-danger btn-sm hapus-baris-bahan" title="Hapus Bahan">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                                @php
+                                                    $getFloatCreate = function($val) {
+                                                        if (is_null($val) || $val === '' || is_array($val)) return 0.0;
+                                                        $clean = preg_replace('/[^\d\.\-]/', '', str_replace(',', '.', (string)$val));
+                                                        return is_numeric($clean) ? (float)$clean : 0.0;
+                                                    };
+                                                    $beratListCreate = collect($bahan)->map(fn($b) => $getFloatCreate($b->berat_rm ?? 0));
+                                                    $totalBeratCreate = $beratListCreate->sum();
+                                                @endphp
+                                                <tfoot class="bg-light font-weight-bold" id="tfoot-bahan-forming">
+                                                    <tr>
+                                                        <td colspan="3" class="text-right">Total Berat RM:</td>
+                                                        <td class="text-center text-primary" id="total-berat-rm-create">{{ number_format($totalBeratCreate, 3) }}</td>
+                                                        <td colspan="5"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
                                         </div>
-                                    @endfor
-                                    <div class="form-group col-md-2">
-                                        <label>Hasil Suhu Aktual</label>
-                                        <input type="number" step="0.01" name="total_aktual_suhu" class="form-control" id="total_aktual_suhu" placeholder="Otomatis terisi" readonly>
                                     </div>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Kondisi Hasil Penggilingan</label>
-                                    <select name="kondisi" class="form-control">
-                                        <option value="✔">✔ OK</option>
-                                        <option value="✘">✘ Tidak OK</option>
-                                    </select>
+
+                                {{-- INFORMASI ALUR VERIFIKASI & OTORISASI --}}
+                                <div class="alert alert-light border shadow-sm p-3 mb-4">
+                                    <h6 class="font-weight-bold text-primary mb-2">
+                                        <i class="fas fa-clipboard-check mr-1"></i> Alur Verifikasi & Persetujuan Sistem (E-QF 04 Cold Mixing):
+                                    </h6>
+                                    <div class="row small text-muted">
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="border rounded p-2 bg-white h-100">
+                                                <span class="badge badge-primary mb-1">Tahap 1</span>
+                                                <div class="font-weight-bold text-dark">Dibuat oleh = Produksi</div>
+                                                <div>Penginputan data awal batch cold mixing.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="border rounded p-2 bg-white h-100">
+                                                <span class="badge badge-success mb-1">Tahap 2</span>
+                                                <div class="font-weight-bold text-dark">Verifikasi = QC Inspektor</div>
+                                                <div>Verifikasi hasil cold mixing, pencampuran & suhu actual.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="border rounded p-2 bg-white h-100">
+                                                <span class="badge badge-info mb-1">Tahap 3</span>
+                                                <div class="font-weight-bold text-dark">Diketahui = SPV Produksi</div>
+                                                <div>Pengecekan dan otorisasi oleh SPV Produksi.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="border rounded p-2 bg-white h-100">
+                                                <span class="badge badge-warning mb-1">Tahap 4</span>
+                                                <div class="font-weight-bold text-dark">Disetujui = SPV QC</div>
+                                                <div>Persetujuan akhir oleh Supervisor QC.</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-group mb-2">
-                                    <label>Kondisi Hasil Pencampuran</label>
-                                    <select name="kondisi_hasil_pencampuran" class="form-control">
-                                        <option value="✔">✔ OK</option>
-                                        <option value="✘">✘ Tidak OK</option>
-                                    </select>
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label>Produk Rework <small class="text-muted">(opsional)</small></label>
-                                    <select name="produk_rework_id" id="produk_rework_id_select"
-                                            class="form-control select2-rework"
-                                            data-placeholder="Pilih produk rework...">
-                                        <option value="">-</option>
-                                    </select>
-                                    <small class="text-muted">Pilih Nama Produk terlebih dahulu untuk memuat opsi</small>
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label>Rework (kg)</label>
-                                    <input type="text" name="rework" class="form-control">
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label>Catatan</label>
-                                    <textarea name="catatan" class="form-control"></textarea>
-                                </div>
+
                                 <hr>
                             </div>
                           </div>
-                        <button type="submit" class="btn btn-primary mb-2"><i class="fas fa-save mr-1"></i>Simpan Data</button>
-                        <a href="{{ route('persiapan-bahan-forming.index') }}" class="btn btn-secondary btn-md ml-2">
-                            <i class="fas fa-arrow-left mr-2"></i>
-                            Kembali
+                        <button type="submit" class="btn btn-primary mb-2"><i class="fas fa-save mr-1"></i> Simpan Data (Produksi)</button>
+                        <a href="{{ route('persiapan-bahan-forming.index') }}" class="btn btn-secondary btn-md ml-2 mb-2">
+                            <i class="fas fa-arrow-left mr-2"></i> Kembali
                         </a>
                     </form>
                   </div>
@@ -340,6 +434,47 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial setup
     updateButtonsVisibility();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    let reworkContainer = document.getElementById('rework-container');
+    if (!reworkContainer) return;
+
+    reworkContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.add-rework')) {
+            let firstItem = reworkContainer.querySelector('.rework-item');
+            let newItem = firstItem.cloneNode(true);
+
+            newItem.querySelectorAll('input').forEach(inp => inp.value = '');
+            newItem.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
+
+            let addBtn = newItem.querySelector('.add-rework');
+            if (addBtn) addBtn.style.display = 'none';
+
+            reworkContainer.appendChild(newItem);
+            updateReworkButtonsVisibility();
+        }
+
+        if (e.target.closest('.remove-rework')) {
+            let items = reworkContainer.querySelectorAll('.rework-item');
+            if (items.length > 1) {
+                e.target.closest('.rework-item').remove();
+                updateReworkButtonsVisibility();
+            }
+        }
+    });
+
+    function updateReworkButtonsVisibility() {
+        let items = reworkContainer.querySelectorAll('.rework-item');
+        items.forEach(function(item, index) {
+            let addBtn = item.querySelector('.add-rework');
+            let removeBtn = item.querySelector('.remove-rework');
+            if (addBtn) addBtn.style.display = (index === 0) ? 'inline-block' : 'none';
+            if (removeBtn) removeBtn.style.display = (items.length <= 1) ? 'none' : 'inline-block';
+        });
+    }
+
+    updateReworkButtonsVisibility();
 });
 
 document.addEventListener('DOMContentLoaded', function() {
