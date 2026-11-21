@@ -530,64 +530,6 @@ class VerifPeralatanController extends Controller
             abort(403);
         }
 
-        // Khusus role QC Inspector: hanya boleh mengedit verifikasi_hasil, selain itu read-only
-        if ($user->isQcInspector()) {
-            $detailsInput = $request->input('details', []);
-            if (is_array($detailsInput)) {
-                foreach ($item->details as $detailRow) {
-                    $mesinId = $detailRow->id_mesin;
-                    if (isset($detailsInput[$mesinId])) {
-                        $detailData = $detailsInput[$mesinId];
-                        if (array_key_exists('verifikasi_hasil', $detailData)) {
-                            $detailRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['verifikasi_hasil']);
-                            $detailRow->save();
-                        }
-
-                        if (isset($detailData['bagian']) && is_array($detailData['bagian'])) {
-                            foreach ($detailRow->bagianDetails as $bagianRow) {
-                                $bid = $bagianRow->id_bagian;
-                                if (isset($detailData['bagian'][$bid]) && array_key_exists('verifikasi_hasil', $detailData['bagian'][$bid])) {
-                                    $bagianRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['bagian'][$bid]['verifikasi_hasil']);
-                                    $bagianRow->save();
-                                }
-                            }
-                        }
-
-                        // Agregasi verifikasi_hasil mesin induk dari sub-bagian (jika ada).
-                        // Refresh koleksi dari DB agar nilai yang baru tersimpan terbaca.
-                        if ($detailRow->bagianDetails->isNotEmpty()) {
-                            $freshBagian = $detailRow->bagianDetails()->get();
-                            $hasNull = false;
-                            $aggregated = true;
-                            foreach ($freshBagian as $bag) {
-                                if (is_null($bag->verifikasi_hasil)) {
-                                    $hasNull = true;
-                                    break;
-                                }
-                                if ($bag->verifikasi_hasil === false) {
-                                    $aggregated = false;
-                                    break;
-                                }
-                            }
-                            // Hanya update parent jika semua sub-bagian sudah di-set (tidak ada null).
-                            if (! $hasNull) {
-                                $detailRow->verifikasi_hasil = $aggregated;
-                                $detailRow->save();
-                            }
-                        }
-                    }
-                }
-            }
-
-            if ($user->id_role == 6 || $item->is_audit) {
-                return redirect()->route('verif-peralatan.audit')
-                    ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC Inspector.');
-            }
-
-            return redirect()->route('verif-peralatan.show', $item->uuid)
-                ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC Inspector.');
-        }
-
         $rules = [
             'id_shift' => 'required|exists:data_shift,id',
             'tanggal' => 'required|date',
@@ -661,13 +603,9 @@ class VerifPeralatanController extends Controller
                 }
                 $tindakan = $detail['tindakan_koreksi'] ?? null;
 
-                // Jika user adalah Produksi: pertahankan verifikasi_hasil lama (gaboleh isi / edit)
-                if ($isProduksi) {
-                    $verifHasil = $existingDetails->get($mesinId)?->verifikasi_hasil ?? null;
-                } else {
-                    $verifHasilRaw = $detail['verifikasi_hasil'] ?? null;
-                    $verifHasil = $this->normalizeVerifikasi($verifHasilRaw);
-                }
+                // Pertahankan verifikasi_hasil lama (verifikasi hasil diisi oleh QC pada icon mata / detail)
+                $verifHasilRaw = $detail['verifikasi_hasil'] ?? null;
+                $verifHasil = $verifHasilRaw !== null ? $this->normalizeVerifikasi($verifHasilRaw) : ($existingDetails->get($mesinId)?->verifikasi_hasil ?? null);
 
                 if ($verifikasi === null) {
                     if (isset($detail['bagian']) && is_array($detail['bagian']) && count($detail['bagian']) > 0) {
@@ -682,22 +620,6 @@ class VerifPeralatanController extends Controller
                         $verifikasi = ! $hasKotor;
                     } else {
                         $verifikasi = true;
-                    }
-                }
-
-                if (! $isProduksi && $verifHasil === null) {
-                    if (isset($detail['bagian']) && is_array($detail['bagian']) && count($detail['bagian']) > 0) {
-                        $hasNotOk = false;
-                        foreach ($detail['bagian'] as $bData) {
-                            if ($this->normalizeVerifikasi($bData['verifikasi_hasil'] ?? null) === false) {
-                                $hasNotOk = true;
-                                break;
-                            }
-
-                        }
-                        $verifHasil = ! $hasNotOk;
-                    } else {
-                        $verifHasil = true;
                     }
                 }
 
@@ -730,13 +652,9 @@ class VerifPeralatanController extends Controller
                         }
                         $bagianTindakan = $bagianDetail['tindakan_koreksi'] ?? null;
 
-                        // Jika user adalah Produksi: pertahankan verifikasi_hasil lama pada bagian
-                        if ($isProduksi) {
-                            $bagianHasil = $existingBagians->get($bagianId)?->verifikasi_hasil ?? null;
-                        } else {
-                            $bagianHasilRaw = $bagianDetail['verifikasi_hasil'] ?? null;
-                            $bagianHasil = $this->normalizeVerifikasi($bagianHasilRaw) ?? true;
-                        }
+                        // Pertahankan verifikasi_hasil lama pada bagian (verifikasi hasil diisi oleh QC pada icon mata / detail)
+                        $bagianHasilRaw = $bagianDetail['verifikasi_hasil'] ?? null;
+                        $bagianHasil = $bagianHasilRaw !== null ? $this->normalizeVerifikasi($bagianHasilRaw) : ($existingBagians->get($bagianId)?->verifikasi_hasil ?? null);
 
                         VerifPeralatanBagian::create([
                             'verif_peralatan_detail_id' => $detailRow->id,
@@ -758,6 +676,76 @@ class VerifPeralatanController extends Controller
 
         return redirect()->route('verif-peralatan.show', $item->uuid)
             ->with('success', 'Data verifikasi peralatan berhasil diperbarui.');
+    }
+
+    public function updateQcVerification(Request $request, $uuid)
+    {
+        $user = Auth::user();
+
+        $item = VerifPeralatan::with(['details.bagianDetails', 'details.mesin.area'])->where('uuid', $uuid)->firstOrFail();
+
+        $canVerify = $user->isQc() || $user->isQcInspector() || $user->role === 'superadmin' || in_array((int) $user->id_role, [1, 3, 5], true);
+        if (! $canVerify) {
+            abort(403, 'Hanya QC yang diizinkan menginput dan memperbarui verifikasi hasil.');
+        }
+
+        if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+            abort(403, 'Anda tidak memiliki akses ke data plant ini.');
+        }
+
+        $detailsInput = $request->input('details', []);
+        if (is_array($detailsInput)) {
+            foreach ($item->details as $detailRow) {
+                $mesinId = $detailRow->id_mesin;
+                if (isset($detailsInput[$mesinId])) {
+                    $detailData = $detailsInput[$mesinId];
+                    if (array_key_exists('verifikasi_hasil', $detailData)) {
+                        $detailRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['verifikasi_hasil']);
+                        $detailRow->save();
+                    }
+
+                    if (isset($detailData['bagian']) && is_array($detailData['bagian'])) {
+                        foreach ($detailRow->bagianDetails as $bagianRow) {
+                            $bid = $bagianRow->id_bagian;
+                            if (isset($detailData['bagian'][$bid]) && array_key_exists('verifikasi_hasil', $detailData['bagian'][$bid])) {
+                                $bagianRow->verifikasi_hasil = $this->normalizeVerifikasi($detailData['bagian'][$bid]['verifikasi_hasil']);
+                                $bagianRow->save();
+                            }
+                        }
+                    }
+
+                    // Agregasi verifikasi_hasil mesin induk dari sub-bagian (jika ada).
+                    if ($detailRow->bagianDetails->isNotEmpty()) {
+                        $freshBagian = $detailRow->bagianDetails()->get();
+                        $hasNull = false;
+                        $aggregated = true;
+                        foreach ($freshBagian as $bag) {
+                            if (is_null($bag->verifikasi_hasil)) {
+                                $hasNull = true;
+                                break;
+                            }
+                            if ($bag->verifikasi_hasil === false) {
+                                $aggregated = false;
+                                break;
+                            }
+                        }
+                        // Hanya update parent jika semua sub-bagian sudah di-set (tidak ada null).
+                        if (! $hasNull) {
+                            $detailRow->verifikasi_hasil = $aggregated;
+                            $detailRow->save();
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($user->id_role == 6 || $item->is_audit) {
+            return redirect()->route('verif-peralatan.audit')
+                ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC.');
+        }
+
+        return redirect()->route('verif-peralatan.show', $item->uuid)
+            ->with('success', 'Verifikasi hasil berhasil diperbarui oleh QC.');
     }
 
     public function destroy($uuid)

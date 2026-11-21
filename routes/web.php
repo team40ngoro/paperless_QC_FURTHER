@@ -584,7 +584,16 @@ Route::middleware('auth')->group(function () {
         })->name('ajax.better-detail-better');
 
         Route::get('/ajax/std-by-better-better', function (Request $r) {
-            return StdSalinitasViskositas::where('id_better', $r->id_better)->get();
+            $user = auth()->user();
+            $query = StdSalinitasViskositas::query()->where('id_better', $r->id_better);
+            if ($r->id_produk) {
+                $query->where('id_produk', $r->id_produk);
+            }
+            if ($user && $user->role !== 'superadmin' && $user->id_plan) {
+                $query->where('id_plan', $user->id_plan);
+            }
+            $std = $query->latest()->first();
+            return $std ? [$std] : [];
         })->name('ajax.std-by-better-better');
 
         Route::get('/ajax/jenis-breader-by-produk/{id_produk}', [ProsesBreaderController::class, 'getJenisBreaderByProduk'])->name('ajax.jenis-breader-by-produk');
@@ -1242,6 +1251,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/wizard/proses-2', [WizardProses2Controller::class, 'index'])->name('wizard.proses2.index');
         Route::get('/wizard/proses-2/create', [WizardProses2Controller::class, 'create'])->name('wizard.proses2.create');
         Route::get('/wizard/proses-2/show/{uuid}', [WizardProses2Controller::class, 'show'])->name('wizard.proses2.show');
+        Route::put('/wizard/proses-2/show/{uuid}/qc-verification', [WizardProses2Controller::class, 'updateQcVerification'])->name('wizard.proses2.qc-verification');
         Route::get('/wizard/proses-2/edit/{uuid}', [WizardProses2Controller::class, 'edit'])->name('wizard.proses2.edit');
         Route::put('/wizard/proses-2/update/{uuid}', [WizardProses2Controller::class, 'update'])->name('wizard.proses2.update');
         Route::get('/wizard/proses-2/export-pdf/{uuid}', [WizardProses2Controller::class, 'exportPdf'])->name('wizard.proses2.export-pdf');
@@ -1271,6 +1281,7 @@ Route::middleware('auth')->group(function () {
         Route::get('wizard/proses-3/copy-to-audit/{uuid}', [WizardProses3Controller::class, 'copyToAudit'])->name('wizard.proses3.copy-to-audit');
         Route::get('wizard/proses-3/audit-data', [WizardProses3Controller::class, 'auditIndex'])->name('wizard.proses3.audit');
         Route::get('wizard/proses-3/audit-search', [WizardProses3Controller::class, 'auditSearchAjax'])->name('wizard.proses3.audit-search');
+        Route::put('wizard/proses-3/show/{uuid}/qc-verification', [WizardProses3Controller::class, 'updateQcVerification'])->name('wizard.proses3.qc-verification');
         Route::get('wizard/proses-3/{uuid}', [WizardProses3Controller::class, 'show'])->name('wizard.proses3.show');
         Route::get('wizard/proses-3/edit/{uuid}', [WizardProses3Controller::class, 'edit'])->name('wizard.proses3.edit');
         Route::put('wizard/proses-3/update/{uuid}', [WizardProses3Controller::class, 'update'])->name('wizard.proses3.update');
@@ -1454,6 +1465,7 @@ Route::middleware('auth')->group(function () {
             'parameters' => ['verifikasi-berat-produk' => 'uuid'],
         ]);
         Route::post('verif-peralatan/bulk-approve', [VerifPeralatanController::class, 'bulkApprove'])->name('verif-peralatan.bulk-approve');
+        Route::put('verif-peralatan/{uuid}/qc-verification', [VerifPeralatanController::class, 'updateQcVerification'])->name('verif-peralatan.qc-verification');
 
         Route::resource('verif-peralatan', VerifPeralatanController::class, [
             'parameters' => ['verif-peralatan' => 'uuid'],

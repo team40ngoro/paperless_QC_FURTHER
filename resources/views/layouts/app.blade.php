@@ -2749,31 +2749,33 @@ $(document).ready(function() {
                             }
                         });
                         
-                        // TAMBAHAN BARU: Row untuk Suhu (Full Width)
+                        // TAMBAHAN: Row untuk Suhu Emulsi (Full Width) - Dikunci untuk Produksi, hanya diisi QC saat edit verifikasi
                         multipleTablesHtml += `
                                 <tr class="bg-light">
                                     <td colspan="5">
                                         <div class="row align-items-center">
-                                            <label class="col-sm-2 col-form-label font-weight-bold mb-0">Suhu</label>
-                                            <div class="col-sm-10">
-                                                <input type="text" name="kondisi_proses[${prosesKe-1}]" class="form-control" placeholder="Masukkan Suhu" required>
+                                            <label class="col-sm-3 col-form-label font-weight-bold mb-0 text-danger">
+                                                <i class="fas fa-thermometer-half mr-1"></i> Suhu Emulsi (°C) : (angka) <small class="text-muted font-weight-normal">(QC Inspektor)</small>
+                                            </label>
+                                            <div class="col-sm-9">
+                                                <input type="text" class="form-control bg-light" value="Menunggu Verifikasi QC (Diisi saat verifikasi QC)" disabled readonly>
+                                                <small class="text-muted"><i class="fas fa-lock mr-1"></i> Kolom suhu emulsi hanya dapat diisi oleh QC Inspektor saat verifikasi/edit.</small>
                                             </div>
                                         </div>
                                     </td>
                                 </tr>`;
                         
-                        // TAMBAHAN BARU: Row untuk Hasil Emulsi (Full Width)
+                        // TAMBAHAN: Row untuk Hasil Emulsi (Full Width) - Dikunci untuk Produksi, hanya diisi QC saat edit verifikasi
                         multipleTablesHtml += `
                                 <tr class="bg-light">
                                     <td colspan="5">
                                         <div class="row align-items-center">
-                                            <label class="col-sm-2 col-form-label font-weight-bold mb-0">Hasil Emulsi</label>
-                                            <div class="col-sm-10">
-                                                <select name="hasil_emulsi_proses[${prosesKe-1}]" class="form-control" required>
-                                                    <option value="">Pilih Hasil</option>
-                                                    <option value="✔">✔ OK</option>
-                                                    <option value="✘">✘ Tidak OK</option>
-                                                </select>
+                                            <label class="col-sm-3 col-form-label font-weight-bold mb-0 text-success">
+                                                <i class="fas fa-check-circle mr-1"></i> Hasil Emulsi : (✔ / ✘) <small class="text-muted font-weight-normal">(QC Inspektor)</small>
+                                            </label>
+                                            <div class="col-sm-9">
+                                                <input type="text" class="form-control bg-light" value="Menunggu Verifikasi QC (✔ / ✘)" disabled readonly>
+                                                <small class="text-muted"><i class="fas fa-lock mr-1"></i> Kolom hasil emulsi hanya dapat diisi oleh QC Inspektor saat verifikasi/edit.</small>
                                             </div>
                                         </div>
                                     </td>
@@ -2987,30 +2989,38 @@ $('#id_better_select_better').change(function() {
                 }
             });
 
-            $.get("{{ route('ajax.std-by-better-better') }}", {id_better: better}, function(res) {
+            var prodId = $('#id_produk_select_better').val();
+            $.get("{{ route('ajax.std-by-better-better') }}", {id_better: better, id_produk: prodId}, function(res) {
                 if(res.length > 0) {
                     var html = '';
                     $.each(res, function(i, std) {
                         html += '<div class="row align-items-center mb-3">'
                             + '<div class="col-md-3"><label class="mb-0">Standar Viscositas (detik)</label></div>'
-                            + '<div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="'+std.std_viskositas+'" readonly></div></div>'
-                            + '<div class="col-md-3"><label class="mb-0">Aktual Viscositas (detik)</label></div>'
+                            + '<div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="'+(std.std_viskositas || '-')+'" readonly></div></div>'
+                            + '<div class="col-md-3"><label class="mb-0">Aktual Viscositas (detik) <small class="text-muted">(QC)</small></label></div>'
                             + '<div class="col-md-3">'
                             + '<input type="hidden" name="id_std_salinitas_viskositas[]" value="'+std.id+'">'
-                            + '<input type="text" name="aktual_vis[]" class="form-control form-control-sm" required>'
+                            + '<input type="text" class="form-control form-control-sm bg-light" value="Menunggu Verifikasi QC" disabled readonly>'
+                            + '<small class="text-muted"><i class="fas fa-lock mr-1"></i> Diisi saat verifikasi QC.</small>'
                             + '</div>'
                             + '</div>';
                         
                         html += '<div class="row align-items-center mb-3">'
                             + '<div class="col-md-3"><label class="mb-0">Standar Salinity (%)</label></div>'
-                            + '<div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="'+std.std_salinitas+'" readonly></div></div>'
-                            + '<div class="col-md-3"><label class="mb-0">Aktual Salinity (%)</label></div>'
-                            + '<div class="col-md-3"><input type="text" name="aktual_sal[]" class="form-control form-control-sm" required></div>'
+                            + '<div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="'+(std.std_salinitas || '-')+'" readonly></div></div>'
+                            + '<div class="col-md-3"><label class="mb-0">Aktual Salinity (%) <small class="text-muted">(QC)</small></label></div>'
+                            + '<div class="col-md-3">'
+                            + '<input type="text" class="form-control form-control-sm bg-light" value="Menunggu Verifikasi QC" disabled readonly>'
+                            + '<small class="text-muted"><i class="fas fa-lock mr-1"></i> Diisi saat verifikasi QC.</small>'
+                            + '</div>'
                             + '</div>';
                             
                         html += '<div class="row align-items-center mb-3">'
-                            + '<div class="col-md-3"><label class="mb-0">Suhu Akhir (°C)</label></div>'
-                            + '<div class="col-md-9"><input type="text" name="aktual_suhu_air[]" class="form-control form-control-sm" required></div>'
+                            + '<div class="col-md-3"><label class="mb-0">Suhu Akhir (°C) <small class="text-muted">(QC)</small></label></div>'
+                            + '<div class="col-md-9">'
+                            + '<input type="text" class="form-control form-control-sm bg-light" value="Menunggu Verifikasi QC" disabled readonly>'
+                            + '<small class="text-muted"><i class="fas fa-lock mr-1"></i> Diisi saat verifikasi QC.</small>'
+                            + '</div>'
                             + '</div>';
                     });
                     $('#std-aktual-table-better').html(html);

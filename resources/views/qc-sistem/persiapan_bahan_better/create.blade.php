@@ -74,6 +74,10 @@
               </div>
               <div class="card-body">
                 <div class="tab-pane active" id="better">
+                  <div class="alert alert-info py-2 mb-3">
+                      <i class="fas fa-info-circle mr-1"></i>
+                      <strong>Catatan:</strong> Form ini untuk pembuatan data persiapan bahan better oleh Produksi. Field <strong>Sensori</strong>, <strong>Suhu</strong>, <strong>Aktual Viscositas</strong>, dan <strong>Aktual Salinity</strong> dikunci dan akan diverifikasi serta diisi oleh <strong>QC Inspektor</strong> pada tahap verifikasi (edit).
+                  </div>
                   <form action="{{ route('persiapan-bahan-better.store') }}" method="POST">
                     @csrf
                       <div class="form-group mb-2">
@@ -132,8 +136,8 @@
                             <input type="text" name="kode_produksi_produk" class="form-control" placeholder="Masukkan Kode Produksi" required>
                         </div>
                         <div class="form-group mb-3">
-                            <label>Suhu Air (0-10) (°C)</label>
-                            <input type="number" step="0.01" class="form-control" id="global_suhu_air" placeholder="Masukkan Suhu Air" required>
+                            <label>Suhu Air (0-10) (°C) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="global_suhu_air" name="suhu_air_global" value="{{ old('suhu_air_global') }}" placeholder="Masukkan Suhu Air (0-10)" required>
                         </div>
 
                         <div id="better-input-table-wrapper" style="display:none;" class="mb-3">
@@ -156,13 +160,11 @@
                         <div id="sensori-wrapper" style="display:none;" class="form-group mb-3 mt-3">
                             <div class="row align-items-center">
                                 <div class="col-md-3">
-                                    <label class="mb-0 font-weight-bold">Sensori</label>
+                                    <label class="mb-0 font-weight-bold">Sensori : (ok / tdk oke) <small class="text-muted">(QC)</small></label>
                                 </div>
                                 <div class="col-md-9">
-                                    <select class="form-control form-control-sm" id="global_sensori">
-                                        <option value="✔">✔ OK</option>
-                                        <option value="✘">✘ Tidak OK</option>
-                                    </select>
+                                    <input type="text" class="form-control form-control-sm bg-light font-weight-bold" value="Menunggu Verifikasi QC" disabled readonly>
+                                    <small class="text-muted"><i class="fas fa-lock mr-1"></i> Kolom sensori dikunci dan hanya dapat diisi oleh QC Inspektor saat verifikasi.</small>
                                 </div>
                             </div>
                         </div>
@@ -213,151 +215,6 @@ $(document).ready(function() {
             // Trigger select2 to refresh
             $gramaseSelect.trigger('change');
         }
-    });
-
-    // Load better options when product is selected
-    $('#id_produk_select_better').on('change', function() {
-        const produkId = $(this).val();
-        const $betterSelect = $('#id_better_select_better');
-        
-        $betterSelect.empty();
-        $betterSelect.append('<option value="">Pilih Better</option>');
-        
-        if (!produkId) return;
-        
-        $.ajax({
-            url: '{{ route("ajax.better-by-produk-better") }}',
-            type: 'GET',
-            data: { id_produk: produkId },
-            success: function(response) {
-                if (Array.isArray(response)) {
-                    $.each(response, function(i, better) {
-                        $betterSelect.append('<option value="' + better.id + '">' + better.nama_better + '</option>');
-                    });
-                } else if (response.success && response.data) {
-                    $.each(response.data, function(i, better) {
-                        $betterSelect.append('<option value="' + better.id + '">' + better.nama_better + '</option>');
-                    });
-                }
-            },
-            error: function(xhr) {
-                console.error('Error loading better options:', xhr);
-            }
-        });
-    });
-
-    // Load formula/bahan table when both product and better are selected
-    $('#id_better_select_better').on('change', function() {
-        const produkId = $('#id_produk_select_better').val();
-        const betterId = $(this).val();
-        
-        if (!produkId || !betterId) {
-            $('#better-input-table-wrapper').hide();
-            $('#std-aktual-table-better').empty();
-            $('#sensori-wrapper').hide();
-            return;
-        }
-        
-        // Load formula data
-        $.ajax({
-            url: '/api/get-formula-better',
-            type: 'GET',
-            data: { 
-                id_produk: produkId,
-                id_better: betterId
-            },
-            success: function(response) {
-                if (response.success && response.data) {
-                    renderBetterFormula(response.data);
-                    renderStdAktualTable(response.data.std_data || []);
-                }
-            },
-            error: function(xhr) {
-                console.error('Error loading formula:', xhr);
-            }
-        });
-    });
-
-    function renderBetterFormula(data) {
-        const $tbody = $('#better-input-rows');
-        $tbody.empty();
-        
-        if (data.formula && Array.isArray(data.formula)) {
-            $.each(data.formula, function(i, item) {
-                const row = `
-                    <tr>
-                        <td>
-                            <textarea class="form-control form-control-sm" readonly rows="1" style="resize:none;">${item.nama_formula || '-'}</textarea>
-                            <input type="hidden" name="better_rows[${i}][master_nama_formula_better]" value="${item.nama_formula || ''}">
-                            <input type="hidden" name="better_rows[${i}][suhu_air]" class="row_suhu_air">
-                            <input type="hidden" name="better_rows[${i}][sensori]" class="row_sensori" value="✔">
-                        </td>
-                        <td>
-                            <input type="text" class="form-control form-control-sm" name="better_rows[${i}][kode_produksi_better]" placeholder="Opsional">
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" class="form-control form-control-sm" name="better_rows[${i}][master_berat]" value="${item.berat || 0}" required>
-                        </td>
-                    </tr>
-                `;
-                $tbody.append(row);
-            });
-            $('#better-input-table-wrapper').show();
-            $('#sensori-wrapper').show();
-        }
-    }
-
-    function renderStdAktualTable(stdData) {
-        const $container = $('#std-aktual-table-better');
-        $container.empty();
-        
-        if (stdData && stdData.length > 0) {
-            let html = '<div class="card card-primary card-outline mb-3"><div class="card-header"><h5 class="card-title"><i class="fas fa-chart-bar"></i> Standar & Aktual</h5></div><div class="card-body">';
-            
-            $.each(stdData, function(idx, std) {
-                html += `
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-3"><label class="mb-0">Standar Viscositas (s)</label></div>
-                        <div class="col-md-3"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><span class="font-weight-bold">${std.std_viskositas || '-'}</span></div>
-                        <div class="col-md-3"><label class="mb-0">Aktual Viscositas (s)</label></div>
-                        <div class="col-md-3">
-                            <input type="hidden" name="id_std_salinitas_viskositas[]" value="${std.id}">
-                            <input type="number" step="0.01" name="aktual_vis[]" class="form-control form-control-sm" required>
-                        </div>
-                    </div>
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-3"><label class="mb-0">Standar Salinity (%)</label></div>
-                        <div class="col-md-3"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><span class="font-weight-bold">${std.std_salinitas || '-'}</span></div>
-                        <div class="col-md-3"><label class="mb-0">Aktual Salinity (%)</label></div>
-                        <div class="col-md-3">
-                            <input type="number" step="0.01" name="aktual_sal[]" class="form-control form-control-sm" required>
-                        </div>
-                    </div>
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-3"><label class="mb-0">Suhu Akhir (°C)</label></div>
-                        <div class="col-md-9">
-                            <input type="number" step="0.01" name="aktual_suhu_air[]" class="form-control form-control-sm" required>
-                        </div>
-                    </div>
-                `;
-                if (idx < stdData.length - 1) {
-                    html += '<hr>';
-                }
-            });
-            
-            html += '</div></div>';
-            $container.html(html);
-        }
-    }
-
-    // Sync global suhu air to all rows
-    $(document).on('input', '#global_suhu_air', function() {
-        $('.row_suhu_air').val($(this).val());
-    });
-    
-    // Sync global sensori to all rows
-    $(document).on('change', '#global_sensori', function() {
-        $('.row_sensori').val($(this).val());
     });
 });
 </script>

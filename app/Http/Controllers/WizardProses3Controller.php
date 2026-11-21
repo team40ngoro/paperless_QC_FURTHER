@@ -67,8 +67,14 @@ class WizardProses3Controller extends Controller
             }
 
             if ($request->produk_id) {
-                $query->whereHas('hasilProsesRoastingData', function ($q) use ($request) {
-                    $q->where('id_produk', $request->produk_id);
+                $query->where(function ($sub) use ($request) {
+                    $sub->whereHas('hasilProsesRoastingData', function ($q) use ($request) {
+                        $q->where('id_produk', $request->produk_id);
+                    })->orWhereHas('inputRoastingData', function ($q) use ($request) {
+                        $q->where('id_produk', $request->produk_id);
+                    })->orWhereHas('prosesRoastingFanData', function ($q) use ($request) {
+                        $q->where('id_produk', $request->produk_id);
+                    });
                 });
             }
 
@@ -121,7 +127,9 @@ class WizardProses3Controller extends Controller
             'hasilProsesRoastingData.produk',
             'hasilProsesRoastingData.stdSuhuPusat',
             'inputRoastingData',
+            'inputRoastingData.produk',
             'prosesRoastingFanData',
+            'prosesRoastingFanData.produk',
             'shift',
         ])
         ->whereNotNull('input_roasting_uuid') // Filter khusus alur Proses 3
@@ -135,6 +143,10 @@ class WizardProses3Controller extends Controller
             $query->where(function($q) use ($search) {
                 $q->whereHas('hasilProsesRoastingData.produk', function($qp) use ($search) {
                     $qp->where('nama_produk', 'LIKE', "%{$search}%");
+                })->orWhereHas('inputRoastingData.produk', function($qp2) use ($search) {
+                    $qp2->where('nama_produk', 'LIKE', "%{$search}%");
+                })->orWhereHas('prosesRoastingFanData.produk', function($qp3) use ($search) {
+                    $qp3->where('nama_produk', 'LIKE', "%{$search}%");
                 })->orWhereHas('inputRoastingData', function($qi) use ($search) {
                     $qi->where('kode_produksi', 'LIKE', "%{$search}%");
                 });
@@ -169,6 +181,10 @@ class WizardProses3Controller extends Controller
     public function create(Request $request)
     {
         $user = Auth::user();
+        if ((int) $user->id_role === 3) {
+            return redirect()->route('wizard.proses3.index')
+                ->with('error', 'Input Proses Roasting (Langkah 1-2) hanya dapat dilakukan oleh bagian Produksi. QC Inspector cukup memverifikasi melalui ikon mata (Detail).');
+        }
         $continueUuid = $request->query('continue_uuid');
         $draftData = null;
 
@@ -196,6 +212,9 @@ class WizardProses3Controller extends Controller
     {
         try {
             $user = Auth::user();
+            if ((int) $user->id_role === 3) {
+                return response()->json(['success' => false, 'message' => 'Hanya Produksi yang dapat menginput data awal proses.'], 403);
+            }
             $request->validate([
                 'id_produk'           => 'required',
                 'id_shift'            => 'required',
@@ -236,6 +255,9 @@ class WizardProses3Controller extends Controller
     {
         try {
             $user = Auth::user();
+            if ((int) $user->id_role === 3) {
+                return response()->json(['success' => false, 'message' => 'Hanya Produksi yang dapat menginput data Roasting Fan.'], 403);
+            }
 
             $validated = $request->validate([
                 'tanggal'             => 'required|date',
@@ -322,18 +344,19 @@ class WizardProses3Controller extends Controller
                 return response()->json(['success' => false, 'message' => 'Data blok Roasting Fan kosong. Harap isi minimal 1 blok.'], 422);
             }
 
-            // aktual_waktu = nilai dari field "Waktu Pemasakan (pukul)" di form
-            // aktual_lama_proses = nilai dari field "Lama Proses (Display Aktual; Menit)" di tabel
             $aktualWaktu     = $request->aktual_waktu ?: null;
             $aktualLamaProses = $request->aktual_lama_proses ?: null;
             $firstBlok = $blokData[0] ?? null;
 
+            $resolvedPlanId = $this->resolvePlanId($user, $validated['id_produk'], $inputRoasting?->id_plan);
+            $resolvedShiftId = $inputRoasting ? $inputRoasting->shift_id : null;
+
             $record = ProsesRoastingFan::create([
                 'uuid'                => Str::uuid(),
-                'id_plan'             => $this->resolvePlanId($user, $validated['id_produk'], $inputRoasting?->id_plan),
+                'id_plan'             => $resolvedPlanId,
                 'user_id'             => $user->id,
                 'id_produk'           => $validated['id_produk'],
-                'id_shift'            => $inputRoasting ? $inputRoasting->shift_id : null,
+                'id_shift'            => $resolvedShiftId,
                 'tanggal'             => Carbon::parse($validated['tanggal'])->setTimeFrom(now()),
                 'jam'                 => $validated['jam'],
                 'waktu_pemasakan'     => $validated['waktu_pemasakan'] ?? null,
@@ -346,11 +369,43 @@ class WizardProses3Controller extends Controller
                 'input_roasting_uuid' => $validated['input_roasting_uuid'],
             ]);
 
+            // Otomatis buat/perbarui record PembekuanIqfRoasting saat Langkah 2 (Roasting Fan) disimpan oleh Produksi
+            $pembekuan = PembekuanIqfRoasting::where('input_roasting_uuid', $validated['input_roasting_uuid'])
+                ->whereNull('penggorengan_uuid')
+                ->where('is_audit', false)
+                ->first();
+
+            $jamToUse = $inputRoasting ? $inputRoasting->jam : $validated['jam'];
+
+            if ($pembekuan) {
+                $pembekuan->update([
+                    'proses_roasting_fan_uuid' => $record->uuid,
+                ]);
+            } else {
+                $pembekuan = PembekuanIqfRoasting::create([
+                    'uuid'                       => (string) Str::uuid(),
+                    'id_plan'                    => $resolvedPlanId,
+                    'shift_id'                   => $resolvedShiftId,
+                    'user_id'                    => $user->id,
+                    'input_roasting_uuid'        => $validated['input_roasting_uuid'],
+                    'proses_roasting_fan_uuid'   => $record->uuid,
+                    'hasil_proses_roasting_uuid' => null,
+                    'suhu_ruang_iqf'             => '-',
+                    'holding_time'               => '-',
+                    'tanggal'                    => Carbon::parse($validated['tanggal'])->format('Y-m-d H:i:s'),
+                    'jam'                        => $jamToUse,
+                ]);
+            }
+
+            session()->flash('success', 'Data Proses Roasting (Produksi) berhasil disimpan! Menunggu Verifikasi Hasil Akhir dari QC Inspector.');
+
             return response()->json([
-                'success' => true,
-                'message' => 'Data Roasting Fan berhasil disimpan.',
-                'uuid'    => $record->uuid,
-                'id_produk' => $record->id_produk
+                'success'        => true,
+                'message'        => 'Data Proses Roasting (Produksi) berhasil disimpan!',
+                'uuid'           => $record->uuid,
+                'pembekuan_uuid' => $pembekuan->uuid,
+                'id_produk'      => $record->id_produk,
+                'redirect_url'   => route('wizard.proses3.index'),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'errors' => $e->errors()], 422);
@@ -477,6 +532,7 @@ class WizardProses3Controller extends Controller
         $query = PembekuanIqfRoasting::with([
             'user', 'plan', 'shift',
             'inputRoastingData',
+            'inputRoastingData.produk',
             'prosesRoastingFanData.produk',
             'prosesRoastingFanData.suhuBlok',
             'prosesRoastingFanData.stdFan',
@@ -494,7 +550,107 @@ class WizardProses3Controller extends Controller
             return $redirect;
         }
 
-        return view('qc-sistem.wizard_proses3.show', compact('pembekuan'));
+        $idProduk = $pembekuan->inputRoastingData->id_produk
+            ?? $pembekuan->prosesRoastingFanData->id_produk
+            ?? $pembekuan->hasilProsesRoastingData->id_produk
+            ?? null;
+
+        $stdSuhuPusatOptions = $idProduk
+            ? StdSuhuPusatRoasting::where('id_produk', $idProduk)->get()
+            : collect();
+
+        $canEditQcVerification = in_array((int) $user->id_role, [1, 3, 5], true);
+
+        return view('qc-sistem.wizard_proses3.show', compact(
+            'pembekuan',
+            'idProduk',
+            'stdSuhuPusatOptions',
+            'canEditQcVerification'
+        ));
+    }
+
+    /**
+     * Simpan / perbarui Verifikasi Hasil Akhir Roasting oleh QC Inspector (via halaman Detail / Eye Icon)
+     */
+    public function updateQcVerification(Request $request, $uuid)
+    {
+        $user = Auth::user();
+        if (!in_array((int) $user->id_role, [1, 3, 5], true)) {
+            abort(403, 'Hanya QC Inspector, Admin, atau Superadmin yang dapat menginput Verifikasi Hasil Akhir Roasting.');
+        }
+
+        $pembekuan = PembekuanIqfRoasting::with(['inputRoastingData', 'prosesRoastingFanData', 'hasilProsesRoastingData'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        if ($user->role !== 'superadmin' && !$pembekuan->is_audit) {
+            if ($pembekuan->id_plan !== $user->id_plan) {
+                abort(403, 'Anda tidak memiliki akses ke data ini.');
+            }
+        }
+
+        $request->validate([
+            'id_std_suhu_pusat'  => 'required|exists:std_suhu_pusat_roasting,id',
+            'aktual_suhu_pusat'  => 'required|array|min:1',
+            'aktual_suhu_pusat.*'=> 'required|string',
+            'sensori_kematangan' => 'required|in:✔,✘',
+            'sensori_rasa'       => 'required|in:✔,✘',
+            'sensori_bau'        => 'required|in:✔,✘',
+            'sensori_tekstur'    => 'required|in:✔,✘',
+            'sensori_kenampakan' => 'required|in:✔,✘',
+            'sensori_warna'      => 'required|in:✔,✘',
+            'keterangan_hasil'   => 'nullable|string',
+            'jam_hasil'          => 'nullable|date_format:H:i',
+        ]);
+
+        $idProduk = $pembekuan->inputRoastingData->id_produk
+            ?? $pembekuan->prosesRoastingFanData->id_produk
+            ?? $pembekuan->hasilProsesRoastingData->id_produk
+            ?? $request->id_produk;
+
+        $sensoriData = [
+            'sensori_kematangan' => $request->sensori_kematangan,
+            'sensori_kenampakan' => $request->sensori_kenampakan,
+            'sensori_warna'      => $request->sensori_warna,
+            'sensori_rasa'       => $request->sensori_rasa,
+            'sensori_bau'        => $request->sensori_bau,
+            'sensori_tekstur'    => $request->sensori_tekstur,
+        ];
+
+        $aktualSuhuPusat = is_array($request->aktual_suhu_pusat)
+            ? array_values(array_filter(array_map('trim', $request->aktual_suhu_pusat), fn($v) => $v !== '' && !is_null($v)))
+            : [$request->aktual_suhu_pusat];
+
+        $hasilData = [
+            'id_plan'                  => $pembekuan->id_plan,
+            'user_id'                  => $user->id,
+            'shift_id'                 => $pembekuan->shift_id ?? ($pembekuan->inputRoastingData->shift_id ?? null),
+            'id_produk'                => $idProduk,
+            'id_std_suhu_pusat'        => $request->id_std_suhu_pusat,
+            'input_roasting_uuid'      => $pembekuan->input_roasting_uuid,
+            'proses_roasting_fan_uuid' => $pembekuan->proses_roasting_fan_uuid,
+            'aktual_suhu_pusat'        => $aktualSuhuPusat,
+            'sensori'                  => $sensoriData,
+            'keterangan'               => $request->keterangan_hasil,
+            'tanggal'                  => $pembekuan->tanggal ?? now(),
+            'jam'                      => $request->jam_hasil ?? now()->format('H:i'),
+        ];
+
+        $hasil = $pembekuan->hasil_proses_roasting_uuid
+            ? HasilProsesRoasting::where('uuid', $pembekuan->hasil_proses_roasting_uuid)->first()
+            : null;
+
+        if ($hasil) {
+            $hasil->update($hasilData);
+        } else {
+            $hasilData['uuid'] = (string) Str::uuid();
+            $hasil = HasilProsesRoasting::create($hasilData);
+            $pembekuan->update(['hasil_proses_roasting_uuid' => $hasil->uuid]);
+        }
+
+        return redirect()
+            ->route('wizard.proses3.show', ['uuid' => $pembekuan->uuid] + ($pembekuan->is_audit ? ['is_audit' => 1] : []))
+            ->with('success', 'Verifikasi Hasil Akhir Roasting (QC) berhasil disimpan.');
     }
 
     public function exportPdf($uuid)
@@ -503,6 +659,7 @@ class WizardProses3Controller extends Controller
         $query = PembekuanIqfRoasting::with([
             'user', 'plan', 'shift',
             'inputRoastingData',
+            'inputRoastingData.produk',
             'prosesRoastingFanData.produk',
             'prosesRoastingFanData.suhuBlok',
             'prosesRoastingFanData.stdFan',
@@ -708,15 +865,29 @@ class WizardProses3Controller extends Controller
                     $q->where('id_plan', $user->id_plan);
                 });
 
+            if ($type === 'produksi') {
+                $query->where('approved_by_qc', true);
+            } elseif ($type === 'spv') {
+                $query->where('approved_by_produksi', true);
+            }
+
             $itemsToUpdate = $query->get();
             $count = $itemsToUpdate->count();
 
             if ($count === 0) {
+                $msg = 'Semua data sudah diverifikasi sebelumnya.';
+                if ($type === 'produksi') {
+                    $msg = 'Tidak ada data yang siap diverifikasi Produksi (pastikan sudah diverifikasi QC Inspector terlebih dahulu).';
+                } elseif ($type === 'spv') {
+                    $msg = 'Tidak ada data yang siap disetujui SPV QC (pastikan sudah diketahui Foreman/SPV Produksi terlebih dahulu).';
+                }
                 return response()->json([
-                    'success' => true,
-                    'message' => 'Semua data sudah diverifikasi sebelumnya.'
-                ]);
+                    'success' => false,
+                    'message' => $msg
+                ], 422);
             }
+
+            $targetUuids = $itemsToUpdate->pluck('uuid')->toArray();
 
             // Update operasional records
             $updateData = [
@@ -725,7 +896,7 @@ class WizardProses3Controller extends Controller
                 "{$type}_approved_at" => now(),
             ];
 
-            PembekuanIqfRoasting::whereIn('uuid', $uuids)
+            PembekuanIqfRoasting::whereIn('uuid', $targetUuids)
                 ->where("approved_by_{$type}", false)
                 ->when($user->role !== 'superadmin', function($q) use ($user) {
                     $q->where('id_plan', $user->id_plan);
@@ -733,8 +904,7 @@ class WizardProses3Controller extends Controller
                 ->update($updateData);
 
             // ALSO update corresponding audit records (is_audit=true, source_uuid matches)
-            // Find all source_uuids from the updated records
-            $updatedSourceUuids = $itemsToUpdate->pluck('uuid')->toArray();
+            $updatedSourceUuids = $targetUuids;
             
             // Update audit copies with same approval data
             PembekuanIqfRoasting::where('is_audit', true)
@@ -843,8 +1013,8 @@ class WizardProses3Controller extends Controller
             $pembekuan->update([
                 'tanggal'        => Carbon::parse($request->tanggal)->format('Y-m-d H:i:s'),
                 'jam'            => $request->jam ?? $pembekuan->jam,
-                'suhu_ruang_iqf' => $request->suhu_ruang_iqf,
-                'holding_time'   => $request->holding_time,
+                'suhu_ruang_iqf' => $request->suhu_ruang_iqf ?? $pembekuan->suhu_ruang_iqf ?? '-',
+                'holding_time'   => $request->holding_time ?? $pembekuan->holding_time ?? '-',
             ]);
 
             // 2. Update Input Roasting (Bahan Baku) - JANGAN UPDATE JAM karena bisa di-share
@@ -956,6 +1126,9 @@ class WizardProses3Controller extends Controller
             'hasilProsesRoastingData',
             'hasilProsesRoastingData.produk',
             'inputRoastingData',
+            'inputRoastingData.produk',
+            'prosesRoastingFanData',
+            'prosesRoastingFanData.produk',
             'shift'
         ];
     }
@@ -993,6 +1166,10 @@ $query = PembekuanIqfRoasting::with($this->auditRelations())
             $query->where(function($q) use ($search) {
                 $q->whereHas('hasilProsesRoastingData.produk', function($qp) use ($search) {
                     $qp->where('nama_produk', 'LIKE', "%{$search}%");
+                })->orWhereHas('inputRoastingData.produk', function($qp2) use ($search) {
+                    $qp2->where('nama_produk', 'LIKE', "%{$search}%");
+                })->orWhereHas('prosesRoastingFanData.produk', function($qp3) use ($search) {
+                    $qp3->where('nama_produk', 'LIKE', "%{$search}%");
                 })->orWhereHas('inputRoastingData', function($qi) use ($search) {
                     $qi->where('kode_produksi', 'LIKE', "%{$search}%");
                 });
@@ -1039,6 +1216,10 @@ $query = PembekuanIqfRoasting::with($this->auditRelations())
                 $query->where(function($q) use ($search) {
                     $q->whereHas('hasilProsesRoastingData.produk', function($qp) use ($search) {
                         $qp->where('nama_produk', 'like', "%{$search}%");
+                    })->orWhereHas('inputRoastingData.produk', function($qp2) use ($search) {
+                        $qp2->where('nama_produk', 'like', "%{$search}%");
+                    })->orWhereHas('prosesRoastingFanData.produk', function($qp3) use ($search) {
+                        $qp3->where('nama_produk', 'like', "%{$search}%");
                     })->orWhereHas('inputRoastingData', function($qi) use ($search) {
                         $qi->where('kode_produksi', 'like', "%{$search}%");
                     });

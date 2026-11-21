@@ -118,6 +118,10 @@ class PersiapanBahanBetterController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
+        $isSuperadmin = $user->isSuperAdmin() || $user->role === 'superadmin' || (int)($user->id_role ?? 0) === 5;
+        $isQcInspector = !$isSuperadmin && ($user->isQcInspector() || (int)($user->id_role ?? 0) === 3 || strtolower(trim($user->role ?? '')) === 'qc inspector' || $user->isQc());
+        $canInputQc = ($isQcInspector || $isSuperadmin);
+
         $data = $request->validate([
             'id_produk' => 'required|exists:jenis_produk,id',
             'id_better' => 'required|exists:jenis_better,id',
@@ -127,22 +131,22 @@ class PersiapanBahanBetterController extends Controller
             'tanggal' => 'required|date',
             'jam' => 'required|date_format:H:i',
             'gramase' => 'required|numeric|min:0',
+            'suhu_air_global' => 'nullable|numeric',
             'better_rows' => 'required|array|min:1',
             'better_rows.*.master_nama_formula_better' => 'nullable|string',
             'better_rows.*.master_berat' => 'required|numeric',
             'better_rows.*.kode_produksi_better' => 'nullable|string',
-            'better_rows.*.suhu_air' => 'required|numeric',
+            'better_rows.*.suhu_air' => 'nullable|numeric',
             'better_rows.*.sensori' => 'nullable|string',
-            'aktual_vis' => 'required|array',
-            'aktual_sal' => 'required|array',
-            'aktual_suhu_air' => 'required|array',
-            'id_std_salinitas_viskositas' => 'required|array',
+            'aktual_vis' => 'nullable|array',
+            'aktual_sal' => 'nullable|array',
+            'aktual_suhu_air' => 'nullable|array',
+            'id_std_salinitas_viskositas' => 'nullable|array',
         ]);
 
         $rows = $data['better_rows'] ?? [];
         $totalBeratBetter = 0;
-        $sumSuhuAir = 0;
-        $countSuhuAir = 0;
+        $suhuAirVal = $request->input('suhu_air_global');
 
         foreach ($rows as $r) {
             $b = $r['master_berat'] ?? null;
@@ -152,10 +156,8 @@ class PersiapanBahanBetterController extends Controller
                     $totalBeratBetter += $n;
                 }
             }
-            $suhu = $r['suhu_air'] ?? null;
-            if ($suhu !== null && $suhu !== '' && is_numeric($suhu)) {
-                $sumSuhuAir += (float) $suhu;
-                $countSuhuAir++;
+            if ($suhuAirVal === null && isset($r['suhu_air']) && is_numeric($r['suhu_air'])) {
+                $suhuAirVal = (float) $r['suhu_air'];
             }
         }
 
@@ -163,45 +165,48 @@ class PersiapanBahanBetterController extends Controller
         foreach ($rows as $idx => $r) {
             if (is_array($r) && array_key_exists('berat_air', $r)) {
                 unset($r['berat_air']);
-                $rows[$idx] = $r;
             }
+            $r['suhu_air'] = $suhuAirVal;
+            $r['sensori'] = null; // QC field
+            $rows[$idx] = $r;
         }
 
         $firstRow = $rows[0] ?? [];
         $data['better_rows'] = $rows;
         $data['berat_better'] = $totalBeratBetter;
-        // gramase langsung dari input form
         $data['gramase'] = $request->input('gramase');
-        $data['suhu_air'] = $countSuhuAir > 0 ? ($sumSuhuAir / $countSuhuAir) : null;
-        $data['sensori'] = $firstRow['sensori'] ?? null;
+        $data['suhu_air'] = $suhuAirVal;
+        $data['sensori'] = null; // Diisi saat verifikasi QC
         $data['kode_produksi_better'] = (isset($firstRow['kode_produksi_better']) && $firstRow['kode_produksi_better'] !== '') ? $firstRow['kode_produksi_better'] : '-';
 
         $data['user_id'] = $user->id;
         $data['id_plan'] = $user->id_plan;
-        // Normalisasi format tanggal ke Y-m-d H:i:s untuk database
         $data['tanggal'] = Carbon::parse($data['tanggal'])->setTimeFrom(now());
-        // Simpan jam
         $data['jam'] = $data['jam'];
-        // Simpan suhu_air ke tabel persiapan_bahan_better
+
         $persiapan = PersiapanBahanBetter::create($data);
 
-        foreach ($data['id_std_salinitas_viskositas'] as $i => $id_std) {
-            AktualBetter::create([
-                'id_std_salinitas_viskositas' => $id_std,
-                'id_persiapan_bahan_better' => $persiapan->id,
-                'aktual_vis' => $data['aktual_vis'][$i],
-                'aktual_sal' => $data['aktual_sal'][$i],
-                'aktual_suhu_air' => $data['aktual_suhu_air'][$i],
-            ]);
+        if (!empty($data['id_std_salinitas_viskositas'])) {
+            foreach ($data['id_std_salinitas_viskositas'] as $i => $id_std) {
+                AktualBetter::create([
+                    'id_std_salinitas_viskositas' => $id_std,
+                    'id_persiapan_bahan_better' => $persiapan->id,
+                    'aktual_vis' => '-', // Belum diverifikasi QC
+                    'aktual_sal' => '-', // Belum diverifikasi QC
+                    'aktual_suhu_air' => '-', // Belum diverifikasi QC
+                ]);
+            }
         }
 
-        return redirect()->route('persiapan-bahan-better.index')->with('success', 'Data berhasil disimpan');
+        return redirect()->route('persiapan-bahan-better.index')->with('success', 'Data Persiapan Bahan Better berhasil disimpan');
     }
 
     public function show($uuid)
     {
         $user = auth()->user();
-        $item = PersiapanBahanBetter::where('uuid', $uuid)->with(['aktuals.std', 'shift', 'produk', 'better'])->firstOrFail();
+        $item = PersiapanBahanBetter::where('uuid', $uuid)
+            ->with(['aktuals.std', 'shift', 'produk', 'better', 'user', 'qcApprover', 'produksiApprover', 'spvApprover'])
+            ->firstOrFail();
         
         // Check access for non-superadmin users
         if ($user->role !== 'superadmin' && $item->id_plan !== $user->id_plan && !$item->is_audit) {
@@ -253,44 +258,91 @@ class PersiapanBahanBetterController extends Controller
     public function update(Request $request, $uuid)
     {
         $user = auth()->user();
-        $itemCheck = PersiapanBahanBetter::where('uuid', $uuid)->firstOrFail();
+        $persiapan = PersiapanBahanBetter::where('uuid', $uuid)->firstOrFail();
 
         // Cek batas waktu edit untuk role yang dibatasi (global config)
         $restrictedRoles = config('edit_limit.restricted_role_ids', []);
         if (in_array($user->id_role, $restrictedRoles)) {
             $timeLimitHours = config('edit_limit.time_limit_hours', 48);
-            $createdAt = \Carbon\Carbon::parse($itemCheck->created_at);
+            $createdAt = \Carbon\Carbon::parse($persiapan->created_at);
             if ($createdAt->addHours($timeLimitHours)->isPast()) {
                 return redirect()->route('persiapan-bahan-better.index')
                     ->with('error', config('edit_limit.error_message', 'Waktu edit sudah habis.'));
             }
         }
 
+        $isSuperadmin = $user->isSuperAdmin() || $user->role === 'superadmin' || (int)($user->id_role ?? 0) === 5;
+        $isQcInspector = !$isSuperadmin && ($user->isQcInspector() || (int)($user->id_role ?? 0) === 3 || strtolower(trim($user->role ?? '')) === 'qc inspector' || $user->isQc());
+
+        // KHUSUS QC INSPECTOR: Hanya dapat mengisi/mengubah Sensori, Suhu (Suhu Akhir), Aktual Viscositas, dan Aktual Salinity
+        if ($isQcInspector) {
+            $request->validate([
+                'global_sensori' => 'required|in:✔,✘',
+                'id_std_salinitas_viskositas' => 'nullable|array',
+                'aktual_vis' => 'nullable|array',
+                'aktual_sal' => 'nullable|array',
+                'aktual_suhu_air' => 'nullable|array',
+            ], [
+                'global_sensori.required' => 'Sensori harus dipilih (OK / Tidak OK)',
+                'global_sensori.in' => 'Sensori harus berupa ✔ atau ✘',
+            ]);
+
+            $sensoriVal = $request->global_sensori;
+
+            // Update sensori pada better_rows tanpa mengubah suhu_air dari produksi
+            $rows = $persiapan->better_rows ?? [];
+            if (is_array($rows)) {
+                foreach ($rows as $idx => $r) {
+                    $rows[$idx]['sensori'] = $sensoriVal;
+                }
+            }
+
+            $persiapan->update([
+                'sensori' => $sensoriVal,
+                'better_rows' => $rows,
+            ]);
+
+            // Hapus data aktual lama dan insert baru untuk verifikasi QC
+            if ($request->has('id_std_salinitas_viskositas') && is_array($request->id_std_salinitas_viskositas)) {
+                AktualBetter::where('id_persiapan_bahan_better', $persiapan->id)->delete();
+
+                foreach ($request->id_std_salinitas_viskositas as $i => $id_std) {
+                    AktualBetter::create([
+                        'id_std_salinitas_viskositas' => $id_std,
+                        'id_persiapan_bahan_better' => $persiapan->id,
+                        'aktual_vis' => $request->aktual_vis[$i] ?? null,
+                        'aktual_sal' => $request->aktual_sal[$i] ?? null,
+                        'aktual_suhu_air' => $request->aktual_suhu_air[$i] ?? null,
+                    ]);
+                }
+            }
+
+            return redirect()->route('persiapan-bahan-better.index')->with('success', 'Verifikasi QC Bahan Better berhasil disimpan');
+        }
+
+        // UNTUK PRODUKSI DAN SUPERADMIN: Update data persiapan bahan better
         $data = $request->validate([
             'id_produk' => 'required|exists:jenis_produk,id',
             'id_better' => 'required|exists:jenis_better,id',
             'kode_produksi_produk' => 'required|string',
             'shift_id' => 'required|exists:data_shift,id',
             'tanggal' => 'required|date',
-            //tambah field jam
             'jam' => 'required|date_format:H:i',
             'gramase' => 'required|numeric|min:0',
-            'id_std_salinitas_viskositas' => 'nullable|array',
-            'aktual_vis' => 'nullable|array',
-            'aktual_sal' => 'nullable|array',
-            'aktual_suhu_air' => 'nullable|array',
+            'suhu_air_global' => 'nullable|numeric',
             'better_rows' => 'required|array|min:1',
             'better_rows.*.master_nama_formula_better' => 'nullable|string',
             'better_rows.*.master_berat' => 'required|numeric',
             'better_rows.*.kode_produksi_better' => 'nullable|string',
-            'better_rows.*.suhu_air' => 'required|numeric',
-            'better_rows.*.sensori' => 'nullable|string',
+            'id_std_salinitas_viskositas' => 'nullable|array',
+            'aktual_vis' => 'nullable|array',
+            'aktual_sal' => 'nullable|array',
+            'aktual_suhu_air' => 'nullable|array',
         ]);
 
         $rows = $data['better_rows'] ?? [];
         $totalBeratBetter = 0;
-        $sumSuhuAir = 0;
-        $countSuhuAir = 0;
+        $suhuAirVal = $request->input('suhu_air_global', $persiapan->suhu_air);
 
         foreach ($rows as $r) {
             $b = $r['master_berat'] ?? null;
@@ -300,56 +352,55 @@ class PersiapanBahanBetterController extends Controller
                     $totalBeratBetter += $n;
                 }
             }
-            $suhu = $r['suhu_air'] ?? null;
-            if ($suhu !== null && $suhu !== '' && is_numeric($suhu)) {
-                $sumSuhuAir += (float) $suhu;
-                $countSuhuAir++;
-            }
         }
 
-        // Pastikan field berat_air tidak tersimpan lagi di JSON rows (kompatibilitas data lama)
+        // Pastikan field berat_air tidak tersimpan lagi di JSON rows
         foreach ($rows as $idx => $r) {
             if (is_array($r) && array_key_exists('berat_air', $r)) {
                 unset($r['berat_air']);
-                $rows[$idx] = $r;
             }
+            $r['suhu_air'] = $suhuAirVal;
+            // Jika user adalah Produksi, pertahankan nilai sensori yang sudah ada
+            if (!$isSuperadmin) {
+                $r['sensori'] = $persiapan->sensori;
+            }
+            $rows[$idx] = $r;
         }
 
         $firstRow = $rows[0] ?? [];
         $data['better_rows'] = $rows;
         $data['berat_better'] = $totalBeratBetter;
-        // gramase langsung dari input form
         $data['gramase'] = $request->input('gramase');
-        $data['suhu_air'] = $countSuhuAir > 0 ? ($sumSuhuAir / $countSuhuAir) : null;
-        $data['sensori'] = $firstRow['sensori'] ?? null;
         $data['kode_produksi_better'] = $firstRow['kode_produksi_better'] ?? null;
+        $data['suhu_air'] = $suhuAirVal;
 
-        // user_id TIDAK diupdate — tetap menggunakan pembuat data asli
+        // User produksi tidak dapat mengubah sensori QC
+        if (!$isSuperadmin) {
+            $data['sensori'] = $persiapan->sensori;
+        }
+
         $data['id_plan'] = $user->id_plan;
-        // Normalisasi tanggal
         $data['tanggal'] = Carbon::parse($data['tanggal'])->setTimeFrom(now());
-
-        // Update field jam 
         $data['jam'] = $request->jam;
-        $persiapan = PersiapanBahanBetter::where('uuid', $uuid)->firstOrFail();
+
         $persiapan->update($data);
 
-        // Hapus data aktual lama dan insert baru hanya jika ada input aktual
-        if ($request->has('aktual_vis') && is_array($request->aktual_vis) && count($request->aktual_vis) > 0) {
+        // Hanya superadmin yang dapat mengupdate aktual dari form ini
+        if ($isSuperadmin && $request->has('aktual_vis') && is_array($request->aktual_vis) && count($request->aktual_vis) > 0) {
             AktualBetter::where('id_persiapan_bahan_better', $persiapan->id)->delete();
 
             foreach ($data['id_std_salinitas_viskositas'] as $i => $id_std) {
                 AktualBetter::create([
                     'id_std_salinitas_viskositas' => $id_std,
                     'id_persiapan_bahan_better' => $persiapan->id,
-                    'aktual_vis' => $data['aktual_vis'][$i],
-                    'aktual_sal' => $data['aktual_sal'][$i],
-                    'aktual_suhu_air' => $data['aktual_suhu_air'][$i],
+                    'aktual_vis' => $data['aktual_vis'][$i] ?? null,
+                    'aktual_sal' => $data['aktual_sal'][$i] ?? null,
+                    'aktual_suhu_air' => $data['aktual_suhu_air'][$i] ?? null,
                 ]);
             }
         }
 
-        return redirect()->route('persiapan-bahan-better.index')->with('success', 'Data berhasil diupdate');
+        return redirect()->route('persiapan-bahan-better.index')->with('success', 'Data Persiapan Bahan Better berhasil diupdate');
     }
 
     public function destroy($uuid)
@@ -544,14 +595,14 @@ class PersiapanBahanBetterController extends Controller
             if ($type === 'produksi' && !$persiapanBahanBetter->approved_by_qc) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data harus disetujui oleh QC terlebih dahulu.'
+                    'message' => 'Data harus diverifikasi oleh QC Inspektor terlebih dahulu.'
                 ], 400);
             }
 
             if ($type === 'spv' && !$persiapanBahanBetter->approved_by_produksi) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'
+                    'message' => 'Data harus diketahui oleh SPV Produksi terlebih dahulu.'
                 ], 400);
             }
 
@@ -561,6 +612,13 @@ class PersiapanBahanBetterController extends Controller
                 "{$type}_approved_by" => $user->id,
                 "{$type}_approved_at" => now()
             ]);
+
+            $roleLabels = [
+                'qc' => 'QC Inspektor',
+                'produksi' => 'SPV Produksi',
+                'spv' => 'SPV QC'
+            ];
+            $roleLabel = $roleLabels[$type] ?? strtoupper($type);
 
             // Log the approval activity
             PersiapanBahanBetterLog::create([
@@ -573,14 +631,14 @@ class PersiapanBahanBetterController extends Controller
                 'field_yang_diubah' => [$approvalField],
                 'nilai_lama' => [$approvalField => false],
                 'nilai_baru' => [$approvalField => true],
-                'keterangan' => "Disetujui oleh {$type}: {$user->name}",
+                'keterangan' => "Disetujui oleh {$roleLabel}: {$user->name}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data berhasil disetujui.',
+                'message' => "Data berhasil diverifikasi/disetujui oleh {$roleLabel}.",
                 'data' => $persiapanBahanBetter->fresh()
             ]);
         } catch (\Exception $e) {
@@ -773,6 +831,11 @@ class PersiapanBahanBetterController extends Controller
                 }
 
                 if ($type === 'produksi' && !$record->approved_by_qc) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                if ($type === 'spv' && !$record->approved_by_produksi) {
                     $skippedCount++;
                     continue;
                 }

@@ -134,26 +134,27 @@
                                                 <td>{{ $item->pengemasanProduk->kode_produksi ?? '-' }}</td>
                                                 <td class="align-middle">
                                                     @php
+                                                        $verifAkhir = $item->pengemasanProduk->verifikasi_akhir_pengemasan ?? null;
                                                         $releaseStatus = $item->pengemasanProduk->status_release_produk ?? null;
                                                     @endphp
-                                                    @if(is_null($releaseStatus) || $releaseStatus === '')
-                                                        <span class="badge badge-warning" title="Menunggu verifikasi dan release QC"><i class="fas fa-clock mr-1"></i> Menunggu QC</span>
-                                                    @elseif($releaseStatus === 'ya')
-                                                        <span class="badge badge-success" title="Produk Di-release QC"><i class="fas fa-check-circle mr-1"></i> Release: Ya</span>
+                                                    @if((is_null($verifAkhir) || $verifAkhir === '') && (is_null($releaseStatus) || $releaseStatus === ''))
+                                                        <span class="badge badge-warning" title="Menunggu verifikasi QC melalui ikon Mata"><i class="fas fa-clock mr-1"></i> Menunggu QC</span>
+                                                    @elseif($verifAkhir === '✔' || $releaseStatus === 'ya')
+                                                        <span class="badge badge-success" title="Hasil Pengemasan: OK"><i class="fas fa-check-circle mr-1"></i> ✔ OK</span>
                                                     @else
-                                                        <span class="badge badge-danger" title="Produk Tidak Di-release QC"><i class="fas fa-times-circle mr-1"></i> Release: Tidak</span>
+                                                        <span class="badge badge-danger" title="Hasil Pengemasan: Tidak OK"><i class="fas fa-times-circle mr-1"></i> ✘ Tidak OK</span>
                                                     @endif
                                                 </td>
                                                 <td class="align-middle">
                                                     <div class="status-badges d-flex flex-column align-items-center">
-                                                        <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                                                            <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
+                                                        <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;" title="2. Diverifikasi Oleh: QC Inspektor">
+                                                            <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> 2. QC
                                                         </span>
-                                                        <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                                                            <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
+                                                        <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;" title="3. Diketahui Oleh: Foreman / SPV Produksi">
+                                                            <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> 3. PROD
                                                         </span>
-                                                        <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                                                            <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV QC
+                                                        <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;" title="4. Disetujui Oleh: SPV QC">
+                                                            <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> 4. SPV QC
                                                         </span>
                                                     </div>
                                                 </td>

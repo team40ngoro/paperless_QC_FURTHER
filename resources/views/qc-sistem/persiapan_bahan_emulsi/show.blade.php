@@ -56,19 +56,19 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label><i class="fas fa-clock mr-1"></i>Shift</label>
+                                        @php
+                                            $sVal = (string)($data->shift->shift ?? ($data->shift_id ?? ''));
+                                            $shiftText = $sVal;
+                                            if ($sVal === '1' || strcasecmp($sVal, 'shift 1') === 0 || strcasecmp($sVal, 'pagi') === 0) {
+                                                $shiftText = 'Pagi (Shift 1)';
+                                            } elseif ($sVal === '2' || strcasecmp($sVal, 'shift 2') === 0 || strcasecmp($sVal, 'sore') === 0) {
+                                                $shiftText = 'Sore (Shift 2)';
+                                            } elseif ($sVal === '3' || strcasecmp($sVal, 'shift 3') === 0 || strcasecmp($sVal, 'malam') === 0) {
+                                                $shiftText = 'Malam (Shift 3)';
+                                            }
+                                        @endphp
                                         <div class="input-group">
-                                            <input type="text" class="form-control" value="{{ $data->shift->shift ?? '-' }}" readonly>
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">
-                                                    @if($data->shift_id == 1)
-                                                        <span class="badge bg-primary">Shift 1</span>
-                                                    @elseif($data->shift_id == 2)
-                                                        <span class="badge bg-success">Shift 2</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">Shift {{ $data->shift_id }}</span>
-                                                    @endif
-                                                </span>
-                                            </div>
+                                            <input type="text" class="form-control" value="{{ $shiftText }}" readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -242,6 +242,94 @@
                                     Tidak ada data detail bahan emulsi yang tersedia.
                                 </div>
                             @endif
+
+                            <!-- 4-Stage Verification & Approval Status -->
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <h5 class="text-primary font-weight-bold">
+                                        <i class="fas fa-tasks mr-2"></i>Status Alur Verifikasi & Persetujuan (4 Tahap)
+                                    </h5>
+                                    <hr>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                {{-- 1. Dibuat Oleh = Produksi --}}
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="card h-100 border-left border-primary shadow-sm" style="border-left-width: 4px !important;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="badge badge-primary">1. Dibuat oleh</span>
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            </div>
+                                            <div class="font-weight-bold text-dark mt-2">Produksi</div>
+                                            <div class="text-muted small mt-1">
+                                                <i class="fas fa-user mr-1"></i> {{ $data->user->name ?? '-' }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-calendar-alt mr-1"></i> {{ $data->created_at ? $data->created_at->format('d-m-Y H:i') : '-' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Verifikasi = QC Inspektor --}}
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="card h-100 border-left {{ $data->approved_by_qc ? 'border-success' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="badge {{ $data->approved_by_qc ? 'badge-success' : 'badge-secondary' }}">2. Verifikasi</span>
+                                                <i class="fas {{ $data->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }}"></i>
+                                            </div>
+                                            <div class="font-weight-bold text-dark mt-2">QC Inspektor</div>
+                                            <div class="text-muted small mt-1">
+                                                <i class="fas fa-user mr-1"></i> {{ $data->qcApprover->name ?? '-' }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-calendar-alt mr-1"></i> {{ $data->qc_approved_at ? \Carbon\Carbon::parse($data->qc_approved_at)->format('d-m-Y H:i') : '-' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 3. Diketahui = SPV Produksi --}}
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="card h-100 border-left {{ $data->approved_by_produksi ? 'border-primary' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="badge {{ $data->approved_by_produksi ? 'badge-primary' : 'badge-secondary' }}">3. Diketahui</span>
+                                                <i class="fas {{ $data->approved_by_produksi ? 'fa-check-circle text-primary' : 'fa-clock text-muted' }}"></i>
+                                            </div>
+                                            <div class="font-weight-bold text-dark mt-2">SPV Produksi</div>
+                                            <div class="text-muted small mt-1">
+                                                <i class="fas fa-user mr-1"></i> {{ $data->produksiApprover->name ?? '-' }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-calendar-alt mr-1"></i> {{ $data->produksi_approved_at ? \Carbon\Carbon::parse($data->produksi_approved_at)->format('d-m-Y H:i') : '-' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 4. Disetujui = SPV QC --}}
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="card h-100 border-left {{ $data->approved_by_spv ? 'border-warning' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="badge {{ $data->approved_by_spv ? 'badge-warning text-dark' : 'badge-secondary' }}">4. Disetujui</span>
+                                                <i class="fas {{ $data->approved_by_spv ? 'fa-check-circle text-warning' : 'fa-clock text-muted' }}"></i>
+                                            </div>
+                                            <div class="font-weight-bold text-dark mt-2">SPV QC</div>
+                                            <div class="text-muted small mt-1">
+                                                <i class="fas fa-user mr-1"></i> {{ $data->spvApprover->name ?? '-' }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-calendar-alt mr-1"></i> {{ $data->spv_approved_at ? \Carbon\Carbon::parse($data->spv_approved_at)->format('d-m-Y H:i') : '-' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-footer">
                             <div class="row">

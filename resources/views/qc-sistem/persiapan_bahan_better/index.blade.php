@@ -37,17 +37,17 @@
                                         </span>
                                         @if(in_array($userRole, [1, 3, 5]))
                                             <button type="button" class="btn btn-sm btn-success bulk-approve-selected-btn" data-type="qc" style="font-weight: 600;">
-                                                <i class="fas fa-check mr-1"></i> Appr QC
+                                                <i class="fas fa-check mr-1"></i> 2. Verifikasi QC
                                             </button>
                                         @endif
                                         @if(in_array($userRole, [1, 2, 5]))
                                             <button type="button" class="btn btn-sm btn-primary bulk-approve-selected-btn" data-type="produksi" style="font-weight: 600;">
-                                                <i class="fas fa-check mr-1"></i> Appr PROD
+                                                <i class="fas fa-check mr-1"></i> 3. Diketahui SPV PROD
                                             </button>
                                         @endif
                                         @if(in_array($userRole, [1, 4, 5]))
                                             <button type="button" class="btn btn-sm btn-dark bulk-approve-selected-btn" data-type="spv" style="font-weight: 600;">
-                                                <i class="fas fa-check mr-1"></i> Appr SPV
+                                                <i class="fas fa-check mr-1"></i> 4. Disetujui SPV QC
                                             </button>
                                         @endif
                                     </div>
@@ -139,8 +139,8 @@
                                             <th class="py-3 text-left">Rincian / Produk</th>
                                             <th class="py-3 text-center">Gram (g)</th>
                                             <th class="py-3 text-center">Aktual Vis/Sal/Suhu</th>
-                                            <th class="py-3 text-center">Dibuat Oleh</th>
-                                            <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
+                                            <th class="py-3 text-center">1. Dibuat Oleh</th>
+                                            <th class="py-3 text-center" style="width: 120px;">Verifikasi / Status</th>
                                             <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                         </tr>
                                     </thead>

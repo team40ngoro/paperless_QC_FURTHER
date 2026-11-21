@@ -344,12 +344,6 @@ class WizardProses1Controller extends Controller
         }
 
         $rules = [
-            'hasil_pencetakan'     => 'required|in:✔,✘',
-            'kondisi_predust'      => $pembekuan->predust_uuid ? 'required|in:✔,✘' : 'nullable|in:✔,✘',
-            'hasil_better'         => 'required|in:✔,✘',
-            'hasil_breader'        => 'required|in:✔,✘',
-            'selected_frayers'     => 'required|array|min:1',
-            'selected_frayers.*'   => 'integer|in:1,2,3,4,5',
             'id_std_suhu_pusat'    => 'required|exists:std_suhu_pusat,id',
             'aktual_suhu_pusat'    => 'required',
             'sensori_kematangan'   => 'required|in:✔,✘',
@@ -362,31 +356,15 @@ class WizardProses1Controller extends Controller
             'jam_hasil'            => 'nullable|string',
         ];
 
-        $selectedFrayers = collect($request->input('selected_frayers', []))
-            ->map(fn ($n) => (int) $n)
-            ->filter(fn ($n) => in_array($n, [1, 2, 3, 4, 5], true))
-            ->unique()
-            ->sort()
-            ->values();
-
-        foreach ($selectedFrayers as $num) {
-            $rules["frayer_{$num}_suhu"]         = 'required';
-            $rules["frayer_{$num}_waktu"]        = 'required';
-            $rules["frayer_{$num}_aktual_waktu"] = 'required|string';
-            $rules["frayer_{$num}_aktual_suhu"]  = 'nullable|string';
-            $rules["frayer_{$num}_tpm"]          = 'required|string';
-            $rules["frayer_{$num}_ffa"]          = 'nullable|string';
-            $rules["frayer_{$num}_keterangan"]   = 'nullable|string';
-            $rules["frayer_{$num}_jam"]          = 'nullable|string';
-        }
-
         $request->validate($rules, [
-            'selected_frayers.required' => 'Pilih minimal satu Fryer pada proses Frying.',
-            'selected_frayers.min'      => 'Pilih minimal satu Fryer pada proses Frying.',
-            'hasil_pencetakan.required' => 'Hasil Pencetakan (OK / Tidak OK) wajib dipilih.',
-            'kondisi_predust.required'  => 'Hasil Predust (OK / Tidak OK) wajib dipilih.',
-            'hasil_better.required'     => 'Hasil Battering (OK / Tidak OK) wajib dipilih.',
-            'hasil_breader.required'    => 'Hasil Breading (OK / Tidak OK) wajib dipilih.',
+            'id_std_suhu_pusat.required'  => 'Standar Suhu Pusat wajib dipilih.',
+            'aktual_suhu_pusat.required'  => 'Aktual Suhu Produk wajib diisi.',
+            'sensori_kematangan.required' => 'Sensori Kematangan wajib dipilih.',
+            'sensori_kenampakan.required' => 'Sensori Kenampakan wajib dipilih.',
+            'sensori_warna.required'      => 'Sensori Warna wajib dipilih.',
+            'sensori_rasa.required'       => 'Sensori Rasa wajib dipilih.',
+            'sensori_bau.required'        => 'Sensori Aroma/Bau wajib dipilih.',
+            'sensori_tekstur.required'    => 'Sensori Tekstur wajib dipilih.',
         ]);
 
         // Validasi nilai aktual_suhu_pusat jika berupa array
@@ -396,7 +374,7 @@ class WizardProses1Controller extends Controller
             $aktualSuhuPusat = !empty($filtered) ? implode(', ', $filtered) : null;
         }
         if (empty($aktualSuhuPusat)) {
-            return back()->withErrors(['aktual_suhu_pusat' => 'Aktual Suhu Pusat wajib diisi minimal 1 nilai.'])->withInput();
+            return back()->withErrors(['aktual_suhu_pusat' => 'Aktual Suhu Produk wajib diisi minimal 1 nilai.'])->withInput();
         }
 
         $idProduk = $pembekuan->penggorenganData->id_produk
@@ -416,111 +394,12 @@ class WizardProses1Controller extends Controller
             $request,
             $user,
             $pembekuan,
-            $selectedFrayers,
             $aktualSuhuPusat,
             $idProduk,
             $tanggalProses,
             $defaultJam
         ) {
-            // 1. Update Hasil Pencetakan pada Penggorengan
-            if ($pembekuan->penggorenganData) {
-                $pembekuan->penggorenganData->update([
-                    'hasil_pencetakan' => $request->input('hasil_pencetakan'),
-                ]);
-            }
-
-            // 2. Update Hasil/Kondisi Predust (jika proses menggunakan Predust)
-            if ($pembekuan->predustData && $request->filled('kondisi_predust')) {
-                $pembekuan->predustData->update([
-                    'kondisi_predust'  => $request->input('kondisi_predust'),
-                    'hasil_pencetakan' => $request->input('hasil_pencetakan'),
-                ]);
-            }
-
-            // 3. Update Hasil Battering
-            if ($pembekuan->batteringData) {
-                $pembekuan->batteringData->update([
-                    'hasil_better' => $request->input('hasil_better'),
-                ]);
-            }
-
-            // 4. Update Hasil Breading
-            if ($pembekuan->breaderData) {
-                $pembekuan->breaderData->update([
-                    'hasil_breader' => $request->input('hasil_breader'),
-                ]);
-            }
-
-            // 5. Simpan / Update Frying (Fryer 1 s/d 5)
-            $frayerConfig = [
-                1 => ['model' => ProsesFrayer::class, 'col' => 'frayer_uuid',  'suhu_key' => 'id_suhu_frayer_1', 'waktu_key' => 'id_waktu_penggorengan'],
-                2 => ['model' => Frayer2::class,      'col' => 'frayer2_uuid', 'suhu_key' => 'id_suhu_frayer_2', 'waktu_key' => 'id_waktu_penggorengan_2'],
-                3 => ['model' => Frayer3::class,      'col' => 'frayer3_uuid', 'suhu_key' => 'id_suhu_frayer',   'waktu_key' => 'id_waktu_penggorengan'],
-                4 => ['model' => Frayer4::class,      'col' => 'frayer4_uuid', 'suhu_key' => 'id_suhu_frayer',   'waktu_key' => 'id_waktu_penggorengan'],
-                5 => ['model' => Frayer5::class,      'col' => 'frayer5_uuid', 'suhu_key' => 'id_suhu_frayer',   'waktu_key' => 'id_waktu_penggorengan'],
-            ];
-
-            $frayerUuids = [
-                'frayer_uuid'  => null,
-                'frayer2_uuid' => null,
-                'frayer3_uuid' => null,
-                'frayer4_uuid' => null,
-                'frayer5_uuid' => null,
-            ];
-
-            $prevFrayerUuid = null;
-
-            foreach ($frayerConfig as $num => $cfg) {
-                $colName = $cfg['col'];
-                $existingUuid = $pembekuan->{$colName};
-                $modelClass = $cfg['model'];
-
-                if ($selectedFrayers->contains($num)) {
-                    $payload = [
-                        'id_plan'                  => $pembekuan->id_plan,
-                        'user_id'                  => $user->id,
-                        'id_produk'                => $idProduk,
-                        'tanggal'                  => $tanggalProses,
-                        'jam'                      => $request->input("frayer_{$num}_jam") ?: $defaultJam,
-                        $cfg['suhu_key']           => $request->input("frayer_{$num}_suhu"),
-                        $cfg['waktu_key']          => $request->input("frayer_{$num}_waktu"),
-                        'aktual_penggorengan'      => $request->input("frayer_{$num}_aktual_waktu"),
-                        'aktual_suhu_penggorengan' => $request->input("frayer_{$num}_aktual_suhu"),
-                        'tpm_minyak'               => $request->input("frayer_{$num}_tpm"),
-                        'keterangan'               => $request->input("frayer_{$num}_keterangan"),
-                        'breader_uuid'             => $pembekuan->breader_uuid,
-                        'battering_uuid'           => $pembekuan->battering_uuid,
-                        'predust_uuid'             => $pembekuan->predust_uuid,
-                        'penggorengan_uuid'        => $pembekuan->penggorengan_uuid,
-                    ];
-
-                    if (in_array($num, [1, 2], true)) {
-                        $payload['ffa'] = $request->input("frayer_{$num}_ffa");
-                    }
-
-                    if ($num > 1 && $prevFrayerUuid) {
-                        $payload['frayer_uuid'] = $prevFrayerUuid;
-                    }
-
-                    $fRecord = $existingUuid ? $modelClass::where('uuid', $existingUuid)->first() : null;
-                    if ($fRecord) {
-                        $fRecord->update($payload);
-                    } else {
-                        $payload['uuid'] = (string) Str::uuid();
-                        $fRecord = $modelClass::create($payload);
-                    }
-
-                    $frayerUuids[$colName] = $fRecord->uuid;
-                    $prevFrayerUuid = $fRecord->uuid;
-                } else {
-                    if ($existingUuid) {
-                        $modelClass::where('uuid', $existingUuid)->delete();
-                    }
-                    $frayerUuids[$colName] = null;
-                }
-            }
-
-            // 6. Simpan / Update Hasil Penggorengan
+            // Simpan / Update Hasil Akhir Penggorengan (Step 6 - Bagian QC)
             $hasilPayload = [
                 'id_plan'            => $pembekuan->id_plan,
                 'user_id'            => $user->id,
@@ -540,11 +419,11 @@ class WizardProses1Controller extends Controller
                 'predust_uuid'       => $pembekuan->predust_uuid,
                 'battering_uuid'     => $pembekuan->battering_uuid,
                 'breader_uuid'       => $pembekuan->breader_uuid,
-                'frayer_uuid'        => $frayerUuids['frayer_uuid'],
-                'frayer2_uuid'       => $frayerUuids['frayer2_uuid'],
-                'frayer3_uuid'       => $frayerUuids['frayer3_uuid'],
-                'frayer4_uuid'       => $frayerUuids['frayer4_uuid'],
-                'frayer5_uuid'       => $frayerUuids['frayer5_uuid'],
+                'frayer_uuid'        => $pembekuan->frayer_uuid,
+                'frayer2_uuid'       => $pembekuan->frayer2_uuid,
+                'frayer3_uuid'       => $pembekuan->frayer3_uuid,
+                'frayer4_uuid'       => $pembekuan->frayer4_uuid,
+                'frayer5_uuid'       => $pembekuan->frayer5_uuid,
             ];
 
             $hasilRecord = $pembekuan->hasil_penggorengan_uuid
@@ -559,9 +438,9 @@ class WizardProses1Controller extends Controller
             }
 
             // Update referensi UUID pada record induk PembekuanIqfPenggorengan
-            $pembekuan->update(array_merge($frayerUuids, [
+            $pembekuan->update([
                 'hasil_penggorengan_uuid' => $hasilRecord->uuid,
-            ]));
+            ]);
         });
 
         $redirectParams = ['uuid' => $pembekuan->uuid];
@@ -646,11 +525,10 @@ class WizardProses1Controller extends Controller
                 'waktu_pemasakan'  => 'required|string',
                 'jam'              => 'required|string',
                 'tanggal'          => 'required',
-                'hasil_pencetakan' => 'nullable|string',
+                'hasil_pencetakan' => 'required|in:✔,✘',
             ]);
 
-            // Role Produksi (id_role == 2) tidak menginput hasil_pencetakan (bagian QC)
-            $hasilPencetakan = ((int) $user->id_role === 2) ? null : ($request->hasil_pencetakan ?: null);
+            $hasilPencetakan = $request->hasil_pencetakan;
 
             $record = Penggorengan::create([
                 'uuid'             => Str::uuid(),
@@ -703,7 +581,7 @@ class WizardProses1Controller extends Controller
                 'id_produk'         => 'required|exists:jenis_produk,id',
                 'id_jenis_predust'  => 'required|exists:jenis_predust,id',
                 'kode_produksi'     => 'required|string|max:255',
-                'hasil_predust'     => 'nullable|in:✔,✘',
+                'hasil_predust'     => 'required|in:✔,✘',
                 'tanggal'           => 'required|date',
                 'jam'               => 'required|date_format:H:i',
                 'penggorengan_uuid' => 'required|string|exists:penggorengan,uuid',
@@ -711,8 +589,7 @@ class WizardProses1Controller extends Controller
 
             $penggorengan = Penggorengan::where('uuid', $request->penggorengan_uuid)->first();
 
-            // Role Produksi (id_role == 2) tidak menginput kondisi_predust (diisi QC lewat ikon mata)
-            $kondisiPredust = ((int) $user->id_role === 2) ? null : ($request->hasil_predust ?: null);
+            $kondisiPredust = $request->hasil_predust;
 
             $record = PembuatanPredust::create([
                 'uuid'              => Str::uuid(),
@@ -760,7 +637,7 @@ class WizardProses1Controller extends Controller
                 'kode_produksi_better' => 'required|array',
                 'id_jenis_better'      => 'required|array',
                 'id_jenis_better.*'    => 'exists:jenis_better,id',
-                'hasil_better'         => 'nullable|string|max:255',
+                'hasil_better'         => 'required|in:✔,✘',
                 'tanggal'              => 'required',
                 'jam'                  => 'required|date_format:H:i',
                 'penggorengan_uuid'    => 'required|string|exists:penggorengan,uuid',
@@ -771,8 +648,7 @@ class WizardProses1Controller extends Controller
                 ? implode(',', $request->id_jenis_better)
                 : $request->id_jenis_better;
 
-            // Role Produksi (id_role == 2) tidak menginput hasil_better (diisi QC lewat ikon mata)
-            $hasilBetter = ((int) $user->id_role === 2) ? null : ($request->hasil_better ?: null);
+            $hasilBetter = $request->hasil_better;
 
             $record = ProsesBattering::create([
                 'uuid'                 => Str::uuid(),
@@ -820,7 +696,7 @@ class WizardProses1Controller extends Controller
                 'id_produk'             => 'required|exists:jenis_produk,id',
                 'id_jenis_breader'      => 'required|array',
                 'kode_produksi_breader' => 'required|array',
-                'hasil_breader'         => 'nullable|string',
+                'hasil_breader'         => 'required|in:✔,✘',
                 'tanggal'               => 'required',
                 'jam'                   => 'required|date_format:H:i',
                 'battering_uuid'        => 'required|string|exists:proses_battering,uuid',
@@ -835,8 +711,7 @@ class WizardProses1Controller extends Controller
             $penggorenganUuid = $battering?->penggorengan_uuid;
             $predustUuid = $battering?->predust_uuid ?? $request->predust_uuid;
 
-            // Role Produksi (id_role == 2) tidak menginput hasil_breader (diisi QC lewat ikon mata)
-            $hasilBreader = ((int) $user->id_role === 2) ? null : ($request->hasil_breader ?: null);
+            $hasilBreader = $request->hasil_breader;
 
             $record = ProsesBreader::create([
                 'uuid'              => Str::uuid(),
@@ -880,10 +755,6 @@ class WizardProses1Controller extends Controller
                 ]);
             }
 
-            if ((int) $user->id_role === 2 || $request->boolean('finalize_produksi')) {
-                session()->flash('success', 'Data Produksi berhasil disimpan. Selanjutnya QC Inspector dapat melengkapi verifikasi melalui ikon mata.');
-            }
-
             return response()->json([
                 'success'        => true,
                 'message'        => 'Data Breader berhasil disimpan.',
@@ -907,10 +778,10 @@ class WizardProses1Controller extends Controller
         try {
             $user         = Auth::user();
 
-            if ((int) $user->id_role === 2) {
+            if ((int) $user->id_role === 3) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Role Produksi tidak diizinkan menginput data Frying. Bagian ini diinput oleh QC Inspector.',
+                    'message' => 'Role QC Inspector tidak diizinkan membuat data awal.',
                 ], 403);
             }
 
@@ -936,6 +807,8 @@ class WizardProses1Controller extends Controller
             $battering  = $breader?->battering_uuid
                 ? ProsesBattering::where('uuid', $breader->battering_uuid)->first()
                 : null;
+            $penggorenganUuid = $battering?->penggorengan_uuid ?? $breader?->penggorengan_uuid;
+            $predustUuid      = $breader?->predust_uuid ?? $request->predust_uuid;
 
             $baseData = [
                 'id_plan'                  => $this->resolvePlanId($user, $request->id_produk, $battering?->id_plan),
@@ -950,8 +823,8 @@ class WizardProses1Controller extends Controller
                 'keterangan'               => $request->keterangan,
                 'breader_uuid'             => $request->breader_uuid,
                 'battering_uuid'           => $breader?->battering_uuid,
-                'penggorengan_uuid'        => $battering?->penggorengan_uuid ?? $breader?->penggorengan_uuid,
-                'predust_uuid'             => $breader?->predust_uuid ?? $request->predust_uuid,
+                'penggorengan_uuid'        => $penggorenganUuid,
+                'predust_uuid'             => $predustUuid,
             ];
 
             // Frayer sebelumnya (jika frayer 2-5, butuh uuid frayer sebelumnya)
@@ -965,6 +838,7 @@ class WizardProses1Controller extends Controller
                     $baseData['id_suhu_frayer_1']       = $request->id_suhu_frayer_1;
                     $baseData['id_waktu_penggorengan']  = $request->id_waktu_penggorengan;
                     $record = ProsesFrayer::create($baseData);
+                    $frayerCol = 'frayer_uuid';
                     break;
 
                 case 2:
@@ -972,6 +846,7 @@ class WizardProses1Controller extends Controller
                     $baseData['id_suhu_frayer_2']         = $request->id_suhu_frayer_2;
                     $baseData['id_waktu_penggorengan_2']  = $request->id_waktu_penggorengan_2;
                     $record = Frayer2::create($baseData);
+                    $frayerCol = 'frayer2_uuid';
                     break;
 
                 case 3:
@@ -979,6 +854,7 @@ class WizardProses1Controller extends Controller
                     $baseData['id_suhu_frayer']        = $request->id_suhu_frayer_1;
                     $baseData['id_waktu_penggorengan'] = $request->id_waktu_penggorengan;
                     $record = Frayer3::create($baseData);
+                    $frayerCol = 'frayer3_uuid';
                     break;
 
                 case 4:
@@ -986,6 +862,7 @@ class WizardProses1Controller extends Controller
                     $baseData['id_suhu_frayer']        = $request->id_suhu_frayer_1;
                     $baseData['id_waktu_penggorengan'] = $request->id_waktu_penggorengan;
                     $record = Frayer4::create($baseData);
+                    $frayerCol = 'frayer4_uuid';
                     break;
 
                 case 5:
@@ -993,7 +870,36 @@ class WizardProses1Controller extends Controller
                     $baseData['id_suhu_frayer']        = $request->id_suhu_frayer_1;
                     $baseData['id_waktu_penggorengan'] = $request->id_waktu_penggorengan;
                     $record = Frayer5::create($baseData);
+                    $frayerCol = 'frayer5_uuid';
                     break;
+            }
+
+            // Sinkronkan UUID frayer ke record induk PembekuanIqfPenggorengan
+            if ($penggorenganUuid) {
+                $pembekuan = PembekuanIqfPenggorengan::where('penggorengan_uuid', $penggorenganUuid)
+                    ->where('is_audit', false)
+                    ->first();
+
+                if ($pembekuan) {
+                    $pembekuan->update([
+                        $frayerCol => $record->uuid,
+                    ]);
+                } else {
+                    PembekuanIqfPenggorengan::create([
+                        'uuid'              => (string) Str::uuid(),
+                        'id_plan'           => $baseData['id_plan'],
+                        'user_id'           => $user->id,
+                        'tanggal'           => $baseData['tanggal'],
+                        'jam'               => $baseData['jam'],
+                        'suhu_ruang_iqf'    => '-',
+                        'holding_time'      => '-',
+                        'breader_uuid'      => $request->breader_uuid,
+                        'battering_uuid'    => $breader?->battering_uuid,
+                        'predust_uuid'      => $predustUuid,
+                        'penggorengan_uuid' => $penggorenganUuid,
+                        $frayerCol          => $record->uuid,
+                    ]);
+                }
             }
 
             return response()->json([
@@ -1001,6 +907,7 @@ class WizardProses1Controller extends Controller
                 'message'       => "Data Frayer {$frayerNumber} berhasil disimpan.",
                 'uuid'          => $record->uuid,
                 'frayer_number' => $frayerNumber,
+                'redirect_url'  => route('wizard.proses1.index'),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'errors' => $e->errors()], 422);
@@ -1453,7 +1360,11 @@ class WizardProses1Controller extends Controller
     }
 
     /**
-     * Approval berjenjang: QC Inspector -> SPV QC
+     * Approval berjenjang:
+     * 1. Dibuat oleh Produksi
+     * 2. Verifikasi oleh QC Inspector (qc)
+     * 3. Diketahui oleh Foreman / SPV Produksi (produksi)
+     * 4. Disetujui oleh SPV QC (spv)
      */
     public function approve(Request $request, $uuid)
     {
@@ -1461,8 +1372,8 @@ class WizardProses1Controller extends Controller
             $user = Auth::user();
             $type = $request->input('type');
             
-            // Validate approval type (hanya QC dan SPV QC)
-            if (!in_array($type, ['qc', 'spv'], true)) {
+            // Validate approval type (QC, Produksi, dan SPV QC)
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true)) {
                 return response()->json(['success' => false, 'message' => 'Tipe approval tidak valid'], 400);
             }
             
@@ -1473,32 +1384,49 @@ class WizardProses1Controller extends Controller
             $userRole = (int) $user->id_role;
             
             if ($type === 'qc' && !in_array($userRole, [1, 3, 5], true)) {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval QC'], 403);
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk verifikasi QC'], 403);
+            }
+            
+            if ($type === 'produksi' && !in_array($userRole, [1, 2, 5], true)) {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk otorisasi Foreman / SPV Produksi'], 403);
             }
             
             if ($type === 'spv' && !in_array($userRole, [1, 4, 5], true)) {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval SPV'], 403);
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk persetujuan SPV QC'], 403);
             }
             
-            // Check sequential approval requirements (QC -> SPV QC)
-            if ($type === 'spv' && !$pembekuan->approved_by_qc) {
-                return response()->json(['success' => false, 'message' => 'Menunggu approval QC Inspector terlebih dahulu'], 403);
+            // Check sequential approval requirements (QC -> Produksi -> SPV QC)
+            if ($type === 'produksi' && !$pembekuan->approved_by_qc) {
+                return response()->json(['success' => false, 'message' => 'Menunggu verifikasi QC Inspector terlebih dahulu'], 403);
+            }
+
+            if ($type === 'spv' && !$pembekuan->approved_by_produksi) {
+                return response()->json(['success' => false, 'message' => 'Menunggu diketahui Foreman / SPV Produksi terlebih dahulu'], 403);
             }
             
             // Update approval fields based on type
             switch ($type) {
                 case 'qc':
                     if ($pembekuan->approved_by_qc) {
-                        return response()->json(['success' => false, 'message' => 'Data sudah di-approve oleh QC'], 400);
+                        return response()->json(['success' => false, 'message' => 'Data sudah diverifikasi oleh QC Inspector'], 400);
                     }
                     $pembekuan->approved_by_qc = true;
                     $pembekuan->qc_approved_by = $user->id;
                     $pembekuan->qc_approved_at = now();
                     break;
+
+                case 'produksi':
+                    if ($pembekuan->approved_by_produksi) {
+                        return response()->json(['success' => false, 'message' => 'Data sudah diketahui oleh Foreman / SPV Produksi'], 400);
+                    }
+                    $pembekuan->approved_by_produksi = true;
+                    $pembekuan->produksi_approved_by = $user->id;
+                    $pembekuan->produksi_approved_at = now();
+                    break;
                     
                 case 'spv':
                     if ($pembekuan->approved_by_spv) {
-                        return response()->json(['success' => false, 'message' => 'Data sudah di-approve oleh SPV'], 400);
+                        return response()->json(['success' => false, 'message' => 'Data sudah disetujui oleh SPV QC'], 400);
                     }
                     $pembekuan->approved_by_spv = true;
                     $pembekuan->spv_approved_by = $user->id;
@@ -1526,16 +1454,19 @@ class WizardProses1Controller extends Controller
             $tanggal = $request->input('tanggal');
             $shift_id = $request->input('shift_id');
 
-            if (!in_array($type, ['qc', 'spv'], true)) {
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true)) {
                 return response()->json(['success' => false, 'message' => 'Tipe approval tidak valid'], 400);
             }
 
             $userRole = (int) $user->id_role;
             if ($type === 'qc' && !in_array($userRole, [1, 3, 5], true)) {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval QC'], 403);
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk verifikasi QC'], 403);
+            }
+            if ($type === 'produksi' && !in_array($userRole, [1, 2, 5], true)) {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk otorisasi Foreman / SPV Produksi'], 403);
             }
             if ($type === 'spv' && !in_array($userRole, [1, 4, 5], true)) {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk approval SPV'], 403);
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki izin untuk persetujuan SPV QC'], 403);
             }
 
             $query = PembekuanIqfPenggorengan::whereDate('tanggal', $tanggal)
@@ -1553,9 +1484,12 @@ class WizardProses1Controller extends Controller
                 return response()->json(['success' => false, 'message' => 'Tidak ada data untuk disetujui'], 404);
             }
 
-            // Sequential check: SPV hanya menunggu QC
-            if ($type === 'spv' && $items->contains('approved_by_qc', false)) {
-                return response()->json(['success' => false, 'message' => 'Beberapa data belum disetujui oleh QC Inspector'], 403);
+            // Sequential check: QC -> Produksi -> SPV QC
+            if ($type === 'produksi' && $items->contains('approved_by_qc', false)) {
+                return response()->json(['success' => false, 'message' => 'Beberapa data belum diverifikasi oleh QC Inspector'], 403);
+            }
+            if ($type === 'spv' && $items->contains('approved_by_produksi', false)) {
+                return response()->json(['success' => false, 'message' => 'Beberapa data belum diketahui oleh Foreman / SPV Produksi'], 403);
             }
 
             foreach ($items as $item) {
@@ -1563,6 +1497,10 @@ class WizardProses1Controller extends Controller
                     $item->approved_by_qc = true;
                     $item->qc_approved_by = $user->id;
                     $item->qc_approved_at = now();
+                } elseif ($type === 'produksi' && !$item->approved_by_produksi) {
+                    $item->approved_by_produksi = true;
+                    $item->produksi_approved_by = $user->id;
+                    $item->produksi_approved_at = now();
                 } elseif ($type === 'spv' && !$item->approved_by_spv) {
                     $item->approved_by_spv = true;
                     $item->spv_approved_by = $user->id;
@@ -1703,7 +1641,7 @@ class WizardProses1Controller extends Controller
                         'no_of_strokes'   => $request->no_of_strokes,
                         'waktu_pemasakan' => $request->waktu_pemasakan,
                     ];
-                    if (!$isProduksiRole && $request->has('hasil_pencetakan')) {
+                    if ($request->has('hasil_pencetakan')) {
                         $penggorenganPayload['hasil_pencetakan'] = $request->hasil_pencetakan;
                     }
                     $penggorengan->update($penggorenganPayload);
@@ -1722,7 +1660,7 @@ class WizardProses1Controller extends Controller
                         'id_jenis_better'      => $jenisBetter,
                         'kode_produksi_better' => $request->kode_produksi_better,
                     ];
-                    if (!$isProduksiRole && $request->has('hasil_better')) {
+                    if ($request->has('hasil_better')) {
                         $batteringPayload['hasil_better'] = $request->hasil_better;
                     }
                     $battering->update($batteringPayload);
@@ -1741,7 +1679,7 @@ class WizardProses1Controller extends Controller
                         'id_jenis_breader' => $jenisBreader,
                         'kode_produksi'    => $request->kode_produksi_breader,
                     ];
-                    if (!$isProduksiRole && $request->has('hasil_breader')) {
+                    if ($request->has('hasil_breader')) {
                         $breaderPayload['hasil_breader'] = $request->hasil_breader;
                     }
                     $breader->update($breaderPayload);
@@ -1756,45 +1694,49 @@ class WizardProses1Controller extends Controller
                         'id_jenis_predust' => $request->id_jenis_predust,
                         'kode_produksi'    => $request->kode_produksi_predust,
                     ];
-                    if (!$isProduksiRole && $request->has('kondisi_predust')) {
+                    if ($request->has('kondisi_predust')) {
                         $predustPayload['kondisi_predust'] = $request->kondisi_predust;
+                    }
+                    if ($request->has('hasil_pencetakan')) {
+                        $predustPayload['hasil_pencetakan'] = $request->hasil_pencetakan;
                     }
                     $predust->update($predustPayload);
                 }
             }
 
-            // 5 & 6. Update Frayers & Hasil Penggorengan (hanya untuk non-Produksi, mis. Admin/Superadmin/Auditor)
-            if (!$isProduksiRole) {
-                $frayers = [
-                    1 => ['model' => ProsesFrayer::class, 'uuid' => $pembekuan->frayer_uuid, 'suhu_key' => 'id_suhu_frayer_1', 'waktu_key' => 'id_waktu_penggorengan'],
-                    2 => ['model' => Frayer2::class, 'uuid' => $pembekuan->frayer2_uuid, 'suhu_key' => 'id_suhu_frayer_2', 'waktu_key' => 'id_waktu_penggorengan_2'],
-                    3 => ['model' => Frayer3::class, 'uuid' => $pembekuan->frayer3_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
-                    4 => ['model' => Frayer4::class, 'uuid' => $pembekuan->frayer4_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
-                    5 => ['model' => Frayer5::class, 'uuid' => $pembekuan->frayer5_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
-                ];
+            // 5. Update Frayers (Bagian Produksi & Admin)
+            $frayers = [
+                1 => ['model' => ProsesFrayer::class, 'uuid' => $pembekuan->frayer_uuid, 'suhu_key' => 'id_suhu_frayer_1', 'waktu_key' => 'id_waktu_penggorengan'],
+                2 => ['model' => Frayer2::class, 'uuid' => $pembekuan->frayer2_uuid, 'suhu_key' => 'id_suhu_frayer_2', 'waktu_key' => 'id_waktu_penggorengan_2'],
+                3 => ['model' => Frayer3::class, 'uuid' => $pembekuan->frayer3_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
+                4 => ['model' => Frayer4::class, 'uuid' => $pembekuan->frayer4_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
+                5 => ['model' => Frayer5::class, 'uuid' => $pembekuan->frayer5_uuid, 'suhu_key' => 'id_suhu_frayer', 'waktu_key' => 'id_waktu_penggorengan'],
+            ];
 
-                foreach ($frayers as $num => $fInfo) {
-                    if ($fInfo['uuid']) {
-                        $fRecord = $fInfo['model']::where('uuid', $fInfo['uuid'])->first();
-                        if ($fRecord) {
-                            $updateData = [
-                                'id_produk' => $request->id_produk,
-                                'jam' => $request->input("frayer_{$num}_jam"),
-                                $fInfo['suhu_key'] => $request->input("frayer_{$num}_suhu"),
-                                $fInfo['waktu_key'] => $request->input("frayer_{$num}_waktu"),
-                                'aktual_penggorengan' => $request->input("frayer_{$num}_aktual_waktu"),
-                                'aktual_suhu_penggorengan' => $request->input("frayer_{$num}_aktual_suhu"),
-                                'tpm_minyak' => $request->input("frayer_{$num}_tpm"),
-                                'keterangan' => $request->input("frayer_{$num}_keterangan"),
-                            ];
-                            if (in_array($num, [1, 2])) {
-                                $updateData['ffa'] = $request->input("frayer_{$num}_ffa");
-                            }
-                            $fRecord->update($updateData);
+            foreach ($frayers as $num => $fInfo) {
+                if ($fInfo['uuid']) {
+                    $fRecord = $fInfo['model']::where('uuid', $fInfo['uuid'])->first();
+                    if ($fRecord) {
+                        $updateData = [
+                            'id_produk' => $request->id_produk,
+                            'jam' => $request->input("frayer_{$num}_jam"),
+                            $fInfo['suhu_key'] => $request->input("frayer_{$num}_suhu"),
+                            $fInfo['waktu_key'] => $request->input("frayer_{$num}_waktu"),
+                            'aktual_penggorengan' => $request->input("frayer_{$num}_aktual_waktu"),
+                            'aktual_suhu_penggorengan' => $request->input("frayer_{$num}_aktual_suhu"),
+                            'tpm_minyak' => $request->input("frayer_{$num}_tpm"),
+                            'keterangan' => $request->input("frayer_{$num}_keterangan"),
+                        ];
+                        if (in_array($num, [1, 2])) {
+                            $updateData['ffa'] = $request->input("frayer_{$num}_ffa");
                         }
+                        $fRecord->update($updateData);
                     }
                 }
+            }
 
+            // 6. Update Hasil Penggorengan (hanya untuk non-Produksi, mis. Admin/Superadmin/Auditor)
+            if (!$isProduksiRole) {
                 if ($pembekuan->hasil_penggorengan_uuid) {
                     $hasil = HasilPenggorengan::where('uuid', $pembekuan->hasil_penggorengan_uuid)->first();
                     if ($hasil) {
@@ -1927,8 +1869,9 @@ class WizardProses1Controller extends Controller
             ->with(['produk', 'suhuFrayer', 'waktuPenggorengan'])
             ->get()->keyBy('uuid');
 
-        // --- 2. Batch load approver users (1 query) ---
+        // --- 2. Batch load approver & creator users (1 query) ---
         $approverIds = collect()
+            ->merge($data->pluck('user_id'))
             ->merge($data->pluck('qc_approved_by'))
             ->merge($data->pluck('produksi_approved_by'))
             ->merge($data->pluck('spv_approved_by'))
@@ -1950,13 +1893,30 @@ class WizardProses1Controller extends Controller
 
             // Pre-compute approval data & QR codes (agar tidak dilakukan di view)
             $approvalData = [
-                'qc_name'       => 'QC',
-                'spv_name'      => 'SUPERVISOR QC',
-                'produksi_name' => 'SPV PRODUKSI',
+                'dibuat_name'   => 'PRODUKSI',
+                'qc_name'       => 'QC INSPEKTOR',
+                'produksi_name' => 'FOREMAN / SPV PRODUKSI',
+                'spv_name'      => 'SPV QC',
+                'dibuat_qr'     => null,
                 'qc_qr'         => null,
-                'spv_qr'        => null,
                 'produksi_qr'   => null,
+                'spv_qr'        => null,
             ];
+
+            if ($item->user_id) {
+                $creator = $approverMap[$item->user_id] ?? null;
+                if ($creator) {
+                    $approvalData['dibuat_name'] = $creator->name;
+                    $date = $item->created_at
+                        ? \Carbon\Carbon::parse($item->created_at)->format('Y-m-d')
+                        : ($item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') : '-');
+                    $approvalData['dibuat_qr'] = 'data:image/svg+xml;base64,' . base64_encode(
+                        \SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate(
+                            "Dokumen ini telah dibuat secara sistem oleh {$creator->name} (Produksi) pada {$date}"
+                        )
+                    );
+                }
+            }
 
             if ($item->approved_by_qc && $item->qc_approved_by) {
                 $user = $approverMap[$item->qc_approved_by] ?? null;
@@ -1966,7 +1926,22 @@ class WizardProses1Controller extends Controller
                         $date = \Carbon\Carbon::parse($item->qc_approved_at)->format('Y-m-d');
                         $approvalData['qc_qr'] = 'data:image/svg+xml;base64,' . base64_encode(
                             \SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate(
-                                "Dokumen ini telah diverifikasi secara sistem oleh {$user->name} (Tim QC) pada {$date}"
+                                "Dokumen ini telah diverifikasi secara sistem oleh {$user->name} (QC Inspektor) pada {$date}"
+                            )
+                        );
+                    }
+                }
+            }
+
+            if ($item->approved_by_produksi && $item->produksi_approved_by) {
+                $user = $approverMap[$item->produksi_approved_by] ?? null;
+                if ($user) {
+                    $approvalData['produksi_name'] = $user->name;
+                    if ($item->produksi_approved_at) {
+                        $date = \Carbon\Carbon::parse($item->produksi_approved_at)->format('Y-m-d');
+                        $approvalData['produksi_qr'] = 'data:image/svg+xml;base64,' . base64_encode(
+                            \SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate(
+                                "Dokumen ini telah diketahui secara sistem oleh {$user->name} (Foreman / SPV Produksi) pada {$date}"
                             )
                         );
                     }
@@ -1981,7 +1956,7 @@ class WizardProses1Controller extends Controller
                         $date = \Carbon\Carbon::parse($item->spv_approved_at)->format('Y-m-d');
                         $approvalData['spv_qr'] = 'data:image/svg+xml;base64,' . base64_encode(
                             \SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate(
-                                "Dokumen ini telah diverifikasi secara sistem oleh {$user->name} (SPV QC) pada {$date}"
+                                "Dokumen ini telah disetujui secara sistem oleh {$user->name} (SPV QC) pada {$date}"
                             )
                         );
                     }
@@ -2019,7 +1994,7 @@ class WizardProses1Controller extends Controller
     {
         try {
             $request->validate([
-                'type'    => 'required|in:qc,spv',
+                'type'    => 'required|in:qc,produksi,spv',
                 'uuids'   => 'required|array|min:1',
                 'uuids.*' => 'required|uuid'
             ]);
@@ -2028,10 +2003,11 @@ class WizardProses1Controller extends Controller
             $type = $request->input('type');
             $uuids = $request->input('uuids', []);
 
-            // Role-based permission check (hanya QC dan SPV QC)
+            // Role-based permission check (QC, Produksi, dan SPV QC)
             $allowedRoles = [
-                'qc'  => [1, 3, 5],
-                'spv' => [1, 4, 5],
+                'qc'       => [1, 3, 5],
+                'produksi' => [1, 2, 5],
+                'spv'      => [1, 4, 5],
             ];
 
             if (!in_array((int) $user->id_role, $allowedRoles[$type] ?? [], true)) {
@@ -2059,11 +2035,18 @@ class WizardProses1Controller extends Controller
                 ]);
             }
 
-            // Sequential check: SPV hanya bisa approve jika sudah diapprove QC
-            if ($type === 'spv' && $itemsToUpdate->contains('approved_by_qc', false)) {
+            // Sequential check: QC -> Produksi -> SPV QC
+            if ($type === 'produksi' && $itemsToUpdate->contains('approved_by_qc', false)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Beberapa data belum disetujui oleh QC Inspector.'
+                    'message' => 'Beberapa data belum diverifikasi oleh QC Inspector.'
+                ], 403);
+            }
+
+            if ($type === 'spv' && $itemsToUpdate->contains('approved_by_produksi', false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Beberapa data belum diketahui oleh Foreman / SPV Produksi.'
                 ], 403);
             }
 

@@ -36,7 +36,7 @@
         <td>{{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}</td>
         <td>{{ $item->jam ?? '-' }}</td>
         <td>{{ $item->shift->shift ?? '-' }}</td>
-        <td>{{ $item->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</td>
+        <td>{{ $item->penggorenganData->produk->nama_produk ?? ($item->prosesRoastingFanData->produk->nama_produk ?? ($item->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</td>
         <td><span class="badge badge-light border">{{ $item->penggorenganData->kode_produksi ?? '-' }}</span></td>
         <td>{{ $item->suhu_ruang_iqf ?? '-' }} °C</td>
         <td>{{ $item->holding_time ?? '-' }} menit</td>

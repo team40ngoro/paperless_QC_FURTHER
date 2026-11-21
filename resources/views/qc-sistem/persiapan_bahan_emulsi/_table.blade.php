@@ -21,13 +21,20 @@
             {{ $rowNumber }}
         </td>
         <td class="align-middle text-center">
-            @if(($item->shift_id ?? null) == 1)
-                <span class="badge bg-primary">Shift {{ $item->shift->shift ?? 'Shift 1' }}</span>
-            @elseif(($item->shift_id ?? null) == 2)
-                <span class="badge bg-success">Shift {{ $item->shift->shift ?? 'Shift 2' }}</span>
-            @else
-                <span class="badge bg-secondary">Shift {{ $item->shift->shift ?? 'Shift ' . ($item->shift_id ?? '-') }}</span>
-            @endif
+            @php
+                $sVal = (string)($item->shift->shift ?? ($item->shift_id ?? ''));
+                $shiftLabel = $sVal;
+                if ($sVal === '1' || strcasecmp($sVal, 'shift 1') === 0 || strcasecmp($sVal, 'pagi') === 0) {
+                    $shiftLabel = 'Pagi (Shift 1)';
+                } elseif ($sVal === '2' || strcasecmp($sVal, 'shift 2') === 0 || strcasecmp($sVal, 'sore') === 0) {
+                    $shiftLabel = 'Sore (Shift 2)';
+                } elseif ($sVal === '3' || strcasecmp($sVal, 'shift 3') === 0 || strcasecmp($sVal, 'malam') === 0) {
+                    $shiftLabel = 'Malam (Shift 3)';
+                }
+            @endphp
+            <span class="badge {{ ($item->shift_id ?? null) == 1 ? 'bg-primary' : (($item->shift_id ?? null) == 2 ? 'bg-success' : 'bg-secondary') }}">
+                {{ $shiftLabel }}
+            </span>
         </td>
         <td class="align-middle text-center">
             <span class="badge badge-secondary">
@@ -56,18 +63,19 @@
             <span>{{ $item->nomor_emulsi->nomor_emulsi ?? '-' }}</span>
         </td>
         <td class="align-middle text-center">
-            <span>{{ $item->user->name ?? '-' }}</span>
+            <span class="font-weight-bold">{{ $item->user->name ?? '-' }}</span>
+            <br><small class="badge badge-light border">1. Produksi</small>
         </td>
         <td class="align-middle">
             <div class="status-badges d-flex flex-column align-items-center">
-                <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
+                <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;" title="2. Verifikasi QC Inspektor">
+                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> 2. QC Inspektor
                 </span>
-                <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
+                <span class="badge {{ $item->approved_by_produksi ? 'badge-primary' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;" title="3. Diketahui SPV Produksi">
+                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> 3. SPV Produksi
                 </span>
-                <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
+                <span class="badge {{ $item->approved_by_spv ? 'badge-warning' : 'badge-light border' }} w-100" style="font-size: 0.7rem;" title="4. Disetujui SPV QC">
+                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> 4. SPV QC
                 </span>
             </div>
         </td>

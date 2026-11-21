@@ -32,7 +32,7 @@
         .main-table th { background-color: #f0f0f0; font-weight: bold; }
         .section-title { font-weight: bold; font-size: 11px; margin-top: 15px; margin-bottom: 5px; color: #000; }
         .signature-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        .signature-table td { width: 50%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; }
+        .signature-table td { width: 25%; text-align: center; vertical-align: bottom; padding: 5px; border: 1px solid #000; font-size: 8px; }
         .signature-box { height: 60px; }
         .footer { position: fixed; bottom: -45px; left: -25px; right: -25px; padding: 0 25px; text-align: right; font-size: 8px; }
     </style>
@@ -314,30 +314,42 @@
             <div style="text-align: right; width: 100%; font-size: 8px; font-weight: bold; margin-bottom: 20px;">
                 {{ $kode_form }}
             </div>
-            {{-- SIGNATURES WITH QR CODE (QC Inspector -> SPV QC) --}}
+            {{-- SIGNATURES WITH QR CODE (1. Dibuat: Produksi -> 2. Verifikasi: QC Inspektor -> 3. Diketahui: Foreman/SPV Produksi -> 4. Disetujui: SPV QC) --}}
             @php
                 $approvalData = $pembekuan->_approvalData ?? [];
-                $qcApproverName    = $approvalData['qc_name']  ?? 'QC INSPEKTOR';
-                $spvQcApproverName = $approvalData['spv_name'] ?? 'SUPERVISOR QC';
-                $base64QcSvg       = $approvalData['qc_qr']    ?? null;
-                $base64SpvQcSvg    = $approvalData['spv_qr']   ?? null;
+                $dibuatName          = $approvalData['dibuat_name']   ?? ($pembekuan->user->name ?? 'PRODUKSI');
+                $qcApproverName      = $approvalData['qc_name']       ?? 'QC INSPEKTOR';
+                $produksiApproverName= $approvalData['produksi_name'] ?? 'FOREMAN / SPV PRODUKSI';
+                $spvQcApproverName   = $approvalData['spv_name']      ?? 'SPV QC';
+                $base64DibuatSvg     = $approvalData['dibuat_qr']     ?? null;
+                $base64QcSvg         = $approvalData['qc_qr']         ?? null;
+                $base64ProduksiSvg   = $approvalData['produksi_qr']   ?? null;
+                $base64SpvQcSvg      = $approvalData['spv_qr']        ?? null;
             @endphp
 
             <table class="signature-table">
                 <tr>
-                    <td class="signature-label">Dibuat Oleh: QC INSPEKTOR</td>
-                    <td class="signature-label">Disetujui Oleh: Supervisor QC</td>
+                    <td class="signature-label">1. Dibuat Oleh:<br><strong>Produksi</strong></td>
+                    <td class="signature-label">2. Diverifikasi Oleh:<br><strong>QC Inspektor</strong></td>
+                    <td class="signature-label">3. Diketahui Oleh:<br><strong>Foreman / SPV Produksi</strong></td>
+                    <td class="signature-label">4. Disetujui Oleh:<br><strong>SPV QC</strong></td>
                 </tr>
                 <tr>
+                    <td class="signature-qr-area">@if($base64DibuatSvg)<img src="{{ $base64DibuatSvg }}" class="qr-code-img" alt="QR Produksi">@endif</td>
                     <td class="signature-qr-area">@if($base64QcSvg)<img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR QC">@endif</td>
-                    <td class="signature-qr-area">@if($base64SpvQcSvg)<img src="{{ $base64SpvQcSvg }}" class="qr-code-img" alt="QR SPV">@endif</td>
+                    <td class="signature-qr-area">@if($base64ProduksiSvg)<img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR Foreman/SPV Produksi">@endif</td>
+                    <td class="signature-qr-area">@if($base64SpvQcSvg)<img src="{{ $base64SpvQcSvg }}" class="qr-code-img" alt="QR SPV QC">@endif</td>
                 </tr>
                 <tr>
                     <td><div class="signature-line"></div></td>
                     <td><div class="signature-line"></div></td>
+                    <td><div class="signature-line"></div></td>
+                    <td><div class="signature-line"></div></td>
                 </tr>
                 <tr>
+                    <td class="signature-name">{{ $dibuatName }}</td>
                     <td class="signature-name">{{ $qcApproverName }}</td>
+                    <td class="signature-name">{{ $produksiApproverName }}</td>
                     <td class="signature-name">{{ $spvQcApproverName }}</td>
                 </tr>
             </table>

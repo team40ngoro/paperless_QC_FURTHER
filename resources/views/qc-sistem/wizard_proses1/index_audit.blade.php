@@ -124,7 +124,7 @@
                                             @forelse($records as $groupKey => $items)
                                                 @forelse($items as $item)
                                                     @php
-                                                        $isQcVerified = !empty($item->hasil_penggorengan_uuid) && !empty(optional($item->penggorenganData)->hasil_pencetakan);
+                                                        $isQcVerified = !empty($item->hasil_penggorengan_uuid);
                                                     @endphp
                                                     <tr class="item-row">
                                                         <td class="text-center align-middle">{{ $no }}</td>
@@ -155,6 +155,11 @@
                                                                     <span class="badge badge-success w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> QC</span>
                                                                 @else
                                                                     <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">QC</span>
+                                                                @endif
+                                                                @if($item->approved_by_produksi)
+                                                                    <span class="badge badge-primary w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> PRD</span>
+                                                                @else
+                                                                    <span class="badge badge-light w-100" style="font-size: 0.65rem; color: #999;">PRD</span>
                                                                 @endif
                                                                 @if($item->approved_by_spv)
                                                                     <span class="badge badge-dark w-100" style="font-size: 0.65rem;"><i class="fas fa-check"></i> SPV</span>

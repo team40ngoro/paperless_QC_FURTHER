@@ -32,6 +32,11 @@
               <div class="card-body">
                 <div class="tab-content">
                   <div class="active tab-pane" id="emulsi">
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Catatan:</strong> Form ini untuk pembuatan data persiapan emulsi oleh Produksi. Field <strong>Suhu Emulsi</strong> dan <strong>Hasil Emulsi</strong> dikunci dan akan diverifikasi serta diisi oleh <strong>QC Inspektor</strong> pada tahap verifikasi (edit).
+                    </div>
+
                     <form class="form-horizontal mb-4" method="POST" action="{{ route('persiapan-bahan-emulsi.store') }}">
                         @csrf
                         @if($errors->any())
@@ -139,5 +144,4 @@
     </section>
     <!-- /.content -->
 </div>
-  
 @endsection

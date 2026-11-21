@@ -34,8 +34,6 @@
                                 4 => ['icon' => 'fa-layer-group',   'label' => 'Breader'],
                                 5 => ['icon' => 'fa-burn',          'label' => 'Fryer'],
                                 6 => ['icon' => 'fa-fan',           'label' => 'Roasting Fan'],
-                                7 => ['icon' => 'fa-check-double',  'label' => 'Hasil Roasting'],
-                                8 => ['icon' => 'fa-snowflake',     'label' => 'IQF Roasting'],
                             ];
                         @endphp
 
@@ -521,100 +519,7 @@
                     </div>
                     <div class="card-footer d-flex justify-content-between">
                         <!-- <button type="button" class="btn btn-secondary prev-step" data-step="6"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="6">Simpan & Lanjut <i class="fas fa-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 7: HASIL ROASTING -->
-            <div class="wizard-step" id="step-7" style="display:none;">
-                <div class="card card-primary card-outline shadow-sm">
-                    <div class="card-header"><h3 class="card-title"><i class="fas fa-check-double mr-1"></i> Form Hasil Roasting (Langkah 7)</h3></div>
-                    <div class="card-body">
-                        <div class="alert alert-info py-2"><strong>Produk:</strong> <span class="info_produk">-</span></div>
-                        <form id="form-step-7">
-                            <input type="hidden" name="roasting_fan_uuid" id="p7_roasting_fan_uuid">
-                            <div class="form-group"><label>Tanggal *</label>
-                                <input type="date" name="tanggal" class="form-control" value="{{ $displayValue }}" required>
-                            </div>
-                            <div class="form-group"><label>Jam *</label>
-                                <input type="time" name="jam" class="form-control" value="{{ $now->format('H:i') }}" required>
-                            </div>
-                            <div class="form-group"><label>Nama Produk *</label>
-                                <select name="id_produk" id="p7_id_produk" class="form-control select2-produk" required>
-                                    <option value="">Pilih Produk</option>
-                                    @foreach($produk as $p) <option value="{{ $p->id }}">{{ $p->nama_produk }}</option> @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group"><label>Std Suhu Pusat *</label>
-                                <select name="id_std_suhu_pusat" id="p7_id_std_suhu_pusat" class="form-control" required disabled>
-                                    <option value="">Pilih</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Aktual Suhu Pusat (°C) <span class="text-danger">*</span></label>
-                                <div id="aktual_suhu_pusat_container">
-                                    <div class="input-group mb-2">
-                                        <input type="text" class="form-control input-aktual-suhu-pusat" name="aktual_suhu_pusat[]" placeholder="°C" required>
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-success btn-add-suhu-pusat" type="button"><i class="fas fa-plus"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                @foreach(['kematangan','kenampakan','warna','rasa','bau','tekstur'] as $sen)
-                                <div class="col-4 mb-2"><label class="small mb-1 text-capitalize">{{$sen}}</label>
-                                    <select name="sensori_{{$sen}}" class="form-control form-control-sm"><option value="✔">✔</option><option value="✘">✘</option></select>
-                                </div>
-                                @endforeach
-                            </div>
-                            <div class="form-group mt-3">
-                                <label>Keterangan</label>
-                                <textarea name="keterangan" class="form-control" rows="2" placeholder="Catatan tambahan"></textarea>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="7"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="7">Simpan &amp; Lanjut <i class="fas fa-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 8: IQF ROASTING -->
-            <div class="wizard-step" id="step-8" style="display:none;">
-                <div class="card card-primary card-outline shadow-sm">
-                    <div class="card-header"><h3 class="card-title"><i class="fas fa-snowflake mr-1"></i> Form IQF Roasting (Langkah 8)</h3></div>
-                    <div class="card-body">
-                        <div class="alert alert-info py-2"><strong>Produk:</strong> <span class="info_produk">-</span></div>
-                        <form id="form-step-8">
-                            <input type="hidden" name="hasil_roasting_uuid" id="p8_hasil_roasting_uuid">
-                            <input type="hidden" name="frayer_uuid"    id="p8_frayer_uuid">
-                            <input type="hidden" name="frayer2_uuid"   id="p8_frayer2_uuid">
-                            <input type="hidden" name="frayer3_uuid"   id="p8_frayer3_uuid">
-                            <input type="hidden" name="frayer4_uuid"   id="p8_frayer4_uuid">
-                            <input type="hidden" name="frayer5_uuid"   id="p8_frayer5_uuid">
-                            <input type="hidden" name="breader_uuid"   id="p8_breader_uuid">
-                            <input type="hidden" name="battering_uuid" id="p8_battering_uuid">
-                            <input type="hidden" name="predust_uuid"   id="p8_predust_uuid">
-                            <div class="form-group"><label>Tanggal *</label>
-                                <input type="date" name="tanggal" class="form-control" value="{{ $displayValue }}" required>
-                            </div>
-                            <div class="form-group"><label>Jam *</label>
-                                <input type="time" name="jam" class="form-control" value="{{ $now->format('H:i') }}" required>
-                            </div>
-                            <div class="form-group"><label>Suhu Ruang IQF (°C) *</label>
-                                <input type="text" name="suhu_ruang_iqf" class="form-control" required>
-                            </div>
-                            <div class="form-group"><label>Holding Time (Menit) *</label>
-                                <input type="text" name="holding_time" class="form-control" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <!-- <button type="button" class="btn btn-secondary prev-step" data-step="8"><i class="fas fa-arrow-left"></i> Kembali</button> -->
-                        <button type="button" class="btn btn-primary next-step" data-step="8"><i class="fas fa-check-circle mr-1"></i> Selesaikan Proses 2</button>
+                        <button type="button" class="btn btn-success next-step" data-step="6"><i class="fas fa-check-circle mr-1"></i> Simpan &amp; Selesaikan Input Produksi</button>
                     </div>
                 </div>
             </div>
@@ -646,9 +551,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const $ = jQuery;
 
     // ========== STATE ==========
-    const STORAGE_KEY = 'wizard_proses2_state_v1';
+    const STORAGE_KEY = 'wizard_proses2_state_v2';
     let state = {
-        current_step: 1, total_steps: 8,
+        current_step: 1, total_steps: 6,
         penggorengan_uuid: null, predust_uuid: null, battering_uuid: null,
         breader_uuid: null, frayer_uuids: {}, roasting_fan_uuid: null,
         hasil_roasting_uuid: null, id_produk: null, id_produk_text: null,
@@ -1082,15 +987,13 @@ document.addEventListener("DOMContentLoaded", function() {
             return showAlert('warning', 'Peringatan', 'Harap isi setidaknya satu kolom data pada tabel Roasting.');
         }
 
-        showLoading('Menyimpan data Roasting Fan...');
+        showLoading('Menyimpan data Roasting Fan & Menyelesaikan Input Produksi...');
         ajaxPost('{{ route("wizard.proses2.store-roasting-fan") }}', d).then(res => {
             hideLoading();
             if (res.success) { 
                 state.roasting_fan_uuid = res.uuid; 
-                const p7Field = document.getElementById('p7_roasting_fan_uuid');
-                if (p7Field) p7Field.value = res.uuid; 
-                goToStep(7); 
-                showAlert('success', 'Berhasil', 'Data Roasting Fan berhasil disimpan.'); 
+                try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
+                window.location.href = res.redirect_url || '{{ route("wizard.proses2.index") }}';
             }
             else { res.errors ? showErrors(res.errors) : showAlert('danger', 'Gagal', res.message || 'Terjadi kesalahan.'); }
         }).catch(e => { hideLoading(); showAlert('danger', 'Error', e.message); });

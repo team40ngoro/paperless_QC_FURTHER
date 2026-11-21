@@ -91,7 +91,7 @@
                                 @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
+                                        <i class="fas fa-check mr-1"></i> Approve SPV QC
                                     </button>
                                 @endif
                             </div>
@@ -237,7 +237,7 @@
                                                                 <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
                                                             </span>
                                                             <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                                                                <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
+                                                                <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV QC
                                                             </span>
                                                         </div>
                                                     </td>

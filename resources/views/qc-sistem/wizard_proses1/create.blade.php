@@ -34,9 +34,9 @@
                                 2 => ['icon' => 'fa-mortar-pestle', 'label' => 'Predust'],
                                 3 => ['icon' => 'fa-tint',          'label' => 'Battering'],
                                 4 => ['icon' => 'fa-bread-slice',   'label' => 'Breadering'],
+                                5 => ['icon' => 'fa-burn',          'label' => 'Fryer'],
                             ];
                             if (!$isProduksiRole) {
-                                $steps[5] = ['icon' => 'fa-burn',         'label' => 'Fryer'];
                                 $steps[6] = ['icon' => 'fa-check-double', 'label' => 'Hasil Goreng'];
                             }
                         @endphp
@@ -121,24 +121,14 @@
                                 <label>Waktu Pemasakan <span class="text-danger">*</span></label>
                                 <input type="text" name="waktu_pemasakan" class="form-control" required placeholder="Contoh: 30">
                             </div>
-                            @if($isProduksiRole)
-                                <input type="hidden" name="hasil_pencetakan" value="">
-                                <div class="form-group">
-                                    <label>Hasil Pencetakan <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
-                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
-                                        <i class="fas fa-lock mr-1"></i> Hasil Pencetakan (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
-                                    </div>
-                                </div>
-                            @else
-                                <div class="form-group">
-                                    <label>Hasil Pencetakan</label>
-                                    <select name="hasil_pencetakan" class="form-control">
-                                        <option value="">Pilih Hasil (Opsional)</option>
-                                        <option value="✔">✔ OK</option>
-                                        <option value="✘">✘ Tidak OK</option>
-                                    </select>
-                                </div>
-                            @endif
+                            <div class="form-group">
+                                <label>Hasil Pencetakan <span class="text-danger">*</span></label>
+                                <select name="hasil_pencetakan" class="form-control" required>
+                                    <option value="">-- Pilih Hasil Cetak --</option>
+                                    <option value="✔">✔ OK</option>
+                                    <option value="✘">✘ Tidak OK</option>
+                                </select>
+                            </div>
                         </form>
                     </div>
                     <div class="card-footer text-right">
@@ -187,24 +177,14 @@
                                 <label>Kode Produksi <span class="text-danger">*</span></label>
                                 <input type="text" name="kode_produksi" id="predust_kode_produksi" class="form-control" placeholder="Masukkan Kode Produksi" required>
                             </div>
-                            @if($isProduksiRole)
-                                <input type="hidden" name="hasil_predust" id="predust_hasil" value="">
-                                <div class="form-group">
-                                    <label>Hasil Predust <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
-                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
-                                        <i class="fas fa-lock mr-1"></i> Hasil Predust (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
-                                    </div>
-                                </div>
-                            @else
-                                <div class="form-group">
-                                    <label>Hasil Predust <span class="text-danger">*</span></label>
-                                    <select name="hasil_predust" id="predust_hasil" class="form-control" required>
-                                        <option value="">-- Pilih Hasil --</option>
-                                        <option value="✔">✔ Baik</option>
-                                        <option value="✘">✘ Tidak Baik</option>
-                                    </select>
-                                </div>
-                            @endif
+                            <div class="form-group">
+                                <label>Hasil Predust <span class="text-danger">*</span></label>
+                                <select name="hasil_predust" id="predust_hasil" class="form-control" required>
+                                    <option value="">-- Pilih Hasil Predust --</option>
+                                    <option value="✔">✔ OK</option>
+                                    <option value="✘">✘ Tidak OK</option>
+                                </select>
+                            </div>
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
@@ -254,23 +234,13 @@
                                 <div id="kode_produksi_better_container">
                                 </div>
                             </div>
-                            @if($isProduksiRole)
-                                <input type="hidden" name="hasil_better" value="">
-                                <div class="form-group">
-                                    <label>Hasil Better <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
-                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
-                                        <i class="fas fa-lock mr-1"></i> Hasil Battering (OK / Tidak OK) akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
-                                    </div>
-                                </div>
-                            @else
-                                <div class="form-group">
-                                    <label>Hasil Better <span class="text-danger">*</span></label>
-                                    <select name="hasil_better" class="form-control" required>
-                                        <option value="✔">✔ Baik</option>
-                                        <option value="✘">✘ Tidak Baik</option>
-                                    </select>
-                                </div>
-                            @endif
+                            <div class="form-group">
+                                <label>Hasil Better <span class="text-danger">*</span></label>
+                                <select name="hasil_better" class="form-control" required>
+                                    <option value="✔">✔ OK</option>
+                                    <option value="✘">✘ Tidak OK</option>
+                                </select>
+                            </div>
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
@@ -319,36 +289,21 @@
                                 <div id="kode_produksi_breader_container">
                                 </div>
                             </div>
-                            @if($isProduksiRole)
-                                <input type="hidden" name="hasil_breader" value="">
-                                <div class="form-group">
-                                    <label>Hasil Breader <span class="badge badge-info ml-1">Bagian QC Inspector</span></label>
-                                    <div class="alert alert-light border mb-0 py-2 text-muted small">
-                                        <i class="fas fa-lock mr-1"></i> Hasil Breading (OK / Tidak OK), Frying, dan Hasil Penggorengan akan diinput oleh <strong>QC Inspector</strong> melalui ikon mata (Detail).
-                                    </div>
-                                </div>
-                            @else
-                                <div class="form-group">
-                                    <label>Hasil Breader <span class="text-danger">*</span></label>
-                                    <select name="hasil_breader" class="form-control" required>
-                                        <option value="✔">✔ Baik</option>
-                                        <option value="✘">✘ Tidak Baik</option>
-                                    </select>
-                                </div>
-                            @endif
+                            <div class="form-group">
+                                <label>Hasil Breader <span class="text-danger">*</span></label>
+                                <select name="hasil_breader" class="form-control" required>
+                                    <option value="✔">✔ OK</option>
+                                    <option value="✘">✘ Tidak OK</option>
+                                </select>
+                            </div>
                         </form>
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        @if($isProduksiRole)
-                            <button type="button" class="btn btn-success next-step" data-step="4"><i class="fas fa-check-circle mr-1"></i> Simpan Data Produksi & Selesai</button>
-                        @else
-                            <button type="button" class="btn btn-primary next-step" data-step="4">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
-                        @endif
+                        <button type="button" class="btn btn-primary next-step" data-step="4">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
                     </div>
                 </div>
             </div>
 
-            @if(!$isProduksiRole)
             <!-- STEP 5: FRAYER -->
             <div class="wizard-step" id="step-5" style="display:none;">
                 <div class="card card-danger card-outline">
@@ -553,11 +508,16 @@
                         @endforeach
                     </div>
                     <div class="card-footer d-flex justify-content-between">
-                        <button type="button" class="btn btn-primary" id="btn-frayer-lanjut">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
+                        @if($isProduksiRole)
+                            <button type="button" class="btn btn-success" id="btn-frayer-lanjut"><i class="fas fa-check-circle mr-1"></i> Simpan Data Produksi & Selesai</button>
+                        @else
+                            <button type="button" class="btn btn-primary" id="btn-frayer-lanjut">Simpan & Lanjut <i class="fas fa-arrow-right ml-1"></i></button>
+                        @endif
                     </div>
                 </div>
             </div>
 
+            @if(!$isProduksiRole)
             <!-- STEP 6: HASIL PENGGORENGAN -->
             <div class="wizard-step" id="step-6" style="display:none;">
                 <div class="card card-info card-outline">
@@ -659,7 +619,7 @@
     'use strict';
 
     const IS_PRODUKSI_ROLE = {{ $isProduksiRole ? 'true' : 'false' }};
-    const MAX_STEP = IS_PRODUKSI_ROLE ? 4 : 6;
+    const MAX_STEP = IS_PRODUKSI_ROLE ? 5 : 6;
 
     // ========== STATE ==========
     const state = {
@@ -794,7 +754,7 @@
     // ========== STEP 1 SUBMIT ==========
     document.querySelector('#step-1 .next-step')?.addEventListener('click', function() {
         const form1 = document.getElementById('form-step-1');
-        const requiredFields = ['shift_id', 'jam', 'id_produk', 'berat_produk', 'kode_produksi', 'no_of_strokes', 'waktu_pemasakan'];
+        const requiredFields = ['shift_id', 'jam', 'id_produk', 'berat_produk', 'kode_produksi', 'no_of_strokes', 'waktu_pemasakan', 'hasil_pencetakan'];
         let isValid = true;
         requiredFields.forEach(name => {
             const el = name === 'berat_produk' ? document.getElementById('nilai_select_berat') : 
@@ -852,10 +812,8 @@
             { id: 'predust_kode_produksi', name: 'Kode Produksi' },
             { id: 'predust_tanggal', name: 'Tanggal' },
             { id: 'predust_jam', name: 'Jam' },
+            { id: 'predust_hasil', name: 'Hasil Predust' },
         ];
-        if (!IS_PRODUKSI_ROLE) {
-            requiredFields.push({ id: 'predust_hasil', name: 'Hasil Predust' });
-        }
         requiredFields.forEach(f => {
             const el = document.getElementById(f.id);
             if (!el || !el.value) { el?.classList.add('is-invalid'); isValid = false; }
@@ -1025,7 +983,6 @@
             tanggal:               form4.querySelector('[name="tanggal"]').value,
             jam:                   jamBreader.value,
             battering_uuid:        state.battering_uuid,
-            finalize_produksi:     IS_PRODUKSI_ROLE ? 1 : 0,
         };
 
         showLoading('Menyimpan data Breader...');
@@ -1033,11 +990,6 @@
             hideLoading();
             if (res.success) {
                 state.breader_uuid = res.uuid;
-                if (IS_PRODUKSI_ROLE) {
-                    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
-                    window.location.href = res.redirect_url || '{{ route("wizard.proses1.index") }}';
-                    return;
-                }
                 persistState();
                 copyProdukToStep(5, state.id_produk, state.id_produk_text);
                 document.getElementById('p4_info_produk').textContent = state.id_produk_text;
@@ -1162,6 +1114,12 @@
         const lastFn = Math.max(...savedFrayers.map(Number));
         state.last_frayer_uuid = state.frayer_uuids[lastFn];
         state.last_frayer_number = lastFn;
+
+        if (IS_PRODUKSI_ROLE) {
+            try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+            window.location.href = '{{ route("wizard.proses1.index") }}';
+            return;
+        }
 
         loadStdSuhuPusat(state.id_produk, state.last_frayer_number);
         document.getElementById('p5_info_produk').textContent = state.id_produk_text;

@@ -125,7 +125,7 @@
                                                 <td class="text-center align-middle">{{ $item->shift->shift ?? '-' }}</td>
                                                 <td class="text-left align-middle">{{ $item->penggorenganData->kode_produksi ?? '-' }}</td>
                                                 <td class="text-left align-middle">
-                                                    <div style="font-size: 0.85rem;">{{ $item->hasilProsesRoastingData->produk->nama_produk ?? '-' }}</div>
+                                                    <div style="font-size: 0.85rem;">{{ $item->penggorenganData->produk->nama_produk ?? ($item->prosesRoastingFanData->produk->nama_produk ?? ($item->hasilProsesRoastingData->produk->nama_produk ?? '-')) }}</div>
                                                 </td>
                                                 <td class="text-center align-middle">
                                                     <div style="font-size: 0.8rem;">{{ $item->user->name ?? '-' }}</div>

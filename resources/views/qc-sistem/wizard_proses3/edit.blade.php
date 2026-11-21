@@ -38,19 +38,24 @@
                 @csrf
                 @method('PUT')
 
-                {{-- SECTION: INFO UTAMA & IQF --}}
+                {{-- SECTION: INFO UTAMA --}}
                 <div class="card card-dark card-outline shadow-sm mb-4">
                     <div class="card-header bg-dark">
-                        <h3 class="card-title font-weight-bold text-white"><i class="fas fa-snowflake mr-1"></i> Info Utama & IQF</h3>
+                        <h3 class="card-title font-weight-bold text-white"><i class="fas fa-info-circle mr-1"></i> Info Utama</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Nama Produk <span class="text-danger">*</span></label>
+                                    @php
+                                        $fallbackIdProduk3 = $pembekuan->inputRoastingData->id_produk
+                                            ?? ($pembekuan->prosesRoastingFanData->id_produk
+                                            ?? ($pembekuan->hasilProsesRoastingData->id_produk ?? null));
+                                    @endphp
                                     <select name="id_produk" class="form-control select2-field" required>
                                         @foreach($produks as $p)
-                                            <option value="{{ $p->id }}" {{ ($pembekuan->hasilProsesRoastingData->id_produk ?? '') == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
+                                            <option value="{{ $p->id }}" {{ $fallbackIdProduk3 == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -72,23 +77,13 @@
                                     <label>Shift <span class="text-danger">*</span></label>
                                     <select name="id_shift" class="form-control" required>
                                         @foreach($shifts as $s)
-                                            <option value="{{ $s->id }}" {{ $pembekuan->inputRoastingData->shift_id == $s->id ? 'selected' : '' }}>{{ $s->shift }}</option>
+                                            <option value="{{ $s->id }}" {{ ($pembekuan->inputRoastingData->shift_id ?? $pembekuan->id_shift) == $s->id ? 'selected' : '' }}>{{ $s->shift }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Suhu Ruang IQF (°C) <span class="text-danger">*</span></label>
-                                    <input type="text" name="suhu_ruang_iqf" class="form-control" value="{{ $pembekuan->suhu_ruang_iqf }}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Holding Time (Menit) <span class="text-danger">*</span></label>
-                                    <input type="text" name="holding_time" class="form-control" value="{{ $pembekuan->holding_time }}" required>
-                                </div>
-                            </div>
+                            <input type="hidden" name="suhu_ruang_iqf" value="{{ $pembekuan->suhu_ruang_iqf ?? '-' }}">
+                            <input type="hidden" name="holding_time" value="{{ $pembekuan->holding_time ?? '-' }}">
                         </div>
                     </div>
                 </div>
