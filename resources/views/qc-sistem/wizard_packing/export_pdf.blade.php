@@ -23,7 +23,7 @@
         .footer { position: fixed; bottom: 10px; width: 100%; text-align: right; font-size: 8px; }
         .clearfix::after { content: ""; display: table; clear: both; }
         .signature-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .signature-table td { width: 33.33%; text-align: center; vertical-align: bottom; padding: 3px 5px; border: none; }
+        .signature-table td { width: 25%; text-align: center; vertical-align: bottom; padding: 3px 5px; border: none; }
         .signature-label { text-align: center; font-size: 8px; margin-bottom: 3px; }
         .signature-qr-area { height: 55px; text-align: center; vertical-align: bottom; }
         .signature-line { border-top: 1px solid #000; margin-top: 3px; margin-bottom: 3px; }
@@ -102,16 +102,20 @@
         <thead>
             <tr>
                 <th>Std Suhu IQF (&deg;C)</th>
-                <th>Aktual Suhu Produk</th>
+                <th>Waktu Pengecekan After IQF</th>
+                <th>Suhu IQF (Produksi)</th>
+                <th>Suhu Aktual Produk Pembekuan (QC)</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>{{ $pembekuan->pengemasanProduk->std_suhu_produk_iqf ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanProduk->std_suhu_produk_iqf ?? '-18°C' }}</td>
+                <td>{{ $pembekuan->pengemasanProduk->waktu_awal_packing ?: '-' }}</td>
+                <td>{{ $pembekuan->pengemasanProduk->suhu_iqf !== null && $pembekuan->pengemasanProduk->suhu_iqf !== '' ? $pembekuan->pengemasanProduk->suhu_iqf . ' °C' : '-' }}</td>
                 <td>
                     @php
                         $suhus = explode(',', $pembekuan->pengemasanProduk->aktual_suhu_produk ?? '');
-                        $suhus = array_filter(array_map('trim', $suhus));
+                        $suhus = array_filter(array_map('trim', $suhus), fn($v) => $v !== '');
                         echo !empty($suhus) ? implode(' &deg;C, ', $suhus) . ' &deg;C' : '-';
                     @endphp
                 </td>
@@ -229,15 +233,19 @@
     <table class="main-table">
         <thead>
             <tr>
+                <th>Jam Kartoning</th>
                 <th>Kesesuaian Label Karton</th>
                 <th>Standar isi pack dalam karton</th>
                 <th>Aktual isi pack dalam karton</th>
                 <th>Kesesuaian Standar Isi Pack</th>
+                <th>Hasil Finish Good (Box/Pallet)</th>
+                <th>Total Reject Kemasan</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>{{ $pembekuan->pengemasanKarton->identitas_produk_pada_karton == '✔' ? 'OK' : 'Tidak Sesuai' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->jam ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->identitas_produk_pada_karton == '✔' ? 'OK' : ($pembekuan->pengemasanKarton->identitas_produk_pada_karton ? 'Tidak Sesuai' : '-') }}</td>
                 <td>{{ $pembekuan->pengemasanKarton->standar_jumlah_karton ?? '-' }}</td>
                 <td>{{ $pembekuan->pengemasanKarton->aktual_jumlah_karton ?? '-' }}</td>
                 <td>
@@ -254,6 +262,42 @@
                         -
                     @endif
                 </td>
+                <td>{{ $pembekuan->pengemasanKarton->hasil_finish_good_box_pallet ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->total_reject_kemasan ?? '-' }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="main-table" style="margin-top:-10px;">
+        <thead>
+            <tr>
+                <th colspan="5">Total Reject Produk</th>
+                <th colspan="5">Total Rework Produk</th>
+            </tr>
+            <tr>
+                <th>MP</th>
+                <th>Cooking</th>
+                <th>IQF</th>
+                <th>Packing</th>
+                <th>Total</th>
+                <th>MP</th>
+                <th>Cooking</th>
+                <th>IQF</th>
+                <th>Packing</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ $pembekuan->pengemasanKarton->reject_produk_mp ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->reject_produk_cooking ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->reject_produk_iqf ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->reject_produk_packing ?? '-' }}</td>
+                <td><strong>{{ $pembekuan->pengemasanKarton->total_reject_produk ?? '-' }}</strong></td>
+                <td>{{ $pembekuan->pengemasanKarton->rework_produk_mp ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->rework_produk_cooking ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->rework_produk_iqf ?? '-' }}</td>
+                <td>{{ $pembekuan->pengemasanKarton->rework_produk_packing ?? '-' }}</td>
+                <td><strong>{{ $pembekuan->pengemasanKarton->total_rework_produk ?? '-' }}</strong></td>
             </tr>
         </tbody>
     </table>
@@ -313,23 +357,27 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="4" style="text-align:left; vertical-align:top; height:40px;">
+                <td colspan="5" style="text-align:left; vertical-align:top; height:30px;">
                     <strong>Keterangan:</strong><br>
-                    {{ $pembekuan->pengemasanKarton->keterangan ?? '-' }}
+                    {{ $pembekuan->keterangan ?: ($pembekuan->pengemasanKarton->keterangan ?? '-') }}
                 </td>
             </tr>
             <tr>
                 <td colspan="2" style="text-align:left; vertical-align:top; height:30px;">
-                    <strong>Status Release Produk:</strong><br>
-                    @if(($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'ya')
-                        Ya
-                    @elseif(($pembekuan->pengemasanProduk->status_release_produk ?? '') == 'tidak')
-                        Tidak
+                    <strong>Verifikasi Hasil Akhir Pengemasan (QC):</strong><br>
+                    @php
+                        $verifAkhirPdf = $pembekuan->pengemasanProduk->verifikasi_akhir_pengemasan ?? null;
+                        $statusRelPdf = $pembekuan->pengemasanProduk->status_release_produk ?? null;
+                    @endphp
+                    @if($verifAkhirPdf === '✔' || $statusRelPdf === 'ya')
+                        OK (Release)
+                    @elseif($verifAkhirPdf === '✘' || $statusRelPdf === 'tidak')
+                        Tidak OK (Hold / Reject)
                     @else
                         -
                     @endif
                 </td>
-                <td colspan="2" style="text-align:left; vertical-align:top; height:30px;">
+                <td colspan="3" style="text-align:left; vertical-align:top; height:30px;">
                     <strong>Tindakan Koreksi:</strong><br>
                     {{ $pembekuan->pengemasanProduk->tindakan_koreksi ?? '-' }}
                 </td>
@@ -339,56 +387,64 @@
 
     <div class="footer">{{ $kode_form ?? 'QF 15/00' }}</div>
 
-    {{-- TANDA TANGAN DENGAN QR CODE --}}
+    {{-- TANDA TANGAN DENGAN QR CODE (4 PIHAK E-QF 15) --}}
     @php
-        $qcApprover = null; $qcApproverName = 'QC'; $base64QcSvg = null;
+        $creatorName = $pembekuan->user->name ?? 'PRODUKSI';
+        $createdDate = $pembekuan->created_at ? \Carbon\Carbon::parse($pembekuan->created_at)->format('Y-m-d') : (\Carbon\Carbon::parse($pembekuan->tanggal)->format('Y-m-d'));
+        $base64CreatorSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah dibuat secara sistem oleh {$creatorName} (Produksi) pada {$createdDate}"));
+
+        $qcApprover = null; $qcApproverName = 'QC INSPEKTOR'; $base64QcSvg = null;
         if ($pembekuan->approved_by_qc && $pembekuan->qc_approved_by) {
             $qcApprover = \App\Models\User::find($pembekuan->qc_approved_by);
             if ($qcApprover) {
                 $qcApproverName = $qcApprover->name;
                 $qcApprovalDate = $pembekuan->qc_approved_at ? \Carbon\Carbon::parse($pembekuan->qc_approved_at)->format('Y-m-d') : '';
-                $base64QcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (Tim QC) pada {$qcApprovalDate}"));
+                $base64QcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (QC Inspektor) pada {$qcApprovalDate}"));
             }
         }
-        $spvApprover = null; $spvApproverName = 'SUPERVISOR QC'; $base64SpvSvg = null;
-        if ($pembekuan->approved_by_spv && $pembekuan->spv_approved_by) {
-            $spvApprover = \App\Models\User::find($pembekuan->spv_approved_by);
-            if ($spvApprover) {
-                $spvApproverName = $spvApprover->name;
-                $spvApprovalDate = $pembekuan->spv_approved_at ? \Carbon\Carbon::parse($pembekuan->spv_approved_at)->format('Y-m-d') : '';
-                $base64SpvSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$spvApprover->name} (SPV) pada {$spvApprovalDate}"));
-            }
-        }
-        $produksiApprover = null; $produksiApproverName = 'FM/FL PRODUKSI'; $base64ProduksiSvg = null;
+        $produksiApprover = null; $produksiApproverName = 'FOREMAN / SPV PRODUKSI'; $base64ProduksiSvg = null;
         if ($pembekuan->approved_by_produksi && $pembekuan->produksi_approved_by) {
             $produksiApprover = \App\Models\User::find($pembekuan->produksi_approved_by);
             if ($produksiApprover) {
                 $produksiApproverName = $produksiApprover->name;
                 $produksiApprovalDate = $pembekuan->produksi_approved_at ? \Carbon\Carbon::parse($pembekuan->produksi_approved_at)->format('Y-m-d') : '';
-                $base64ProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah diverifikasi secara sistem oleh {$produksiApprover->name} (FM/FL PRODUKSI) pada {$produksiApprovalDate}"));
+                $base64ProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah diketahui secara sistem oleh {$produksiApprover->name} (Foreman/SPV Produksi) pada {$produksiApprovalDate}"));
+            }
+        }
+        $spvApprover = null; $spvApproverName = 'SPV QC'; $base64SpvSvg = null;
+        if ($pembekuan->approved_by_spv && $pembekuan->spv_approved_by) {
+            $spvApprover = \App\Models\User::find($pembekuan->spv_approved_by);
+            if ($spvApprover) {
+                $spvApproverName = $spvApprover->name;
+                $spvApprovalDate = $pembekuan->spv_approved_at ? \Carbon\Carbon::parse($pembekuan->spv_approved_at)->format('Y-m-d') : '';
+                $base64SpvSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(45)->generate("Dokumen ini telah disetujui secara sistem oleh {$spvApprover->name} (SPV QC) pada {$spvApprovalDate}"));
             }
         }
     @endphp
     <table class="signature-table">
         <tr>
-            <td class="signature-label">Dibuat Oleh:</td>
-            <td class="signature-label">Diperiksa Oleh:</td>
-            <td class="signature-label">Diketahui Oleh:</td>
+            <td class="signature-label">1. Dibuat Oleh:</td>
+            <td class="signature-label">2. Diverifikasi Oleh:</td>
+            <td class="signature-label">3. Diketahui Oleh:</td>
+            <td class="signature-label">4. Disetujui Oleh:</td>
         </tr>
         <tr>
+            <td class="signature-qr-area">@if($base64CreatorSvg)<img src="{{ $base64CreatorSvg }}" class="qr-code-img" alt="QR Produksi">@endif</td>
             <td class="signature-qr-area">@if($base64QcSvg)<img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR QC">@endif</td>
-            <td class="signature-qr-area">@if($base64SpvSvg)<img src="{{ $base64SpvSvg }}" class="qr-code-img" alt="QR SPV">@endif</td>
-            <td class="signature-qr-area">@if($base64ProduksiSvg)<img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR Produksi">@endif</td>
+            <td class="signature-qr-area">@if($base64ProduksiSvg)<img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR Foreman/SPV Produksi">@endif</td>
+            <td class="signature-qr-area">@if($base64SpvSvg)<img src="{{ $base64SpvSvg }}" class="qr-code-img" alt="QR SPV QC">@endif</td>
         </tr>
         <tr>
             <td><div class="signature-line"></div></td>
             <td><div class="signature-line"></div></td>
             <td><div class="signature-line"></div></td>
+            <td><div class="signature-line"></div></td>
         </tr>
         <tr>
-            <td class="signature-name">{{ $qcApproverName }}</td>
-            <td class="signature-name">{{ $spvApproverName }}</td>
-            <td class="signature-name">{{ $produksiApproverName }}</td>
+            <td class="signature-name">{{ $creatorName }}<br><small>(Produksi)</small></td>
+            <td class="signature-name">{{ $qcApproverName }}<br><small>(QC Inspektor)</small></td>
+            <td class="signature-name">{{ $produksiApproverName }}<br><small>(Foreman/SPV Produksi)</small></td>
+            <td class="signature-name">{{ $spvApproverName }}<br><small>(SPV QC)</small></td>
         </tr>
     </table>
     

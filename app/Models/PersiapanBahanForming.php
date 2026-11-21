@@ -44,7 +44,7 @@ class PersiapanBahanForming extends Model
         'approved_by_produksi' => 'boolean',
         'approved_by_spv' => 'boolean',
         'kode_produksi_emulsi_oil' => 'array',
-        'produk_rework_id' => 'integer',
+        'produk_rework_id' => 'array',
     ];
     protected static function boot()
     {

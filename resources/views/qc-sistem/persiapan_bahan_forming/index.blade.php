@@ -55,17 +55,17 @@
                                 <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
                                 @if($canApproveQc)
                                     <button type="button" class="btn btn-sm btn-success shadow-sm approve-selected-btn" data-type="qc">
-                                        <i class="fas fa-check mr-1"></i> Approve QC
+                                        <i class="fas fa-check mr-1"></i> 2. Verifikasi QC Inspektor
                                     </button>
                                 @endif
                                 @if($canApproveProduksi)
-                                    <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
+                                    <button type="button" class="btn btn-sm btn-primary shadow-sm approve-selected-btn" data-type="produksi">
+                                        <i class="fas fa-check mr-1"></i> 3. Diketahui SPV Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color:white;">
-                                        <i class="fas fa-check mr-1"></i> Approve SPV
+                                        <i class="fas fa-check mr-1"></i> 4. Disetujui SPV QC
                                     </button>
                                 @endif
                             </div>
@@ -145,8 +145,8 @@
                                             <th class="py-3 text-center">Kode Produksi</th>
                                             <th class="py-3 text-center">Formula</th>
                                             <th class="py-3 text-center">Kondisi</th>
-                                            <th class="py-3 text-center">Dibuat Oleh</th>
-                                            <th class="py-3 text-center" style="width: 100px;">Status Appr</th>
+                                            <th class="py-3 text-center">1. Dibuat Oleh</th>
+                                            <th class="py-3 text-center" style="width: 120px;">Verifikasi / Status</th>
                                             <th class="py-3">Catatan</th>
                                             <th class="py-3 text-center" style="width: 80px;">Aksi</th>
                                         </tr>

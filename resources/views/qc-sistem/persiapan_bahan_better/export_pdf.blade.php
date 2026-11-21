@@ -78,7 +78,7 @@
             margin-top: 30px;
         }
         .signature-table td {
-            width: 33.33%;
+            width: 25%;
             text-align: center;
             vertical-align: bottom;
             padding: 5px 10px;
@@ -257,81 +257,106 @@
         </div>
         {{-- ===== TANDA TANGAN ===== --}}
         @php
+            $firstItem = $data->first();
+            $creatorUser = $firstItem ? ($firstItem->user ?? \App\Models\User::find($firstItem->user_id)) : null;
+            $creatorName = $creatorUser ? $creatorUser->name : 'Tim Produksi';
+            $creationDate = $firstItem && $firstItem->created_at ? $firstItem->created_at->format('Y-m-d') : '';
+
             $qcApprover = null;
-            $qcApproverName = 'QC';
+            $qcApproverName = '-';
+            $qcApprovalDate = '';
             foreach($data as $item) {
                 if($item->approved_by_qc && $item->qc_approved_by) {
                     $qcApprover = \App\Models\User::find($item->qc_approved_by);
-                    if($qcApprover) { $qcApproverName = $qcApprover->name; break; }
+                    if($qcApprover) { 
+                        $qcApproverName = $qcApprover->name; 
+                        $qcApprovalDate = optional($item->qc_approved_at)->format('Y-m-d');
+                        break; 
+                    }
                 }
             }
-            $spvApprover = null;
-            $spvApproverName = 'SPV';
-            foreach($data as $item) {
-                if($item->approved_by_spv && $item->spv_approved_by) {
-                    $spvApprover = \App\Models\User::find($item->spv_approved_by);
-                    if($spvApprover) { $spvApproverName = $spvApprover->name; break; }
-                }
-            }
+
             $produksiApprover = null;
-            $produksiApproverName = 'FM/FL PRODUKSI';
+            $produksiApproverName = '-';
+            $produksiApprovalDate = '';
             foreach($data as $item) {
                 if($item->approved_by_produksi && $item->produksi_approved_by) {
                     $produksiApprover = \App\Models\User::find($item->produksi_approved_by);
-                    if($produksiApprover) { $produksiApproverName = $produksiApprover->name; break; }
+                    if($produksiApprover) { 
+                        $produksiApproverName = $produksiApprover->name; 
+                        $produksiApprovalDate = optional($item->produksi_approved_at)->format('Y-m-d');
+                        break; 
+                    }
                 }
             }
+
+            $spvApprover = null;
+            $spvApproverName = '-';
+            $spvApprovalDate = '';
+            foreach($data as $item) {
+                if($item->approved_by_spv && $item->spv_approved_by) {
+                    $spvApprover = \App\Models\User::find($item->spv_approved_by);
+                    if($spvApprover) { 
+                        $spvApproverName = $spvApprover->name; 
+                        $spvApprovalDate = optional($item->spv_approved_at)->format('Y-m-d');
+                        break; 
+                    }
+                }
+            }
+
+            $base64CreatorSvg = null;
+            if($creatorUser) {
+                $creatorQrData = "Dokumen ini telah dibuat secara sistem oleh {$creatorName} (Produksi) pada {$creationDate}";
+                $base64CreatorSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($creatorQrData));
+            }
+
             $base64QcSvg = null;
             if($qcApprover) {
-                $qcApprovalDate = '';
-                foreach($data as $item) {
-                    if($item->approved_by_qc && $item->qc_approved_at) { $qcApprovalDate = $item->qc_approved_at->format('Y-m-d'); break; }
-                }
-                $qcQrData = "Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (Tim QC) pada {$qcApprovalDate}";
+                $qcQrData = "Dokumen ini telah diverifikasi secara sistem oleh {$qcApprover->name} (QC Inspektor) pada {$qcApprovalDate}";
                 $base64QcSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($qcQrData));
             }
-            $base64SpvSvg = null;
-            if($spvApprover) {
-                $spvApprovalDate = '';
-                foreach($data as $item) {
-                    if($item->approved_by_spv && $item->spv_approved_at) { $spvApprovalDate = $item->spv_approved_at->format('Y-m-d'); break; }
-                }
-                $spvQrData = "Dokumen ini telah diverifikasi secara sistem oleh {$spvApprover->name} (SPV) pada {$spvApprovalDate}";
-                $base64SpvSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($spvQrData));
-            }
+
             $base64ProduksiSvg = null;
             if($produksiApprover) {
-                $produksiApprovalDate = '';
-                foreach($data as $item) {
-                    if($item->approved_by_produksi && $item->produksi_approved_at) { $produksiApprovalDate = $item->produksi_approved_at->format('Y-m-d'); break; }
-                }
-                $produksiQrData = "Dokumen ini telah diverifikasi secara sistem oleh {$produksiApprover->name} (FM/FL PRODUKSI) pada {$produksiApprovalDate}";
+                $produksiQrData = "Dokumen ini telah diketahui secara sistem oleh {$produksiApprover->name} (SPV Produksi) pada {$produksiApprovalDate}";
                 $base64ProduksiSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($produksiQrData));
+            }
+
+            $base64SpvSvg = null;
+            if($spvApprover) {
+                $spvQrData = "Dokumen ini telah disetujui secara sistem oleh {$spvApprover->name} (SPV QC) pada {$spvApprovalDate}";
+                $base64SpvSvg = "data:image/svg+xml;base64," . base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::size(55)->generate($spvQrData));
             }
         @endphp
         <table class="signature-table">
             <tr>
-                <td class="signature-label">Dibuat Oleh: QC INSPEKTOR</td>
-                <td class="signature-label">Diketahui Oleh: Produksi</td>
-                <td class="signature-label">Disetujui Oleh: Supervisor QC</td>
+                <td class="signature-label">1. Dibuat Oleh:<br><strong>PRODUKSI</strong></td>
+                <td class="signature-label">2. Verifikasi:<br><strong>QC INSPEKTOR</strong></td>
+                <td class="signature-label">3. Diketahui Oleh:<br><strong>SPV PRODUKSI</strong></td>
+                <td class="signature-label">4. Disetujui Oleh:<br><strong>SPV QC</strong></td>
             </tr>
             <tr>
+                <td class="signature-qr-area">
+                    @if($base64CreatorSvg)<img src="{{ $base64CreatorSvg }}" class="qr-code-img" alt="QR Produksi">@endif
+                </td>
                 <td class="signature-qr-area">
                     @if($base64QcSvg)<img src="{{ $base64QcSvg }}" class="qr-code-img" alt="QR QC">@endif
                 </td>
                 <td class="signature-qr-area">
-                    @if($base64ProduksiSvg)<img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR Produksi">@endif
+                    @if($base64ProduksiSvg)<img src="{{ $base64ProduksiSvg }}" class="qr-code-img" alt="QR SPV Produksi">@endif
                 </td>
                 <td class="signature-qr-area">
-                    @if($base64SpvSvg)<img src="{{ $base64SpvSvg }}" class="qr-code-img" alt="QR SPV">@endif
+                    @if($base64SpvSvg)<img src="{{ $base64SpvSvg }}" class="qr-code-img" alt="QR SPV QC">@endif
                 </td>
             </tr>
             <tr>
                 <td><div class="signature-line"></div></td>
                 <td><div class="signature-line"></div></td>
                 <td><div class="signature-line"></div></td>
+                <td><div class="signature-line"></div></td>
             </tr>
             <tr>
+                <td class="signature-name">{{ $creatorName }}</td>
                 <td class="signature-name">{{ $qcApproverName }}</td>
                 <td class="signature-name">{{ $produksiApproverName }}</td>
                 <td class="signature-name">{{ $spvApproverName }}</td>

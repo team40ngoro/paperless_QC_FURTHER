@@ -53,34 +53,41 @@ class WizardPackingController extends Controller
     |--------------------------------------------------------------------------
     | Pembagian Role E-QF 15 (Produksi vs QC)
     |--------------------------------------------------------------------------
-    | Produksi : Identitas produk, waktu after IQF, data pengemasan plastik
-    |            (line, waktu, penimbangan, sealing, kode kemasan, nomor MD),
-    |            aktual isi pack dalam karton.
-    | QC       : Suhu aktual produk, verifikasi plastik (identitas/label/seal),
-    |            berat produk bag & box, verifikasi karton, dokumentasi,
-    |            status release & tindakan koreksi.
+    | Produksi : Detail Pengemasan Packing, Pembekuan Produk (Waktu After IQF &
+    |            Suhu IQF), Pengemasan Plastik (lengkap + Sampling Berat Pack),
+    |            Pengemasan Box/Karton (Sampling Berat Box, Jam Kartoning,
+    |            Aktual Isi Per Box, Hasil Finish Good, Reject Produk MP/Cooking/
+    |            IQF/Packing, Total Reject Kemasan, Rework Produk MP/Cooking/
+    |            IQF/Packing), serta Dokumentasi Foto.
+    | QC       : Verifikasi melalui Ikon Mata (show):
+    |            1. Pembekuan Produk (Standar Suhu Produk, Waktu Pengecekan,
+    |               Suhu Aktual Produk Pembekuan)
+    |            2. Verifikasi Hasil Akhir Pengemasan (OK / Tidak OK),
+    |               Tindakan Koreksi & Keterangan.
     | Admin/Superadmin (role 1 & 5) : akses penuh.
     */
 
-    /** Field milik Produksi per bagian (nama bagian sesuai form edit: step1, step2, step5). */
+    /** Field milik Produksi per bagian (nama bagian sesuai form edit: step1..step6). */
     private const PRODUKSI_FIELDS = [
         'step1' => [
             'tanggal', 'jam', 'id_shift', 'id_produk', 'berat', 'tanggal_expired', 'kode_produksi',
             'is_kombinasi', 'id_produk_2', 'berat_produk_2', 'tanggal_expired_2', 'kode_produksi_2',
-            'waktu_awal_packing',
+            'waktu_awal_packing', 'suhu_iqf',
         ],
-        'step2' => ['line', 'waktu_pengemasan', 'proses_penimbangan', 'proses_sealing', 'kode_kemasan_plastik', 'nomor_md'],
-        'step5' => ['aktual_jumlah_karton'],
+        'step2' => '*',
+        'step3' => '*',
+        'step4' => '*',
+        'step5' => '*',
+        'step6' => [
+            'foto_kode_produksi', 'foto_kode_produksi_sekunder', 'foto_kode_produksi_sekunder_status',
+            'qr_code', 'label_polyroll', 'label_supplier', 'keterangan',
+        ],
     ];
 
     /** Field milik QC per bagian. '*' = seluruh field bagian tersebut. */
     private const QC_FIELDS = [
-        'step1' => ['aktual_suhu_produk'],
-        'step2' => ['identitas_produk', 'kesesuaian_label_plastik', 'kekuatan_seal'],
-        'step3' => '*',
-        'step4' => '*',
-        'step5' => ['identitas_produk_pada_karton', 'standar_jumlah_karton', 'kesesuaian_isi_pack', 'keterangan'],
-        'step6' => '*',
+        'step1' => ['std_suhu_produk_iqf', 'waktu_awal_packing', 'aktual_suhu_produk'],
+        'step6' => ['verifikasi_akhir_pengemasan', 'status_release_produk', 'tindakan_koreksi', 'keterangan'],
     ];
 
     /**
@@ -295,7 +302,7 @@ class WizardPackingController extends Controller
     {
         if (! in_array($this->roleMode(), ['all', 'produksi'], true)) {
             return redirect()->route('wizards.packing.index')
-                ->with('error', 'Pembuatan data Packing dilakukan oleh Produksi. QC melengkapi verifikasi melalui menu Edit pada data yang sudah dibuat Produksi.');
+                ->with('error', 'Pembuatan data Packing dilakukan oleh Produksi. QC melengkapi verifikasi melalui ikon Mata (Detail) pada data yang sudah dibuat Produksi.');
         }
 
         return $this->createView();
@@ -325,7 +332,6 @@ class WizardPackingController extends Controller
     {
         try {
             $user = Auth::user();
-            $user = Auth::user();
             if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
             $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanProduk::create([
@@ -341,6 +347,7 @@ class WizardPackingController extends Controller
                 'tanggal_expired'  => $request->tanggal_expired,
                 'kode_produksi'    => $request->kode_produksi,
                 'std_suhu_produk_iqf' => $request->std_suhu_produk_iqf ?? '-18°C',
+                'suhu_iqf'            => $request->suhu_iqf,
                 'aktual_suhu_produk'  => $isProduksi ? null : (is_array($request->aktual_suhu_produk) ? implode(', ', array_filter(array_map('trim', $request->aktual_suhu_produk), fn($v) => $v !== '')) : $request->aktual_suhu_produk),
                 'waktu_awal_packing'  => $request->waktu_awal_packing,
                 'is_kombinasi'        => ($request->has('is_kombinasi') && $request->is_kombinasi == 1) ? 1 : 0,
@@ -377,7 +384,6 @@ class WizardPackingController extends Controller
             $id_shift = $pengemasanProduk ? $pengemasanProduk->id_shift : null;
 
             if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
-            $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanPlastik::create([
                 'uuid' => Str::uuid(),
                 'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
@@ -389,13 +395,13 @@ class WizardPackingController extends Controller
                 'berat' => $berat,
                 'proses_penimbangan' => $request->proses_penimbangan,
                 'proses_sealing' => $request->proses_sealing,
-                'identitas_produk' => $isProduksi ? null : $request->identitas_produk,
+                'identitas_produk' => $request->identitas_produk,
                 'nomor_md' => $nomor_md_path,
                 'kode_kemasan_plastik' => $request->kode_kemasan_plastik,
                 'line' => is_array($request->line) ? implode(', ', array_filter(array_map('trim', $request->line), fn($v) => $v !== '')) : $request->line,
                 'waktu_pengemasan' => $request->waktu_pengemasan,
-                'kesesuaian_label_plastik' => $isProduksi ? null : $request->kesesuaian_label_plastik,
-                'kekuatan_seal' => $isProduksi ? null : $request->kekuatan_seal,
+                'kesesuaian_label_plastik' => $request->kesesuaian_label_plastik,
+                'kekuatan_seal' => $request->kekuatan_seal,
             ]);
             return response()->json(['success' => true, 'id' => $record->id, 'uuid' => $record->uuid]);
         } catch (\Exception $e) { return response()->json(['success' => false, 'message' => $e->getMessage()], 500); }
@@ -412,20 +418,21 @@ class WizardPackingController extends Controller
             $firstId = null;
             $uuid = null;
 
-            if ($deny = $this->denyUnless(['all'])) return $deny;
-            foreach ($request->line as $index => $line) {
+            if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
+            $lines = is_array($request->line) && !empty($request->line) ? $request->line : [null];
+            foreach ($lines as $index => $line) {
                 $record = BeratProdukBag::create([
                     'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                     'user_id' => $user->id,
                     'id_pengemasan_produk' => $request->id_pengemasan_produk,
                     'id_pengemasan_plastik' => $request->id_pengemasan_plastik,
                     'id_shift' => $id_shift,
-                    'id_data_bag' => $request->id_data_bag[$index] ?? $request->id_data_bag[0],
+                    'id_data_bag' => $request->id_data_bag[$index] ?? ($request->id_data_bag[0] ?? null),
                     'line' => $line,
                     'tanggal' => $tanggal,
                     'jam' => $request->jam,
                     'berat_aktual' => $request->berat_aktual[$index] ?? [],
-                    'rata_rata_berat' => $request->rata_rata_berat[$index],
+                    'rata_rata_berat' => $request->rata_rata_berat[$index] ?? null,
                 ]);
 
                 if ($index === 0) {
@@ -458,7 +465,7 @@ class WizardPackingController extends Controller
                 $rataRata = round(array_sum($beratAktualFiltered) / count($beratAktualFiltered), 2);
             }
 
-            if ($deny = $this->denyUnless(['all'])) return $deny;
+            if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
             $record = BeratProdukBox::create([
                 'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
                 'user_id' => $user->id,
@@ -484,7 +491,6 @@ class WizardPackingController extends Controller
             $id_shift = $pengemasanProduk ? $pengemasanProduk->id_shift : null;
 
             if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
-            $isProduksi = $this->roleMode() === 'produksi';
             $record = PengemasanKarton::create([
                 'uuid' => Str::uuid(),
                 'id_plan' => $this->resolvePlanId($user, $pengemasanProduk?->id_produk, $pengemasanProduk?->id_plan),
@@ -496,10 +502,22 @@ class WizardPackingController extends Controller
                 'shift_id' => $id_shift,
                 'tanggal' => \Carbon\Carbon::parse($request->tanggal)->setTimeFrom(now())->format('Y-m-d H:i:s'),
                 'jam' => $request->jam,
-                'identitas_produk_pada_karton' => $isProduksi ? null : $request->identitas_produk_pada_karton,
-                'standar_jumlah_karton' => $isProduksi ? null : $request->standar_jumlah_karton,
+                'identitas_produk_pada_karton' => $request->identitas_produk_pada_karton,
+                'standar_jumlah_karton' => $request->standar_jumlah_karton,
                 'aktual_jumlah_karton' => $request->aktual_jumlah_karton,
-                'kesesuaian_isi_pack' => (! $isProduksi && $request->kesesuaian_isi_pack) ? json_encode(array_values($request->kesesuaian_isi_pack)) : null,
+                'kesesuaian_isi_pack' => $request->kesesuaian_isi_pack ? json_encode(array_values($request->kesesuaian_isi_pack)) : null,
+                'hasil_finish_good_box_pallet' => $request->hasil_finish_good_box_pallet,
+                'total_reject_produk' => $request->total_reject_produk,
+                'reject_produk_mp' => $request->reject_produk_mp,
+                'reject_produk_cooking' => $request->reject_produk_cooking,
+                'reject_produk_iqf' => $request->reject_produk_iqf,
+                'reject_produk_packing' => $request->reject_produk_packing,
+                'total_reject_kemasan' => $request->total_reject_kemasan,
+                'total_rework_produk' => $request->total_rework_produk,
+                'rework_produk_mp' => $request->rework_produk_mp,
+                'rework_produk_cooking' => $request->rework_produk_cooking,
+                'rework_produk_iqf' => $request->rework_produk_iqf,
+                'rework_produk_packing' => $request->rework_produk_packing,
             ]);
             return response()->json(['success' => true, 'id' => $record->id, 'uuid' => $record->uuid]);
         } catch (\Exception $e) { return response()->json(['success' => false, 'message' => $e->getMessage()], 500); }
@@ -513,9 +531,6 @@ class WizardPackingController extends Controller
             $id_shift = $pengemasanProduk ? $pengemasanProduk->id_shift : null;
 
             if ($deny = $this->denyUnless(['all', 'produksi'])) return $deny;
-            if ($this->roleMode() === 'produksi') {
-                return $this->finalizeProduksi($request, $user, $id_shift);
-            }
 
             $foto_kode_produksi_path = $request->input('foto_kode_produksi') === '-' ? '-' : null;
             $foto_kode_produksi_sekunder_path = null;
@@ -608,14 +623,26 @@ class WizardPackingController extends Controller
                 'keterangan' => $request->keterangan,
             ]);
 
-            if ($pengemasanProduk) {
-                $pengemasanProduk->update([
-                    'status_release_produk' => $request->status_release_produk,
-                    'tindakan_koreksi'      => $request->tindakan_koreksi,
-                ]);
+            if ($pengemasanProduk && $this->roleMode() !== 'produksi') {
+                $ppUpdates = [];
+                if ($request->filled('verifikasi_akhir_pengemasan')) {
+                    $ppUpdates['verifikasi_akhir_pengemasan'] = $request->verifikasi_akhir_pengemasan;
+                    $ppUpdates['status_release_produk'] = $request->verifikasi_akhir_pengemasan === '✔' ? 'ya' : 'tidak';
+                } elseif ($request->filled('status_release_produk')) {
+                    $ppUpdates['status_release_produk'] = $request->status_release_produk;
+                    $ppUpdates['verifikasi_akhir_pengemasan'] = $request->status_release_produk === 'ya' ? '✔' : '✘';
+                }
+                if ($request->filled('tindakan_koreksi')) {
+                    $ppUpdates['tindakan_koreksi'] = $request->tindakan_koreksi;
+                }
+                if (!empty($ppUpdates)) {
+                    $pengemasanProduk->update($ppUpdates);
+                }
             }
             
-            session()->flash('success', 'Proses Packing selesai! Semua data berhasil disimpan.');
+            session()->flash('success', $this->roleMode() === 'produksi'
+                ? 'Data Produksi Packing berhasil disimpan! Menunggu verifikasi QC melalui ikon Mata (Detail).'
+                : 'Proses Packing selesai! Semua data berhasil disimpan.');
 
             return response()->json([
                 'success' => true,
@@ -730,7 +757,7 @@ class WizardPackingController extends Controller
         }
 
         $canEditQcVerification = in_array((int) ($user->id_role ?? 0), [1, 3, 5], true);
-        $isQcCompleted = !empty($pembekuan->pengemasanProduk->status_release_produk);
+        $isQcCompleted = !empty($pembekuan->pengemasanProduk->verifikasi_akhir_pengemasan) || !empty($pembekuan->pengemasanProduk->status_release_produk);
 
         return view('qc-sistem.wizard_packing.show', compact(
             'pembekuan',
@@ -769,138 +796,51 @@ class WizardPackingController extends Controller
         }
 
         try {
-            // 1. Suhu Aktual Produk After IQF
-            if ($pembekuan->pengemasanProduk && $request->has('aktual_suhu_produk')) {
-                $suhuInput = $request->input('aktual_suhu_produk');
-                if (is_array($suhuInput)) {
-                    $suhuArray = array_filter(array_map('trim', $suhuInput), fn($v) => $v !== '');
-                    $suhuString = implode(', ', $suhuArray);
-                } else {
-                    $suhuString = trim((string) $suhuInput);
-                }
-                $pembekuan->pengemasanProduk->update([
-                    'aktual_suhu_produk' => $suhuString,
-                ]);
-            }
-
-            // 2. Verifikasi Pengemasan Plastik
-            if ($pembekuan->pengemasanPlastik) {
-                $pembekuan->pengemasanPlastik->update([
-                    'identitas_produk' => $request->identitas_produk,
-                    'kesesuaian_label_plastik' => $request->kesesuaian_label_plastik,
-                    'kekuatan_seal' => $request->kekuatan_seal,
-                ]);
-            }
-
-            // 3. Berat Produk Bag/Pack
-            if ($request->has('step3') && is_array($request->step3)) {
-                foreach ($request->step3 as $bag_id => $bag_data) {
-                    $bag = BeratProdukBag::find($bag_id);
-                    if ($bag) {
-                        if (isset($bag_data['berat_aktual']) && is_array($bag_data['berat_aktual'])) {
-                            $bag_data['berat_aktual'] = array_values(array_filter(array_map('floatval', $bag_data['berat_aktual'])));
-                        }
-                        $bag->update($bag_data);
-                    }
-                }
-            }
-
-            // 4. Berat Produk Box
-            if ($pembekuan->beratProdukBox && $request->has('step4')) {
-                $step4 = $request->step4;
-                if (isset($step4['berat_aktual']) && is_array($step4['berat_aktual'])) {
-                    $step4['berat_aktual'] = array_values(array_filter(array_map('floatval', $step4['berat_aktual'])));
-                }
-                $pembekuan->beratProdukBox->update($step4);
-            }
-
-            // 5. Verifikasi Pengemasan Karton
-            if ($pembekuan->pengemasanKarton) {
-                $kartonUpdate = [];
-                if ($request->filled('identitas_produk_pada_karton')) {
-                    $kartonUpdate['identitas_produk_pada_karton'] = $request->identitas_produk_pada_karton;
-                }
-                if ($request->filled('standar_jumlah_karton')) {
-                    $kartonUpdate['standar_jumlah_karton'] = $request->standar_jumlah_karton;
-                }
-                if ($request->has('kesesuaian_isi_pack') && is_array($request->kesesuaian_isi_pack)) {
-                    $kartonUpdate['kesesuaian_isi_pack'] = json_encode(array_values($request->kesesuaian_isi_pack));
-                }
-                if (!empty($kartonUpdate)) {
-                    $pembekuan->pengemasanKarton->update($kartonUpdate);
-                }
-            }
-
-            // 6. Dokumentasi & Release
-            $updateDokumentasi = [];
-
-            foreach (['foto_kode_produksi', 'foto_kode_produksi_sekunder', 'qr_code', 'label_polyroll', 'label_supplier'] as $dir) {
-                if (!Storage::disk('public')->exists('uploads/' . $dir)) {
-                    Storage::disk('public')->makeDirectory('uploads/' . $dir);
-                }
-            }
-
-            if ($request->hasFile('foto_kode_produksi')) {
-                $file = $request->file('foto_kode_produksi');
-                $filename = time() . '_' . uniqid() . '_kode.jpg';
-                $image = Image::make($file)->encode('jpg', 70);
-                Storage::disk('public')->put('uploads/foto_kode_produksi/' . $filename, $image);
-                $updateDokumentasi['foto_kode_produksi'] = 'uploads/foto_kode_produksi/' . $filename;
-            }
-
-            if ($request->hasFile('foto_kode_produksi_sekunder')) {
-                $file = $request->file('foto_kode_produksi_sekunder');
-                $filename = time() . '_' . uniqid() . '_kode_sekunder.jpg';
-                $image = Image::make($file)->encode('jpg', 70);
-                Storage::disk('public')->put('uploads/foto_kode_produksi_sekunder/' . $filename, $image);
-                $updateDokumentasi['foto_kode_produksi_sekunder'] = 'uploads/foto_kode_produksi_sekunder/' . $filename;
-            } elseif ($request->filled('foto_kode_produksi_sekunder_status')) {
-                $updateDokumentasi['foto_kode_produksi_sekunder'] = $request->foto_kode_produksi_sekunder_status;
-            }
-
-            if ($request->hasFile('qr_code')) {
-                $file = $request->file('qr_code');
-                $filename = time() . '_' . uniqid() . '_qr.jpg';
-                $image = Image::make($file)->encode('jpg', 70);
-                Storage::disk('public')->put('uploads/qr_code/' . $filename, $image);
-                $updateDokumentasi['qr_code'] = 'uploads/qr_code/' . $filename;
-            }
-
-            if ($request->hasFile('label_polyroll')) {
-                $file = $request->file('label_polyroll');
-                $filename = time() . '_' . uniqid() . '_polyroll.jpg';
-                $image = Image::make($file)->encode('jpg', 70);
-                Storage::disk('public')->put('uploads/label_polyroll/' . $filename, $image);
-                $updateDokumentasi['label_polyroll'] = 'uploads/label_polyroll/' . $filename;
-            }
-
-            if ($request->hasFile('label_supplier')) {
-                $file = $request->file('label_supplier');
-                $filename = time() . '_' . uniqid() . '_supplier.jpg';
-                $image = Image::make($file)->encode('jpg', 70);
-                Storage::disk('public')->put('uploads/label_supplier/' . $filename, $image);
-                $updateDokumentasi['label_supplier'] = 'uploads/label_supplier/' . $filename;
-            }
-
-            if ($request->has('keterangan')) {
-                $updateDokumentasi['keterangan'] = $request->keterangan;
-            }
-
-            if (!empty($updateDokumentasi)) {
-                $pembekuan->update($updateDokumentasi);
-            }
-
             if ($pembekuan->pengemasanProduk) {
                 $ppUpdates = [];
-                if ($request->filled('status_release_produk')) {
-                    $ppUpdates['status_release_produk'] = $request->status_release_produk;
+
+                // 1. Pembekuan Produk: Standar Suhu Produk, Waktu Pengecekan, Suhu Aktual Produk Pembekuan
+                if ($request->filled('std_suhu_produk_iqf')) {
+                    $ppUpdates['std_suhu_produk_iqf'] = $request->input('std_suhu_produk_iqf');
                 }
+                if ($request->filled('waktu_awal_packing')) {
+                    $ppUpdates['waktu_awal_packing'] = $request->input('waktu_awal_packing');
+                }
+                if ($request->has('aktual_suhu_produk')) {
+                    $suhuInput = $request->input('aktual_suhu_produk');
+                    if (is_array($suhuInput)) {
+                        $suhuArray = array_filter(array_map('trim', $suhuInput), fn($v) => $v !== '');
+                        $suhuString = implode(', ', $suhuArray);
+                    } else {
+                        $suhuString = trim((string) $suhuInput);
+                    }
+                    $ppUpdates['aktual_suhu_produk'] = $suhuString;
+                }
+
+                // 2. Verifikasi Hasil Akhir Pengemasan (OK / Tidak OK) + Tindakan Koreksi
+                if ($request->filled('verifikasi_akhir_pengemasan')) {
+                    $verifikasi = $request->input('verifikasi_akhir_pengemasan');
+                    $ppUpdates['verifikasi_akhir_pengemasan'] = $verifikasi;
+                    $ppUpdates['status_release_produk'] = $verifikasi === '✔' ? 'ya' : 'tidak';
+                } elseif ($request->filled('status_release_produk')) {
+                    $release = $request->input('status_release_produk');
+                    $ppUpdates['status_release_produk'] = $release;
+                    $ppUpdates['verifikasi_akhir_pengemasan'] = $release === 'ya' ? '✔' : '✘';
+                }
+
                 if ($request->has('tindakan_koreksi')) {
-                    $ppUpdates['tindakan_koreksi'] = $request->tindakan_koreksi;
+                    $ppUpdates['tindakan_koreksi'] = $request->input('tindakan_koreksi');
                 }
+
                 if (!empty($ppUpdates)) {
                     $pembekuan->pengemasanProduk->update($ppUpdates);
                 }
+            }
+
+            if ($request->has('keterangan')) {
+                $pembekuan->update([
+                    'keterangan' => $request->input('keterangan'),
+                ]);
             }
 
             return redirect()->route('wizards.packing.show', $pembekuan->uuid)
@@ -1178,7 +1118,7 @@ class WizardPackingController extends Controller
             }
 
             // Update Step 3
-            if ($request->has('step3') && in_array($this->roleMode(), ['all', 'qc'], true)) {
+            if ($request->has('step3') && in_array($this->roleMode(), ['all', 'produksi'], true)) {
                 foreach ($request->step3 as $bag_id => $bag_data) {
                     $bag = BeratProdukBag::find($bag_id);
                     if ($bag) {
@@ -1191,7 +1131,7 @@ class WizardPackingController extends Controller
             }
 
             // Update Step 4
-            if ($pembekuan->beratProdukBox && $request->has('step4') && in_array($this->roleMode(), ['all', 'qc'], true)) {
+            if ($pembekuan->beratProdukBox && $request->has('step4') && in_array($this->roleMode(), ['all', 'produksi'], true)) {
                 $step4 = $request->step4;
                 if (isset($step4['berat_aktual']) && is_array($step4['berat_aktual'])) {
                     $step4['berat_aktual'] = array_values(array_filter(array_map('floatval', $step4['berat_aktual'])));
@@ -1200,7 +1140,7 @@ class WizardPackingController extends Controller
             }
 
             // Update Step 5
-            if ($pembekuan->pengemasanKarton && $request->has('step5')) {
+            if ($pembekuan->pengemasanKarton && $request->has('step5') && in_array($this->roleMode(), ['all', 'produksi'], true)) {
                 $step5 = $this->filterStepByRole('step5', $request->step5);
                 if (isset($step5['kesesuaian_isi_pack']) && is_array($step5['kesesuaian_isi_pack'])) {
                     $step5['kesesuaian_isi_pack'] = json_encode(array_values($step5['kesesuaian_isi_pack']));
@@ -1208,61 +1148,69 @@ class WizardPackingController extends Controller
                 $pembekuan->pengemasanKarton->update($step5);
             }
 
-            // Update Step 6 (Dokumentasi Files)
-            if ($request->has('step6') && in_array($this->roleMode(), ['all', 'qc'], true)) {
-                $step6 = $request->step6;
+            // Update Step 6 (Dokumentasi Files & Verifikasi Akhir)
+            if ($request->has('step6')) {
+                $step6 = $this->filterStepByRole('step6', $request->step6);
                 $updateDokumentasi = [];
 
- if (isset($step6['foto_kode_produksi']) && $request->hasFile('step6.foto_kode_produksi')) {
-                    $file = $request->file('step6.foto_kode_produksi');
-                    $filename = time() . '_' . uniqid() . '_kode_produksi.jpg';
-                    $image = Image::make($file)->encode('jpg', 70);
-                    Storage::disk('public')->put('uploads/foto_kode_produksi/' . $filename, $image);
-                    $updateDokumentasi['foto_kode_produksi'] = 'uploads/foto_kode_produksi/' . $filename;
-                }
+                if ($this->roleMode() !== 'qc') {
+                    if (isset($step6['foto_kode_produksi']) && $request->hasFile('step6.foto_kode_produksi')) {
+                        $file = $request->file('step6.foto_kode_produksi');
+                        $filename = time() . '_' . uniqid() . '_kode_produksi.jpg';
+                        $image = Image::make($file)->encode('jpg', 70);
+                        Storage::disk('public')->put('uploads/foto_kode_produksi/' . $filename, $image);
+                        $updateDokumentasi['foto_kode_produksi'] = 'uploads/foto_kode_produksi/' . $filename;
+                    }
 
-                if (isset($step6['foto_kode_produksi_sekunder']) && $request->hasFile('step6.foto_kode_produksi_sekunder')) {
-                    $file = $request->file('step6.foto_kode_produksi_sekunder');
-                    $filename = time() . '_' . uniqid() . '_kode_sekunder.jpg';
-                    $image = Image::make($file)->encode('jpg', 70);
-                    Storage::disk('public')->put('uploads/foto_kode_produksi_sekunder/' . $filename, $image);
-                    $updateDokumentasi['foto_kode_produksi_sekunder'] = 'uploads/foto_kode_produksi_sekunder/' . $filename;
-                } elseif (!empty($step6['foto_kode_produksi_sekunder_status'])) {
-                    // Mode OK / Not OK — simpan nilai status langsung
-                    $updateDokumentasi['foto_kode_produksi_sekunder'] = $step6['foto_kode_produksi_sekunder_status'];
-                }
+                    if (isset($step6['foto_kode_produksi_sekunder']) && $request->hasFile('step6.foto_kode_produksi_sekunder')) {
+                        $file = $request->file('step6.foto_kode_produksi_sekunder');
+                        $filename = time() . '_' . uniqid() . '_kode_sekunder.jpg';
+                        $image = Image::make($file)->encode('jpg', 70);
+                        Storage::disk('public')->put('uploads/foto_kode_produksi_sekunder/' . $filename, $image);
+                        $updateDokumentasi['foto_kode_produksi_sekunder'] = 'uploads/foto_kode_produksi_sekunder/' . $filename;
+                    } elseif (!empty($step6['foto_kode_produksi_sekunder_status'])) {
+                        // Mode OK / Not OK — simpan nilai status langsung
+                        $updateDokumentasi['foto_kode_produksi_sekunder'] = $step6['foto_kode_produksi_sekunder_status'];
+                    }
 
-                if (isset($step6['qr_code']) && $request->hasFile('step6.qr_code')) {
-                    $file = $request->file('step6.qr_code');
-                    $filename = time() . '_' . uniqid() . '_qr.jpg';
-                    $image = Image::make($file)->encode('jpg', 70);
-                    Storage::disk('public')->put('uploads/qr_code/' . $filename, $image);
-                    $updateDokumentasi['qr_code'] = 'uploads/qr_code/' . $filename;
-                }
+                    if (isset($step6['qr_code']) && $request->hasFile('step6.qr_code')) {
+                        $file = $request->file('step6.qr_code');
+                        $filename = time() . '_' . uniqid() . '_qr.jpg';
+                        $image = Image::make($file)->encode('jpg', 70);
+                        Storage::disk('public')->put('uploads/qr_code/' . $filename, $image);
+                        $updateDokumentasi['qr_code'] = 'uploads/qr_code/' . $filename;
+                    }
 
-                if (isset($step6['label_polyroll']) && $request->hasFile('step6.label_polyroll')) {
-                    $file = $request->file('step6.label_polyroll');
-                    $filename = time() . '_' . uniqid() . '_polyroll.jpg';
-                    $image = Image::make($file)->encode('jpg', 70);
-                    Storage::disk('public')->put('uploads/label_polyroll/' . $filename, $image);
-                    $updateDokumentasi['label_polyroll'] = 'uploads/label_polyroll/' . $filename;
-                }
+                    if (isset($step6['label_polyroll']) && $request->hasFile('step6.label_polyroll')) {
+                        $file = $request->file('step6.label_polyroll');
+                        $filename = time() . '_' . uniqid() . '_polyroll.jpg';
+                        $image = Image::make($file)->encode('jpg', 70);
+                        Storage::disk('public')->put('uploads/label_polyroll/' . $filename, $image);
+                        $updateDokumentasi['label_polyroll'] = 'uploads/label_polyroll/' . $filename;
+                    }
 
-                if (isset($step6['label_supplier']) && $request->hasFile('step6.label_supplier')) {
-                    $file = $request->file('step6.label_supplier');
-                    $filename = time() . '_' . uniqid() . '_supplier.jpg';
-                    $image = Image::make($file)->encode('jpg', 70);
-                    Storage::disk('public')->put('uploads/label_supplier/' . $filename, $image);
-                    $updateDokumentasi['label_supplier'] = 'uploads/label_supplier/' . $filename;
+                    if (isset($step6['label_supplier']) && $request->hasFile('step6.label_supplier')) {
+                        $file = $request->file('step6.label_supplier');
+                        $filename = time() . '_' . uniqid() . '_supplier.jpg';
+                        $image = Image::make($file)->encode('jpg', 70);
+                        Storage::disk('public')->put('uploads/label_supplier/' . $filename, $image);
+                        $updateDokumentasi['label_supplier'] = 'uploads/label_supplier/' . $filename;
+                    }
                 }
 
                 if (isset($step6['keterangan'])) {
                     $updateDokumentasi['keterangan'] = $step6['keterangan'];
                 }
-                if ($pembekuan->pengemasanProduk) {
+                if ($pembekuan->pengemasanProduk && in_array($this->roleMode(), ['all', 'qc'], true)) {
                     $ppUpdates = [];
-                    if (array_key_exists('status_release_produk', $step6)) {
+                    if (!empty($step6['verifikasi_akhir_pengemasan'])) {
+                        $ppUpdates['verifikasi_akhir_pengemasan'] = $step6['verifikasi_akhir_pengemasan'];
+                        $ppUpdates['status_release_produk'] = $step6['verifikasi_akhir_pengemasan'] === '✔' ? 'ya' : 'tidak';
+                    } elseif (array_key_exists('status_release_produk', $step6)) {
                         $ppUpdates['status_release_produk'] = $step6['status_release_produk'];
+                        if (!empty($step6['status_release_produk'])) {
+                            $ppUpdates['verifikasi_akhir_pengemasan'] = $step6['status_release_produk'] === 'ya' ? '✔' : '✘';
+                        }
                     }
                     if (array_key_exists('tindakan_koreksi', $step6)) {
                         $ppUpdates['tindakan_koreksi'] = $step6['tindakan_koreksi'];
@@ -1458,6 +1406,8 @@ class WizardPackingController extends Controller
         $query = Dokumentasi::with('auditVersion')
             ->whereIn('uuid', $request->input('uuids'))
             ->where("approved_by_{$type}", false)
+            ->when($type === 'produksi', fn($q) => $q->where('approved_by_qc', true))
+            ->when($type === 'spv', fn($q) => $q->where('approved_by_produksi', true))
             ->when($user->role !== 'superadmin', function ($query) use ($user) {
                 $query->where('id_plan', $user->id_plan);
             });

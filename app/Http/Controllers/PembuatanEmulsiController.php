@@ -291,31 +291,40 @@ class PembuatanEmulsiController extends Controller
                     'is_array' => is_array($request->bahan_emulsi_id ?? null)
                 ]);
             }
-            // Simpan Suhu dan Hasil Emulsi per proses
-            if ($request->has('kondisi_proses') && is_array($request->kondisi_proses)) {
-                $kondisiProsesJson = [];
-                $hasilProsesJson = [];
-                
-                foreach ($request->kondisi_proses as $prosesIndex => $suhuProses) {
-                    $kondisiProsesJson[$prosesIndex] = $suhuProses;
-                    $hasilProsesJson[$prosesIndex] = $request->hasil_emulsi_proses[$prosesIndex] ?? null;
+            // Simpan Suhu dan Hasil Emulsi per proses (Hanya QC atau Superadmin)
+            $userAuth = auth()->user();
+            $isSuperadminUser = $userAuth->isSuperAdmin() || $userAuth->role === 'superadmin' || (int)($userAuth->id_role ?? 0) === 5;
+            $isQcUser = !$isSuperadminUser && ($userAuth->isQcInspector() || (int)($userAuth->id_role ?? 0) === 3 || strtolower(trim($userAuth->role ?? '')) === 'qc inspector' || $userAuth->isQc());
+            $canSaveQcData = ($isQcUser || $isSuperadminUser);
+            
+            if ($canSaveQcData) {
+                if ($request->has('kondisi_proses') && is_array($request->kondisi_proses)) {
+                    $kondisiProsesJson = [];
+                    $hasilProsesJson = [];
                     
-                    \Log::info("Proses ke-" . ($prosesIndex + 1), [
-                        'suhu' => $suhuProses,
-                        'hasil' => $request->hasil_emulsi_proses[$prosesIndex] ?? null
+                    foreach ($request->kondisi_proses as $prosesIndex => $suhuProses) {
+                        $kondisiProsesJson[$prosesIndex] = $suhuProses;
+                        $hasilProsesJson[$prosesIndex] = $request->hasil_emulsi_proses[$prosesIndex] ?? null;
+                        
+                        \Log::info("Proses ke-" . ($prosesIndex + 1), [
+                            'suhu' => $suhuProses,
+                            'hasil' => $request->hasil_emulsi_proses[$prosesIndex] ?? null
+                        ]);
+                    }
+                    
+                    // Update record emulsi dengan data per proses
+                    $emulsi->update([
+                        'kondisi' => json_encode($kondisiProsesJson),  // Simpan sebagai JSON
+                        'hasil_emulsi' => json_encode($hasilProsesJson)  // Simpan sebagai JSON
+                    ]);
+                    
+                    \Log::info('Kondisi dan Hasil per proses berhasil disimpan', [
+                        'kondisi' => $kondisiProsesJson,
+                        'hasil' => $hasilProsesJson
                     ]);
                 }
-                
-                // Update record emulsi dengan data per proses
-                $emulsi->update([
-                    'kondisi' => json_encode($kondisiProsesJson),  // Simpan sebagai JSON
-                    'hasil_emulsi' => json_encode($hasilProsesJson)  // Simpan sebagai JSON
-                ]);
-                
-                \Log::info('Kondisi dan Hasil per proses berhasil disimpan', [
-                    'kondisi' => $kondisiProsesJson,
-                    'hasil' => $hasilProsesJson
-                ]);
+            } else {
+                \Log::info('User produksi membuat data, kondisi dan hasil emulsi dibiarkan kosong menunggu QC verifikasi');
             }
             \Log::info('=== END DEBUGGING SUHU EMULSI ===');
             \DB::commit();
@@ -479,6 +488,32 @@ class PembuatanEmulsiController extends Controller
             }
         }
 
+        $isSuperadmin = $user->isSuperAdmin() || $user->role === 'superadmin' || (int)($user->id_role ?? 0) === 5;
+        $isQcInspector = !$isSuperadmin && ($user->isQcInspector() || (int)($user->id_role ?? 0) === 3 || strtolower(trim($user->role ?? '')) === 'qc inspector' || $user->isQc());
+
+        // KHUSUS QC INSPECTOR: Hanya dapat mengisi/mengubah Hasil Emulsi dan Suhu Emulsi (angka)
+        if ($isQcInspector) {
+            $request->validate([
+                'kondisi_proses' => 'required|array',
+                'kondisi_proses.*' => 'required|numeric',
+                'hasil_emulsi_proses' => 'required|array',
+                'hasil_emulsi_proses.*' => 'required|in:✔,✘',
+            ], [
+                'kondisi_proses.required' => 'Suhu emulsi harus diisi oleh QC',
+                'kondisi_proses.*.numeric' => 'Suhu emulsi harus berupa angka',
+                'hasil_emulsi_proses.required' => 'Hasil emulsi harus dipilih oleh QC',
+                'hasil_emulsi_proses.*.in' => 'Hasil emulsi harus berupa ✔ atau ✘',
+            ]);
+
+            $item->update([
+                'kondisi' => json_encode($request->kondisi_proses),
+                'hasil_emulsi' => json_encode($request->hasil_emulsi_proses),
+            ]);
+
+            return redirect()->route('persiapan-bahan-emulsi.index')->with('success', 'Verifikasi QC Bahan Emulsi berhasil disimpan');
+        }
+
+        // UNTUK PRODUKSI DAN SUPERADMIN: Update data persiapan bahan emulsi
         $request->validate([
             'tanggal' => 'required|date',
             'kode_produksi_emulsi' => 'required|string|max:255',
@@ -487,33 +522,32 @@ class PembuatanEmulsiController extends Controller
             'total_pemakaian_id' => 'required|exists:total_pemakaian_emulsi,id',
             'nomor_emulsi_id' => 'required|exists:nomor_emulsi,id',
             'nama_emulsi_id' => 'required|exists:jenis_emulsi,id',
+            'jam' => 'nullable',
+            'berat_sampling' => 'nullable',
         ]);
 
         try {
             \DB::beginTransaction();
 
-            // Simpan Suhu dan Hasil Emulsi per proses sebagai JSON
-            $kondisiJson = $item->kondisi;
-            $hasilJson = $item->hasil_emulsi;
-            
-            if ($request->has('kondisi_proses') && is_array($request->kondisi_proses)) {
-                $kondisiJson = json_encode($request->kondisi_proses);
-                $hasilJson = json_encode($request->hasil_emulsi_proses ?? []);
-            }
-
-            $item->update([
+            $updatePayload = [
                 'kode_produksi_emulsi' => $request->kode_produksi_emulsi,
                 'id_produk'            => $request->id_produk,
                 'berat_sampling'       => $request->berat_sampling,
-                'hasil_emulsi'         => $hasilJson, 
-                'kondisi'              => $kondisiJson, 
                 'shift_id'             => $request->shift_id,
                 'jam'                  => $request->jam,
                 'total_pemakaian_id'   => $request->total_pemakaian_id,
                 'nomor_emulsi_id'      => $request->nomor_emulsi_id,
                 'nama_emulsi_id'       => $request->nama_emulsi_id,
                 'tanggal'              => Carbon::parse($request->tanggal)->setTimeFrom(now())
-            ]);
+            ];
+
+            // Superadmin dapat mengubah Suhu & Hasil Emulsi jika diinputkan
+            if ($isSuperadmin && $request->has('kondisi_proses') && is_array($request->kondisi_proses)) {
+                $updatePayload['kondisi'] = json_encode($request->kondisi_proses);
+                $updatePayload['hasil_emulsi'] = json_encode($request->hasil_emulsi_proses ?? []);
+            }
+
+            $item->update($updatePayload);
 
             // CASE 1: Re-generated Table (from AJAX)
             if ($request->has('bahan_emulsi_id') && is_array($request->bahan_emulsi_id)) {
@@ -988,20 +1022,32 @@ class PembuatanEmulsiController extends Controller
                 ], 403);
             }
             
-            // Sequential approval validation
+            // Sequential approval validation: QC -> SPV Produksi -> SPV QC
             if ($type === 'produksi' && !$pembuatanEmulsi->approved_by_qc) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'QC harus menyetujui terlebih dahulu sebelum Produksi.'
+                    'message' => 'Menunggu verifikasi QC Inspektor terlebih dahulu'
+                ], 400);
+            }
+
+            if ($type === 'spv' && !$pembuatanEmulsi->approved_by_produksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Menunggu verifikasi SPV Produksi terlebih dahulu'
                 ], 400);
             }
             
             // Check if already approved
             $approvalField = "approved_by_{$type}";
             if ($pembuatanEmulsi->$approvalField) {
+                $alreadyLabels = [
+                    'qc' => 'QC Inspektor',
+                    'produksi' => 'SPV Produksi',
+                    'spv' => 'SPV QC',
+                ];
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data sudah disetujui sebelumnya.'
+                    'message' => 'Data sudah diverifikasi/disetujui oleh ' . ($alreadyLabels[$type] ?? strtoupper($type))
                 ], 400);
             }
             
@@ -1028,9 +1074,15 @@ class PembuatanEmulsiController extends Controller
                 'user_agent' => $request->userAgent()
             ]);
             
+            $successMessages = [
+                'qc' => 'Data berhasil diverifikasi oleh QC Inspektor',
+                'produksi' => 'Data berhasil diketahui oleh SPV Produksi',
+                'spv' => 'Data berhasil disetujui oleh SPV QC',
+            ];
+
             return response()->json([
                 'success' => true,
-                'message' => 'Data berhasil disetujui.',
+                'message' => $successMessages[$type] ?? 'Data berhasil disetujui.',
                 'data' => $pembuatanEmulsi->fresh()
             ]);
             
@@ -1088,14 +1140,14 @@ class PembuatanEmulsiController extends Controller
             if ($type === 'produksi') {
                 $anyMissingQc = $records->contains(fn($r) => !$r->approved_by_qc);
                 if ($anyMissingQc) {
-                    return response()->json(['success' => false, 'message' => 'Beberapa data belum disetujui oleh QC'], 400);
+                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diverifikasi oleh QC Inspektor'], 400);
                 }
             }
 
             if ($type === 'spv') {
                 $anyMissingProduksi = $records->contains(fn($r) => !$r->approved_by_produksi);
                 if ($anyMissingProduksi) {
-                    return response()->json(['success' => false, 'message' => 'Beberapa data belum disetujui oleh Produksi'], 400);
+                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diketahui oleh SPV Produksi'], 400);
                 }
             }
 
@@ -1136,9 +1188,16 @@ class PembuatanEmulsiController extends Controller
 
             \DB::commit();
 
+            $typeNames = [
+                'qc' => '2. Verifikasi QC Inspektor',
+                'produksi' => '3. Diketahui SPV Produksi',
+                'spv' => '4. Disetujui SPV QC',
+            ];
+            $typeLabel = $typeNames[$type] ?? strtoupper($type);
+
             return response()->json([
                 'success' => true,
-                'message' => "Berhasil menyetujui {$count} data sebagai " . strtoupper($type)
+                'message' => "Berhasil menyetujui {$count} data sebagai {$typeLabel}"
             ]);
 
         } catch (\Exception $e) {
@@ -1206,6 +1265,11 @@ class PembuatanEmulsiController extends Controller
                     continue;
                 }
 
+                if ($type === 'spv' && !$record->approved_by_produksi) {
+                    $skippedCount++;
+                    continue;
+                }
+
                 $record->update([
                     $approvalField => true,
                     $approverField => $user->id,
@@ -1232,7 +1296,12 @@ class PembuatanEmulsiController extends Controller
 
             \DB::commit();
 
-            $typeLabel = strtoupper($type);
+            $typeNames = [
+                'qc' => '2. Verifikasi QC Inspektor',
+                'produksi' => '3. Diketahui SPV Produksi',
+                'spv' => '4. Disetujui SPV QC',
+            ];
+            $typeLabel = $typeNames[$type] ?? strtoupper($type);
             $msg = "Berhasil menyetujui {$approvedCount} data sebagai {$typeLabel}.";
             if ($skippedCount > 0) {
                 $msg .= " ({$skippedCount} data dilewati karena sudah disetujui atau belum memenuhi syarat alur approval).";

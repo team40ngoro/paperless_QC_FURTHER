@@ -55,18 +55,19 @@
             <small class="text-muted">Suhu: {{ $firstAktual->aktual_suhu_air ?? '-' }}°C</small>
         </td>
         <td class="align-middle text-center">
-            <span>{{ $item->user->name ?? '-' }}</span>
+            <span class="font-weight-bold">{{ $item->user->name ?? '-' }}</span>
+            <small class="text-muted d-block">(1. Produksi)</small>
         </td>
         <td class="align-middle">
             <div class="status-badges d-flex flex-column align-items-center">
                 <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> QC
+                    <i class="fas {{ $item->approved_by_qc ? 'fa-check' : 'fa-clock' }} mr-1"></i> 2. QC Inspektor
                 </span>
                 <span class="badge {{ $item->approved_by_produksi ? 'badge-success' : 'badge-light border' }} mb-1 w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> PROD
+                    <i class="fas {{ $item->approved_by_produksi ? 'fa-check' : 'fa-clock' }} mr-1"></i> 3. SPV Produksi
                 </span>
                 <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-light border' }} w-100" style="font-size: 0.7rem;">
-                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> SPV
+                    <i class="fas {{ $item->approved_by_spv ? 'fa-check' : 'fa-clock' }} mr-1"></i> 4. SPV QC
                 </span>
             </div>
         </td>

@@ -584,7 +584,16 @@ Route::middleware('auth')->group(function () {
         })->name('ajax.better-detail-better');
 
         Route::get('/ajax/std-by-better-better', function (Request $r) {
-            return StdSalinitasViskositas::where('id_better', $r->id_better)->get();
+            $user = auth()->user();
+            $query = StdSalinitasViskositas::query()->where('id_better', $r->id_better);
+            if ($r->id_produk) {
+                $query->where('id_produk', $r->id_produk);
+            }
+            if ($user && $user->role !== 'superadmin' && $user->id_plan) {
+                $query->where('id_plan', $user->id_plan);
+            }
+            $std = $query->latest()->first();
+            return $std ? [$std] : [];
         })->name('ajax.std-by-better-better');
 
         Route::get('/ajax/jenis-breader-by-produk/{id_produk}', [ProsesBreaderController::class, 'getJenisBreaderByProduk'])->name('ajax.jenis-breader-by-produk');
