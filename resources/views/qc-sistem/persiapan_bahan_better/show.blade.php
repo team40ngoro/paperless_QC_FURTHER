@@ -235,6 +235,94 @@
                 </div>
             </div>
 
+            <!-- 4-Stage Verification & Approval Status -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h5 class="text-primary font-weight-bold">
+                        <i class="fas fa-tasks mr-2"></i>Status Alur Verifikasi & Persetujuan (4 Tahap)
+                    </h5>
+                    <hr>
+                </div>
+            </div>
+
+            <div class="row">
+                {{-- 1. Dibuat Oleh = Produksi --}}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100 border-left border-primary shadow-sm" style="border-left-width: 4px !important;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge badge-primary">1. Dibuat oleh</span>
+                                <i class="fas fa-check-circle text-success"></i>
+                            </div>
+                            <div class="font-weight-bold text-dark mt-2">Produksi</div>
+                            <div class="text-muted small mt-1">
+                                <i class="fas fa-user mr-1"></i> {{ $item->user->name ?? '-' }}
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-calendar-alt mr-1"></i> {{ $item->created_at ? $item->created_at->format('d-m-Y H:i') : '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 2. Verifikasi = QC Inspektor --}}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100 border-left {{ $item->approved_by_qc ? 'border-success' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge {{ $item->approved_by_qc ? 'badge-success' : 'badge-secondary' }}">2. Verifikasi</span>
+                                <i class="fas {{ $item->approved_by_qc ? 'fa-check-circle text-success' : 'fa-clock text-muted' }}"></i>
+                            </div>
+                            <div class="font-weight-bold text-dark mt-2">QC Inspektor</div>
+                            <div class="text-muted small mt-1">
+                                <i class="fas fa-user mr-1"></i> {{ $item->qcApprover->name ?? '-' }}
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-calendar-alt mr-1"></i> {{ $item->qc_approved_at ? \Carbon\Carbon::parse($item->qc_approved_at)->format('d-m-Y H:i') : '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 3. Diketahui = SPV Produksi --}}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100 border-left {{ $item->approved_by_produksi ? 'border-primary' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge {{ $item->approved_by_produksi ? 'badge-primary' : 'badge-secondary' }}">3. Diketahui</span>
+                                <i class="fas {{ $item->approved_by_produksi ? 'fa-check-circle text-success' : 'fa-clock text-muted' }}"></i>
+                            </div>
+                            <div class="font-weight-bold text-dark mt-2">SPV Produksi</div>
+                            <div class="text-muted small mt-1">
+                                <i class="fas fa-user mr-1"></i> {{ $item->produksiApprover->name ?? '-' }}
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-calendar-alt mr-1"></i> {{ $item->produksi_approved_at ? \Carbon\Carbon::parse($item->produksi_approved_at)->format('d-m-Y H:i') : '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 4. Disetujui = SPV QC --}}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100 border-left {{ $item->approved_by_spv ? 'border-success' : 'border-secondary' }} shadow-sm" style="border-left-width: 4px !important;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge {{ $item->approved_by_spv ? 'badge-success' : 'badge-secondary' }}">4. Disetujui</span>
+                                <i class="fas {{ $item->approved_by_spv ? 'fa-check-circle text-success' : 'fa-clock text-muted' }}"></i>
+                            </div>
+                            <div class="font-weight-bold text-dark mt-2">SPV QC</div>
+                            <div class="text-muted small mt-1">
+                                <i class="fas fa-user mr-1"></i> {{ $item->spvApprover->name ?? '-' }}
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-calendar-alt mr-1"></i> {{ $item->spv_approved_at ? \Carbon\Carbon::parse($item->spv_approved_at)->format('d-m-Y H:i') : '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="card">
                 <div class="card-body">

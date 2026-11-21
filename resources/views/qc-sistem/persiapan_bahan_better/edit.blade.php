@@ -1,6 +1,13 @@
 {{-- filepath: resources/views/qc-sistem/persiapan_bahan_better/edit.blade.php --}}
 @extends('layouts.app')
 @section('container')
+@php
+    $currentUser = auth()->user();
+    $isSuperadmin = $currentUser->isSuperAdmin() || $currentUser->role === 'superadmin' || (int)($currentUser->id_role ?? 0) === 5;
+    $isQcInspector = !$isSuperadmin && ($currentUser->isQcInspector() || (int)($currentUser->id_role ?? 0) === 3 || strtolower(trim($currentUser->role ?? '')) === 'qc inspector' || $currentUser->isQc());
+    $canEditQc = ($isQcInspector || $isSuperadmin);
+    $isProduksi = !$isSuperadmin && !$isQcInspector;
+@endphp
 <div class="content-wrapper">
     <!-- Content Header -->
     <section class="content-header">
@@ -26,6 +33,18 @@
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
+            @if($isQcInspector)
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <strong>Peran QC Inspektor:</strong> Anda hanya dapat mengisi/memverifikasi <strong>Sensori (OK/Tidak OK)</strong>, <strong>Suhu (angka)</strong>, <strong>Aktual Viscositas</strong>, dan <strong>Aktual Salinity</strong>. Data persiapan produksi dikunci.
+                </div>
+            @elseif($isProduksi)
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <strong>Peran Produksi:</strong> Anda dapat mengedit data persiapan bahan better. Field <strong>Sensori</strong>, <strong>Suhu</strong>, <strong>Aktual Viscositas</strong>, dan <strong>Aktual Salinity</strong> dikunci dan hanya dapat diisi oleh <strong>QC Inspektor</strong> saat verifikasi.
+                </div>
+            @endif
+
             <form action="{{ route('persiapan-bahan-better.update', $item->uuid) }}" method="POST">
                 @csrf
                 @method('PUT')
@@ -97,7 +116,7 @@
                                         class="form-control"
                                         value="{{ $item->kode_produksi_produk }}"
                                         placeholder="Masukkan kode produksi produk"
-                                        required>
+                                        {{ $isQcInspector ? 'readonly' : 'required' }}>
                                 </div>
                             </div>
 
@@ -112,7 +131,8 @@
                                         id="tanggal"
                                         name="tanggal"
                                         class="form-control @error('tanggal') is-invalid @enderror"
-                                        value="{{ old('tanggal', $item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') : '') }}" required>
+                                        value="{{ old('tanggal', $item->tanggal ? \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') : '') }}"
+                                        {{ $isQcInspector ? 'readonly' : 'required' }}>
                                     @error('tanggal')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -131,7 +151,7 @@
                                         id="jam"
                                         class="form-control"
                                         value="{{ old('jam', $item->jam ? \Carbon\Carbon::parse($item->jam)->format('H:i') : '') }}"
-                                        required>
+                                        {{ $isQcInspector ? 'readonly' : 'required' }}>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +163,7 @@
                                         <i class="fas fa-clock text-primary"></i>
                                         Shift <span class="text-danger">*</span>
                                     </label>
-                                    <select name="shift_id" id="shift_id" class="form-control" required>
+                                    <select name="shift_id" id="shift_id" class="form-control" {{ $isQcInspector ? 'disabled' : 'required' }}>
                                         <option value="">Pilih Shift</option>
                                         @foreach($shifts as $shift)
                                             <option value="{{ $shift->id }}" {{ $item->shift_id == $shift->id ? 'selected' : '' }}>
@@ -151,6 +171,9 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    @if($isQcInspector)
+                                        <input type="hidden" name="shift_id" value="{{ $item->shift_id }}">
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -159,9 +182,12 @@
                                         <i class="fas fa-weight text-secondary"></i>
                                         Gram <span class="text-danger">*</span> <small class="text-muted">(gram)</small>
                                     </label>
-                                    <select name="gramase" id="gramase" class="form-control select2" required>
+                                    <select name="gramase" id="gramase" class="form-control select2" {{ $isQcInspector ? 'disabled' : 'required' }}>
                                         <option value="">Pilih Gram</option>
                                     </select>
+                                    @if($isQcInspector)
+                                        <input type="hidden" name="gramase" value="{{ $item->gramase }}">
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -172,10 +198,21 @@
                                     <label for="suhu_air">
                                         <i class="fas fa-thermometer-half text-info"></i>
                                         Suhu Air (0-10) (°C) <span class="text-danger">*</span>
+                                        @if(!$isQcInspector)
+                                            <small class="text-muted font-weight-normal">(Produksi)</small>
+                                        @endif
                                     </label>
-                                    <input type="number" step="0.01" name="suhu_air_global" id="global_suhu_air" 
-                                           class="form-control" value="{{ $item->suhu_air ?? $item->better_rows[0]['suhu_air'] ?? '' }}" 
-                                           placeholder="Masukkan Suhu Air" required>
+                                    @if(!$isQcInspector)
+                                        <input type="number" step="0.01" name="suhu_air_global" id="global_suhu_air" 
+                                               class="form-control font-weight-bold" value="{{ old('suhu_air_global', $item->suhu_air ?? $item->better_rows[0]['suhu_air'] ?? '') }}" 
+                                               placeholder="Masukkan Suhu Air (angka)" required>
+                                    @else
+                                        <input type="text" class="form-control bg-light" 
+                                               value="{{ ($item->suhu_air ?? $item->better_rows[0]['suhu_air'] ?? '') !== '' ? ($item->suhu_air ?? $item->better_rows[0]['suhu_air']) . ' °C' : '-' }}" 
+                                               disabled readonly>
+                                        <input type="hidden" name="suhu_air_global" value="{{ $item->suhu_air ?? $item->better_rows[0]['suhu_air'] ?? '' }}">
+                                        <small class="text-muted"><i class="fas fa-lock mr-1"></i> Diisi oleh Produksi saat persiapan.</small>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -234,17 +271,17 @@
                                                 <input type="hidden" name="better_rows[{{ $i }}][sensori]" class="row_sensori" value="{{ $item->sensori ?? $r['sensori'] ?? '✔' }}">
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control form-control-sm" name="better_rows[{{ $i }}][kode_produksi_better]" value="{{ $r['kode_produksi_better'] ?? '' }}">
+                                                <input type="text" class="form-control form-control-sm" name="better_rows[{{ $i }}][kode_produksi_better]" value="{{ $r['kode_produksi_better'] ?? '' }}" {{ $isQcInspector ? 'readonly' : '' }}>
                                             </td>
                                             <td>
                                                 <div class="input-group input-group-sm">
                                                     <div class="input-group-prepend" style="min-width: 120px;">
-                                                        <select class="form-control better-berat-mode" name="better_rows[{{ $i }}][berat_mode]">
+                                                        <select class="form-control better-berat-mode" name="better_rows[{{ $i }}][berat_mode]" {{ $isQcInspector ? 'disabled' : '' }}>
                                                             <option value="master" {{ $modeVal === 'master' ? 'selected' : '' }}>{{ $beratLabel }}</option>
                                                             <option value="manual" {{ $modeVal === 'manual' ? 'selected' : '' }}>Manual</option>
                                                         </select>
                                                     </div>
-                                                    <input type="number" step="0.01" class="form-control form-control-sm better-berat-input" name="better_rows[{{ $i }}][master_berat]" value="{{ $beratVal }}" data-master="{{ $beratVal }}" {{ $modeVal === 'manual' ? '' : 'readonly' }} required>
+                                                    <input type="number" step="0.01" class="form-control form-control-sm better-berat-input" name="better_rows[{{ $i }}][master_berat]" value="{{ $beratVal }}" data-master="{{ $beratVal }}" {{ ($modeVal === 'manual' && !$isQcInspector) ? '' : 'readonly' }} required>
                                                 </div>
                                             </td>
                                         </tr>
@@ -264,6 +301,11 @@
                         <h3 class="card-title">
                             <i class="fas fa-chart-bar"></i>
                             Detail STD & Aktual
+                            @if($isQcInspector)
+                                <span class="badge badge-info ml-1">Wajib Diisi QC</span>
+                            @else
+                                <small class="text-muted font-weight-normal">(QC Inspektor)</small>
+                            @endif
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -277,23 +319,42 @@
                             <div class="row align-items-center mb-3">
                                 <div class="col-md-3"><label class="mb-0">Standar Viscositas (s)</label></div>
                                 <div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="{{ $aktual->std->std_viskositas ?? '-' }}" readonly></div></div>
-                                <div class="col-md-3"><label class="mb-0">Aktual Viscositas (s)</label></div>
+                                <div class="col-md-3"><label class="mb-0 font-weight-bold text-danger">Aktual Viscositas (s) <small class="text-muted font-weight-normal">(QC)</small></label></div>
                                 <div class="col-md-3">
                                     <input type="hidden" name="id_std_salinitas_viskositas[]" value="{{ $aktual->id_std_salinitas_viskositas ?? '' }}">
-                                    <input type="text" name="aktual_vis[]" class="form-control form-control-sm" value="{{ $aktual->aktual_vis ?? '' }}" {{ $aktual ? 'required' : '' }}>
+                                    @if($canEditQc)
+                                        <input type="number" step="0.01" name="aktual_vis[]" class="form-control form-control-sm font-weight-bold" value="{{ ($aktual->aktual_vis && $aktual->aktual_vis !== '-') ? $aktual->aktual_vis : '' }}" placeholder="Masukkan Aktual Viscositas (angka)" required>
+                                    @else
+                                        <input type="text" class="form-control form-control-sm bg-light" value="{{ ($aktual->aktual_vis && $aktual->aktual_vis !== '-') ? $aktual->aktual_vis : 'Menunggu Verifikasi QC' }}" disabled readonly>
+                                        <small class="text-muted"><i class="fas fa-lock mr-1"></i> Hanya diisi QC.</small>
+                                    @endif
                                 </div>
                             </div>
                             
                             <div class="row align-items-center mb-3">
                                 <div class="col-md-3"><label class="mb-0">Standar Salinity (%)</label></div>
                                 <div class="col-md-3"><div class="d-flex align-items-center"><span class="mr-2 text-muted" style="font-size:0.85rem"><i>(otomatis)</i></span><input type="text" class="form-control form-control-sm bg-light" value="{{ $aktual->std->std_salinitas ?? '-' }}" readonly></div></div>
-                                <div class="col-md-3"><label class="mb-0">Aktual Salinity (%)</label></div>
-                                <div class="col-md-3"><input type="text" name="aktual_sal[]" class="form-control form-control-sm" value="{{ $aktual->aktual_sal ?? '' }}" {{ $aktual ? 'required' : '' }}></div>
+                                <div class="col-md-3"><label class="mb-0 font-weight-bold text-danger">Aktual Salinity (%) <small class="text-muted font-weight-normal">(QC)</small></label></div>
+                                <div class="col-md-3">
+                                    @if($canEditQc)
+                                        <input type="number" step="0.01" name="aktual_sal[]" class="form-control form-control-sm font-weight-bold" value="{{ ($aktual->aktual_sal && $aktual->aktual_sal !== '-') ? $aktual->aktual_sal : '' }}" placeholder="Masukkan Aktual Salinity (angka)" required>
+                                    @else
+                                        <input type="text" class="form-control form-control-sm bg-light" value="{{ ($aktual->aktual_sal && $aktual->aktual_sal !== '-') ? $aktual->aktual_sal : 'Menunggu Verifikasi QC' }}" disabled readonly>
+                                        <small class="text-muted"><i class="fas fa-lock mr-1"></i> Hanya diisi QC.</small>
+                                    @endif
+                                </div>
                             </div>
                                 
                             <div class="row align-items-center mb-3">
-                                <div class="col-md-3"><label class="mb-0">Suhu Akhir (°C)</label></div>
-                                <div class="col-md-9"><input type="text" name="aktual_suhu_air[]" class="form-control form-control-sm" value="{{ $aktual->aktual_suhu_air ?? '' }}" {{ $aktual ? 'required' : '' }}></div>
+                                <div class="col-md-3"><label class="mb-0 font-weight-bold text-danger">Suhu Akhir (°C) <small class="text-muted font-weight-normal">(QC)</small></label></div>
+                                <div class="col-md-9">
+                                    @if($canEditQc)
+                                        <input type="number" step="0.01" name="aktual_suhu_air[]" class="form-control form-control-sm font-weight-bold" value="{{ ($aktual->aktual_suhu_air && $aktual->aktual_suhu_air !== '-') ? $aktual->aktual_suhu_air : '' }}" placeholder="Masukkan Suhu Akhir (angka)" required>
+                                    @else
+                                        <input type="text" class="form-control form-control-sm bg-light" value="{{ ($aktual->aktual_suhu_air && $aktual->aktual_suhu_air !== '-') ? $aktual->aktual_suhu_air : 'Menunggu Verifikasi QC' }}" disabled readonly>
+                                        <small class="text-muted"><i class="fas fa-lock mr-1"></i> Hanya diisi QC.</small>
+                                    @endif
+                                </div>
                             </div>
                             @if (!$loop->last)
                                 <hr>
@@ -308,14 +369,27 @@
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-md-3">
-                                <label class="mb-0 font-weight-bold">Sensori</label>
+                                <label class="mb-0 font-weight-bold">
+                                    Sensori : (ok / tdk oke)
+                                    @if($isQcInspector)
+                                        <span class="badge badge-info ml-1">Wajib Diisi QC</span>
+                                    @else
+                                        <small class="text-muted font-weight-normal">(QC)</small>
+                                    @endif
+                                </label>
                             </div>
                             <div class="col-md-9">
                                 @php $globalSens = $item->sensori ?? $item->better_rows[0]['sensori'] ?? '✔'; @endphp
-                                <select class="form-control form-control-sm" id="global_sensori">
-                                    <option value="✔" {{ $globalSens == '✔' ? 'selected' : '' }}>✔ OK</option>
-                                    <option value="✘" {{ $globalSens == '✘' ? 'selected' : '' }}>✘ Tidak OK</option>
-                                </select>
+                                @if($canEditQc)
+                                    <select class="form-control form-control-sm font-weight-bold" id="global_sensori" name="global_sensori" required>
+                                        <option value="✔" {{ $globalSens == '✔' ? 'selected' : '' }}>✔ OK</option>
+                                        <option value="✘" {{ $globalSens == '✘' ? 'selected' : '' }}>✘ Tidak OK</option>
+                                    </select>
+                                @else
+                                    <input type="text" class="form-control form-control-sm bg-light font-weight-bold {{ $globalSens == '✔' ? 'text-success' : ($globalSens == '✘' ? 'text-danger' : '') }}" 
+                                           value="{{ $globalSens == '✔' ? '✔ OK' : ($globalSens == '✘' ? '✘ Tidak OK' : 'Menunggu Verifikasi QC') }}" disabled readonly>
+                                    <small class="text-muted"><i class="fas fa-lock mr-1"></i> Kolom sensori hanya dapat diisi oleh QC Inspektor saat verifikasi.</small>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -326,10 +400,22 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-12 text-center">
-                                <button type="submit" class="btn btn-warning btn-md mr-3">
-                                    <i class="fas fa-save"></i>
-                                    Update Data
-                                </button>
+                                @if($isQcInspector)
+                                    <button type="submit" class="btn btn-success btn-md mr-3">
+                                        <i class="fas fa-check-circle"></i>
+                                        Simpan Verifikasi QC (QC Inspektor)
+                                    </button>
+                                @elseif($isProduksi)
+                                    <button type="submit" class="btn btn-primary btn-md mr-3">
+                                        <i class="fas fa-save"></i>
+                                        Update Data (Produksi)
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-warning btn-md mr-3">
+                                        <i class="fas fa-save"></i>
+                                        Update Data
+                                    </button>
+                                @endif
                                 <a href="{{ route('persiapan-bahan-better.index') }}" class="btn btn-secondary btn-md">
                                     <i class="fas fa-arrow-left"></i>
                                     Kembali
@@ -338,6 +424,11 @@
                         </div>
                     </div>
                 </div>
+                
+            </form>
+        </div>
+    </section>
+</div>
                 
             </form>
         </div>
