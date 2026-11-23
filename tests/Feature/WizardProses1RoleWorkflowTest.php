@@ -167,7 +167,7 @@ class WizardProses1RoleWorkflowTest extends TestCase
             ])
             ->assertStatus(403);
 
-        // 2. Role Produksi membuat Step 1–4 tanpa field QC (hasil_pencetakan, kondisi_predust, hasil_better, hasil_breader = null)
+        // 2. Role Produksi membuat Step 1–4 termasuk hasil awal yang nantinya diverifikasi QC
         $resStep1 = $this->actingAs($data['produksiUser'])
             ->postJson(route('wizard.proses1.store-penggorengan'), [
                 'id_produk' => $data['produk']->id,
@@ -178,14 +178,14 @@ class WizardProses1RoleWorkflowTest extends TestCase
                 'berat_produk' => '250',
                 'no_of_strokes' => '45',
                 'waktu_pemasakan' => '120',
-                'hasil_pencetakan' => '✔', // Harus diabaikan untuk role produksi
+                'hasil_pencetakan' => '✔',
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $penggorenganUuid = $resStep1->json('uuid');
         $penggorengan = Penggorengan::where('uuid', $penggorenganUuid)->firstOrFail();
-        $this->assertNull($penggorengan->hasil_pencetakan);
+        $this->assertEquals('✔', $penggorengan->hasil_pencetakan);
 
         $resStep2 = $this->actingAs($data['produksiUser'])
             ->postJson(route('wizard.proses1.store-predust'), [
@@ -195,14 +195,14 @@ class WizardProses1RoleWorkflowTest extends TestCase
                 'jam' => '08:05',
                 'id_jenis_predust' => $data['jenisPredust']->id,
                 'kode_produksi' => 'PRD-01',
-                'hasil_predust' => '✔', // Harus diabaikan untuk role produksi
+                'hasil_predust' => '✔',
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $predustUuid = $resStep2->json('uuid');
         $predust = PembuatanPredust::where('uuid', $predustUuid)->firstOrFail();
-        $this->assertNull($predust->kondisi_predust);
+        $this->assertEquals('✔', $predust->kondisi_predust);
 
         $resStep3 = $this->actingAs($data['produksiUser'])
             ->postJson(route('wizard.proses1.store-battering'), [
@@ -213,14 +213,14 @@ class WizardProses1RoleWorkflowTest extends TestCase
                 'jam' => '08:10',
                 'id_jenis_better' => [$data['jenisBetter']->id],
                 'kode_produksi_better' => [$data['jenisBetter']->id => 'BTR-01'],
-                'hasil_better' => '✔', // Harus diabaikan untuk role produksi
+                'hasil_better' => '✔',
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $batteringUuid = $resStep3->json('uuid');
         $battering = ProsesBattering::where('uuid', $batteringUuid)->firstOrFail();
-        $this->assertNull($battering->hasil_better);
+        $this->assertEquals('✔', $battering->hasil_better);
 
         $resStep4 = $this->actingAs($data['produksiUser'])
             ->postJson(route('wizard.proses1.store-breader'), [
@@ -232,7 +232,7 @@ class WizardProses1RoleWorkflowTest extends TestCase
                 'jam' => '08:15',
                 'id_jenis_breader' => [$data['jenisBreader']->id],
                 'kode_produksi_breader' => [$data['jenisBreader']->id => 'BRD-01'],
-                'hasil_breader' => '✔', // Harus diabaikan untuk role produksi
+                'hasil_breader' => '✔',
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
@@ -242,11 +242,33 @@ class WizardProses1RoleWorkflowTest extends TestCase
         $this->assertNotEmpty($pembekuanUuid);
 
         $breader = ProsesBreader::where('uuid', $breaderUuid)->firstOrFail();
-        $this->assertNull($breader->hasil_breader);
+        $this->assertEquals('✔', $breader->hasil_breader);
 
         // Pastikan record PembekuanIqfPenggorengan langsung terbentuk di akhir Step 4 tanpa perlu Step 7 IQF
         $pembekuan = PembekuanIqfPenggorengan::where('uuid', $pembekuanUuid)->firstOrFail();
         $this->assertEquals($penggorenganUuid, $pembekuan->penggorengan_uuid);
+
+        // Produksi menginput Frayer (Step 5) sebelum QC melakukan verifikasi hasil akhir
+        $this->actingAs($data['produksiUser'])
+            ->postJson(route('wizard.proses1.store-frayer'), [
+                'frayer_number' => 1,
+                'id_produk' => $data['produk']->id,
+                'tanggal' => '2026-11-02 08:00:00',
+                'jam' => '08:20',
+                'aktual_penggorengan' => 'Penggorengan 1',
+                'aktual_suhu_penggorengan' => '181',
+                'tpm_minyak' => '12',
+                'ffa' => '0.25',
+                'breader_uuid' => $breaderUuid,
+                'id_suhu_frayer_1' => $data['suhuFrayer1']->id,
+                'id_waktu_penggorengan' => $data['waktu1']->id,
+                'keterangan' => 'Minyak bagus',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $pembekuan->refresh();
+        $this->assertNotNull($pembekuan->frayer_uuid);
 
         // 3. Role Produksi TIDAK BOLEH memanggil endpoint qc-verification atau store-frayer
         $this->actingAs($data['produksiUser'])
@@ -257,26 +279,18 @@ class WizardProses1RoleWorkflowTest extends TestCase
             ])
             ->assertStatus(403);
 
-        // 4. Role QC Inspector membuka halaman show (ikon mata) dan menginput verifikasi QC (Pencetakan, Predust, Battering, Breading, Frying, Hasil Penggorengan)
+        // 4. QC membuka halaman show dan mengisi hasil akhir; field step 1–4 milik Produksi harus tetap
         $this->actingAs($data['qcUser'])
             ->get(route('wizard.proses1.show', $pembekuanUuid))
             ->assertOk()
-            ->assertSee('Form Input / Update Verifikasi QC Inspector');
+            ->assertSee('Form Input / Update Verifikasi Hasil Akhir Penggorengan (QC Inspector)');
 
         $this->actingAs($data['qcUser'])
             ->put(route('wizard.proses1.qc-verification', $pembekuanUuid), [
-                'hasil_pencetakan' => '✔',
-                'kondisi_predust' => '✔',
-                'hasil_better' => '✔',
-                'hasil_breader' => '✘',
-                'selected_frayers' => [1],
-                'frayer_1_suhu' => $data['suhuFrayer1']->id,
-                'frayer_1_waktu' => $data['waktu1']->id,
-                'frayer_1_aktual_suhu' => '181',
-                'frayer_1_aktual_waktu' => '45',
-                'frayer_1_tpm' => '12',
-                'frayer_1_ffa' => '0.25',
-                'frayer_1_keterangan' => 'Minyak bagus',
+                'hasil_pencetakan' => '✘', // Produksi field: harus tetap
+                'kondisi_predust' => '✘',   // Produksi field: harus tetap
+                'hasil_better' => '✘',      // Produksi field: harus tetap
+                'hasil_breader' => '✘',     // Produksi field: harus tetap
                 'id_std_suhu_pusat' => $data['stdSuhuPusat']->id,
                 'aktual_suhu_pusat' => ['78.5', '79.0'],
                 'sensori_kematangan' => '✔',
@@ -293,21 +307,21 @@ class WizardProses1RoleWorkflowTest extends TestCase
         $this->assertEquals('✔', $pembekuan->penggorenganData->hasil_pencetakan);
         $this->assertEquals('✔', $pembekuan->predustData->kondisi_predust);
         $this->assertEquals('✔', $pembekuan->batteringData->hasil_better);
-        $this->assertEquals('✘', $pembekuan->breaderData->hasil_breader);
+        $this->assertEquals('✔', $pembekuan->breaderData->hasil_breader);
         $this->assertNotNull($pembekuan->frayer_uuid);
         $this->assertNotNull($pembekuan->hasil_penggorengan_uuid);
         $this->assertEquals('181', $pembekuan->frayerData->aktual_suhu_penggorengan);
 
-        // 5. Approval Workflow: QC Inspector -> SPV QC (Tanpa Approval Produksi)
+        // 5. Approval Workflow sekuensial: QC Inspector -> Foreman/SPV Produksi -> SPV QC
         // SPV QC belum bisa approve sebelum QC Inspector approve
         $this->actingAs($data['spvUser'])
             ->postJson(route('wizard.proses1.approve', $pembekuanUuid), ['type' => 'spv'])
             ->assertStatus(403);
 
-        // Approval tipe 'produksi' ditolak (400) karena sudah dihapus dari alur
+        // Foreman/SPV Produksi belum bisa approve sebelum QC Inspector approve
         $this->actingAs($data['produksiUser'])
             ->postJson(route('wizard.proses1.approve', $pembekuanUuid), ['type' => 'produksi'])
-            ->assertStatus(400);
+            ->assertStatus(403);
 
         // QC Inspector melakukan approval pertama
         $this->actingAs($data['qcUser'])
@@ -318,7 +332,16 @@ class WizardProses1RoleWorkflowTest extends TestCase
         $pembekuan->refresh();
         $this->assertTrue((bool) $pembekuan->approved_by_qc);
 
-        // SPV QC langsung dapat melakukan approval setelah QC Inspector tanpa perlu approval Produksi
+        // Foreman/SPV Produksi melakukan approval kedua
+        $this->actingAs($data['produksiUser'])
+            ->postJson(route('wizard.proses1.approve', $pembekuanUuid), ['type' => 'produksi'])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $pembekuan->refresh();
+        $this->assertTrue((bool) $pembekuan->approved_by_produksi);
+
+        // SPV QC melakukan approval terakhir
         $this->actingAs($data['spvUser'])
             ->postJson(route('wizard.proses1.approve', $pembekuanUuid), ['type' => 'spv'])
             ->assertOk()

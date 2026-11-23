@@ -182,9 +182,25 @@ class CheckQcPermission
                 }
             }
 
-            // E-QF 36 Label Start Up: Produksi (2) membuat/edit form produksi, QC (3) hanya verifikasi lewat show
-            if (in_array($module, ['label-pemeriksaan', 'input-metal-detector'], true) && in_array($action, ['create', 'edit'], true) && in_array((int) ($user->id_role ?? 0), [1, 2, 5], true)) {
-                return $next($request);
+            // E-QF 36 Label Start Up & Metal Detector:
+            // Produksi (2) membuat/edit form produksi, QC (3) hanya verifikasi lewat show.
+            // Untuk QC, form create/edit (GET) dan store (POST koleksi) diteruskan agar
+            // controller yang menentukan 403 / redirect ke halaman show.
+            if (in_array($module, ['label-pemeriksaan', 'input-metal-detector'], true) && in_array($action, ['create', 'edit'], true)) {
+                $roleId = (int) ($user->id_role ?? 0);
+
+                if (in_array($roleId, [1, 2, 5], true)) {
+                    return $next($request);
+                }
+
+                if ($roleId === 3) {
+                    $isFormRequest = $request->isMethod('GET');
+                    $isStoreRequest = $action === 'create' && $request->isMethod('POST') && ! $segment3;
+
+                    if ($isFormRequest || $isStoreRequest) {
+                        return $next($request);
+                    }
+                }
             }
 
             // Pengecualian nama module untuk URL yang berbeda dengan nama Permission
