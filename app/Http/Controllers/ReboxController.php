@@ -334,11 +334,14 @@ class ReboxController extends Controller
             // Validasi role dan type yang diizinkan
             $allowedRoles = [
                 'qc' => [1, 3, 5], // Role 1, 3, dan 5 bisa approve QC
-                'produksi' => [1, 2, 5], // Role 1, 2, dan 5 bisa approve Produksi
                 'spv' => [1, 4, 5] // Role 1, 4, dan 5 bisa approve SPV
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (! in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan approval ini'
@@ -634,11 +637,14 @@ class ReboxController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'], 403);
             }
 
@@ -724,11 +730,14 @@ class ReboxController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'
@@ -752,6 +761,20 @@ class ReboxController extends Controller
                     'success' => true,
                     'message' => 'Semua data yang dipilih sudah diverifikasi sebelumnya.'
                 ]);
+            }
+
+            if ($type === 'produksi' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_qc)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh QC terlebih dahulu.'
+                ], 422);
+            }
+
+            if ($type === 'spv' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_produksi)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'
+                ], 422);
             }
 
             // Update hanya data yang belum approved

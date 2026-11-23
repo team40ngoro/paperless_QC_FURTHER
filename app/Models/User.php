@@ -131,6 +131,33 @@ class User extends Authenticatable
     }
 
     /**
+     * LOGIKA: Cek apakah user memiliki role SPV Produksi.
+     * Role dari SSO bisa bernama "SPV PRODUKSI"/"Produksi SPV" dan id-nya
+     * tidak selalu 8 (data existing memakai id 11), jadi cocokkan lewat nama juga.
+     */
+    public function isSpvProduksi(): bool
+    {
+        $idRole = (int) ($this->id_role ?? 0);
+        if (in_array($idRole, [8, 11], true)) {
+            return true;
+        }
+
+        $roleName = strtolower(trim($this->roleModel->role ?? $this->attributes['role'] ?? ''));
+
+        return in_array($roleName, ['spv produksi', 'produksi spv', 'foreman produksi'], true);
+    }
+
+    /**
+     * LOGIKA: Role yang boleh mengisi tahap "Diketahui Produksi".
+     */
+    public function canApproveAsProduksi(): bool
+    {
+        $idRole = (int) ($this->id_role ?? 0);
+
+        return in_array($idRole, [1, 5], true) || $this->isSpvProduksi();
+    }
+
+    /**
      * LOGIKA: Cek apakah user memiliki role QC Inspector
      */
     public function isQcInspector(): bool

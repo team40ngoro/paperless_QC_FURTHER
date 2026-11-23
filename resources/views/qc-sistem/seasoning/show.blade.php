@@ -6,6 +6,7 @@
     $qcVerificationNotOk = $latestQcVerification && $latestQcVerification->overall_status !== 'OK';
     $isQcUser = auth()->check() && (auth()->user()->isQcInspector() || auth()->user()->isSuperAdmin());
     $isSpvUser = auth()->check() && ((int) auth()->user()->id_role === 4 || auth()->user()->isSuperAdmin());
+    $isSpvProduksi = auth()->check() && auth()->user()->canApproveAsProduksi();
 @endphp
 <div class="content-wrapper">
     <section class="content-header">
@@ -350,6 +351,41 @@
 
             <div class="row mt-3">
                 <div class="col-12">
+                    <div class="card card-info card-outline shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h3 class="card-title text-bold"><i class="fas fa-user-check text-info mr-2"></i> Diketahui Produksi</h3>
+                        </div>
+                        <div class="card-body">
+                            @if($seasoning->approved_by_produksi)
+                                <div class="alert alert-success border-0 shadow-sm mb-0">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Data sudah diketahui oleh <strong>{{ $seasoning->produksiApprover->name ?? '-' }}</strong>
+                                    @if($seasoning->produksiApprover)
+                                        <span class="badge badge-light border">{{ $seasoning->produksiApprover->roleModel->role ?? $seasoning->produksiApprover->role ?? '-' }}</span>
+                                    @endif
+                                    pada {{ $seasoning->produksi_approved_at ? $seasoning->produksi_approved_at->format('d/m/Y H:i') : '-' }}.
+                                </div>
+                            @elseif(!$seasoning->approved_by_qc)
+                                <div class="alert alert-warning border-0 shadow-sm mb-0">
+                                    <i class="fas fa-clock mr-1"></i> Menunggu verifikasi QC sebelum dapat diketahui Produksi.
+                                </div>
+                            @elseif($isSpvProduksi)
+                                <p class="text-muted">QC sudah melakukan verifikasi. Silakan setujui data ini sebagai SPV Produksi.</p>
+                                <button type="button" id="btnApproveProduksi" class="btn btn-info shadow-sm">
+                                    <i class="fas fa-check mr-1"></i> Diketahui Produksi
+                                </button>
+                            @else
+                                <div class="alert alert-light border mb-0">
+                                    <i class="fas fa-lock mr-1"></i> Menunggu approval Produksi.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
                     <div class="card card-dark card-outline shadow-sm">
                         <div class="card-header bg-white py-3">
                             <h3 class="card-title text-bold"><i class="fas fa-user-shield text-dark mr-2"></i> Approval SPV QC</h3>
@@ -367,6 +403,10 @@
                             @elseif(!$seasoning->approved_by_qc)
                                 <div class="alert alert-warning border-0 shadow-sm mb-0">
                                     <i class="fas fa-clock mr-1"></i> Menunggu verifikasi QC sebelum dapat disetujui SPV QC.
+                                </div>
+                            @elseif(!$seasoning->approved_by_produksi)
+                                <div class="alert alert-warning border-0 shadow-sm mb-0">
+                                    <i class="fas fa-clock mr-1"></i> Menunggu persetujuan Produksi sebelum dapat disetujui SPV QC.
                                 </div>
                             @elseif($isSpvUser)
                                 <p class="text-muted">QC sudah melakukan verifikasi. Silakan setujui data ini sebagai SPV QC.</p>
@@ -416,6 +456,45 @@
                 }
             });
         });
+
+        const approveProduksiButton = document.getElementById('btnApproveProduksi');
+        if (approveProduksiButton) {
+            approveProduksiButton.addEventListener('click', function () {
+                if (!confirm('Setujui data ini sebagai SPV Produksi?')) {
+                    return;
+                }
+
+                approveProduksiButton.disabled = true;
+
+                fetch("{{ route('seasoning.approve', $seasoning->uuid) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ type: 'produksi' })
+                })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            return { ok: response.ok, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (result.ok && result.data.success) {
+                            window.location.reload();
+                            return;
+                        }
+
+                        alert(result.data.message || 'Gagal menyetujui data.');
+                        approveProduksiButton.disabled = false;
+                    })
+                    .catch(function () {
+                        alert('Gagal menyetujui data.');
+                        approveProduksiButton.disabled = false;
+                    });
+            });
+        }
 
         const approveButton = document.getElementById('btnApproveSpv');
         if (approveButton) {

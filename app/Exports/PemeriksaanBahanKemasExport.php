@@ -113,6 +113,7 @@ class PemeriksaanBahanKemasExport implements FromCollection, WithHeadings, WithE
                 ++$no,
                 $jam,
                 $item->nama_kemasan ?? '-',
+                $item->nama_produsen ?? '-',
                 $item->kode_produksi ?? '-',
                 $item->kondisi_bahan_kemasan ?? '-',
                 $item->keterangan ?? '-',
@@ -133,6 +134,7 @@ class PemeriksaanBahanKemasExport implements FromCollection, WithHeadings, WithE
             'No',
             'Waktu',
             'Nama Kemasan',
+            'Nama Produsen',
             'Kode Produksi',
             'Kondisi',
             'Keterangan',
@@ -144,7 +146,7 @@ class PemeriksaanBahanKemasExport implements FromCollection, WithHeadings, WithE
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastCol = 'F';
+                $lastCol = 'G';
 
                 $sheet->insertNewRowBefore(1, 7);
 
@@ -230,6 +232,7 @@ class PemeriksaanBahanKemasExport implements FromCollection, WithHeadings, WithE
                 $sheet->getColumnDimension('D')->setWidth(20);
                 $sheet->getColumnDimension('E')->setWidth(20);
                 $sheet->getColumnDimension('F')->setWidth(25);
+                $sheet->getColumnDimension('G')->setWidth(25);
 
                 $kodeFormRow = $lastDataRow + 2;
                 $sheet->setCellValue("{$lastCol}{$kodeFormRow}", $this->filterInfo['kode_form'] ?? 'QF 03/00');
@@ -240,7 +243,7 @@ class PemeriksaanBahanKemasExport implements FromCollection, WithHeadings, WithE
                 
                 $col1Start = 'A'; $col1End = 'B';
                 $col2Start = 'C'; $col2End = 'D';
-                $col3Start = 'E'; $col3End = 'F';
+                $col3Start = 'E'; $col3End = 'G';
                 
                 $sheet->mergeCells("{$col1Start}{$sigRow}:{$col1End}{$sigRow}")
                     ->setCellValue("{$col1Start}{$sigRow}", 'Dibuat Oleh:');

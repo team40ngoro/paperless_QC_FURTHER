@@ -30,6 +30,7 @@ class PemeriksaanBahanKemas extends Model implements ImportableModel
         'shift_id',
         'tanggal',
         'jam',
+        'nama_produsen',
         'nama_kemasan',
         'kode_produksi',
         'kondisi_bahan_kemasan',

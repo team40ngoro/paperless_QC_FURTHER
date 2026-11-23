@@ -38,14 +38,7 @@ class ShoestringController extends Controller
 
     private function canApproveProduksiSvp($user): bool
     {
-        $idRole = (int) ($user->id_role ?? 0);
-        if (in_array($idRole, [1, 5, 8], true)) {
-            return true;
-        }
-
-        $roleName = strtolower(trim($user->roleModel->role ?? $user->role ?? ''));
-
-        return in_array($roleName, ['produksi spv', 'spv produksi', 'foreman produksi'], true);
+        return $user->canApproveAsProduksi();
     }
 
     public function index(Request $request)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PemeriksaanBahanKemas;
 use App\Models\PemeriksaanBahanKemasLog;
+use App\Models\DataDefect;
 use App\Models\DataShift;
 use App\Models\Plan;
 use Illuminate\Http\Request;
@@ -138,7 +139,13 @@ class PemeriksaanBahanKemasController extends Controller
             $plans = Plan::where('id', $user->id_plan)->get();
         }
 
-        return view('qc-sistem.pemeriksaan_bahan_kemas.create', compact('shifts', 'plans'));
+        $produsens = DataDefect::filterByRole()
+            ->pluck('nama_produsen')
+            ->filter()
+            ->unique()
+            ->values();
+
+        return view('qc-sistem.pemeriksaan_bahan_kemas.create', compact('shifts', 'plans', 'produsens'));
     }
 
     public function store(Request $request)
@@ -148,6 +155,7 @@ class PemeriksaanBahanKemasController extends Controller
         $request->validate([
             'shift_id' => 'required|exists:data_shift,id',
             'tanggal' => 'required|date',
+            'nama_produsen' => 'required|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.jam' => 'required|date_format:H:i',
             'items.*.nama_kemasan' => 'required|string|max:255',
@@ -171,6 +179,7 @@ class PemeriksaanBahanKemasController extends Controller
                 'shift_id' => $request->shift_id,
                 'tanggal' => Carbon::parse($request->tanggal)->setTimeFrom(now())->format('Y-m-d H:i:s'),
                 'jam' => $row['jam'] ?? null,
+                'nama_produsen' => $request->nama_produsen,
                 'nama_kemasan' => $row['nama_kemasan'] ?? null,
                 'kode_produksi' => $row['kode_produksi'] ?? null,
                 'kondisi_bahan_kemasan' => $row['kondisi_bahan_kemasan'] ?? null,
@@ -364,7 +373,13 @@ class PemeriksaanBahanKemasController extends Controller
             $plans = Plan::where('id', $user->id_plan)->get();
         }
 
-        return view('qc-sistem.pemeriksaan_bahan_kemas.edit', compact('item', 'shifts', 'plans'));
+        $produsens = DataDefect::filterByRole()
+            ->pluck('nama_produsen')
+            ->filter()
+            ->unique()
+            ->values();
+
+        return view('qc-sistem.pemeriksaan_bahan_kemas.edit', compact('item', 'shifts', 'plans', 'produsens'));
     }
 
     public function update(Request $request, $uuid)
@@ -391,6 +406,7 @@ class PemeriksaanBahanKemasController extends Controller
             'shift_id' => 'required|exists:data_shift,id',
             'tanggal' => 'required|date',
             'jam' => 'required|date_format:H:i',
+            'nama_produsen' => 'required|string|max:255',
             'nama_kemasan' => 'required|string|max:255',
             'kode_produksi' => 'required|string|max:255',
             'kondisi_bahan_kemasan' => 'required|in:OK,Tidak OK',
@@ -410,6 +426,7 @@ class PemeriksaanBahanKemasController extends Controller
             'shift_id' => $request->shift_id,
             'tanggal' => Carbon::parse($request->tanggal)->setTimeFrom(now())->format('Y-m-d H:i:s'),
             'jam' => $request->jam,
+            'nama_produsen' => $request->nama_produsen,
             'nama_kemasan' => $request->nama_kemasan,
             'kode_produksi' => $request->kode_produksi,
             'kondisi_bahan_kemasan' => $request->kondisi_bahan_kemasan,
@@ -448,11 +465,14 @@ class PemeriksaanBahanKemasController extends Controller
 
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5],
             ];
 
-            if (!isset($allowedRoles[$type]) || !in_array($userRole, $allowedRoles[$type])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (! in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan approval ini',
@@ -583,11 +603,14 @@ class PemeriksaanBahanKemasController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'], 403);
             }
 
@@ -673,11 +696,14 @@ class PemeriksaanBahanKemasController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'
@@ -701,6 +727,20 @@ class PemeriksaanBahanKemasController extends Controller
                     'success' => true,
                     'message' => 'Semua data yang dipilih sudah diverifikasi sebelumnya.'
                 ]);
+            }
+
+            if ($type === 'produksi' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_qc)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh QC terlebih dahulu.'
+                ], 422);
+            }
+
+            if ($type === 'spv' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_produksi)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'
+                ], 422);
             }
 
             // Update hanya data yang belum approved

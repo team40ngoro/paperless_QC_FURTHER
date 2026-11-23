@@ -72,10 +72,16 @@
                                 @php
                                     $userRole = auth()->user()->id_role;
                                     $canApproveSPV = in_array($userRole, [1, 4, 5]);
+                                    $canApproveProduksi = auth()->user()->canApproveAsProduksi();
                                 @endphp
 
                                 <span class="badge badge-info"><span class="selected-count">0</span> dipilih</span>
 
+                                @if($canApproveProduksi)
+                                    <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
+                                        <i class="fas fa-check mr-1"></i> Diketahui Produksi
+                                    </button>
+                                @endif
                                 @if($canApproveSPV)
                                     <button type="button" class="btn btn-sm btn-warning shadow-sm approve-selected-btn" data-type="spv" style="color: white;">
                                         <i class="fas fa-check mr-1"></i> Approve SPV
@@ -140,7 +146,7 @@
                             @include('partials.date-range-filter')
 
                             @php
-                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 4, 5], true);
+                                $showApprovalCheckbox = in_array((int) auth()->user()->id_role, [1, 4, 5], true) || auth()->user()->canApproveAsProduksi();
                             @endphp
 
                             <div class="table-responsive">

@@ -69,7 +69,7 @@
                                 @php
                                     $userRole = auth()->user()->id_role;
                                     $canApproveQc = in_array($userRole, [1, 3, 5]);
-                                    $canApproveProduksi = in_array($userRole, [1, 2, 5]);
+                                    $canApproveProduksi = auth()->user()->canApproveAsProduksi();
                                     $canApproveSpv = in_array($userRole, [1, 4, 5]);
                                 @endphp
 
@@ -82,7 +82,7 @@
                                 @endif
                                 @if($canApproveProduksi)
                                     <button type="button" class="btn btn-sm btn-info shadow-sm approve-selected-btn" data-type="produksi">
-                                        <i class="fas fa-check mr-1"></i> Approve Produksi
+                                        <i class="fas fa-check mr-1"></i> Diketahui Produksi
                                     </button>
                                 @endif
                                 @if($canApproveSpv)

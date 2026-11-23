@@ -175,6 +175,9 @@ class SeasoningQcVerificationTest extends TestCase
             'approved_by_qc' => true,
             'qc_approved_by' => $this->qcUser->id,
             'qc_approved_at' => now(),
+            'approved_by_produksi' => true,
+            'produksi_approved_by' => $this->produksiUser->id,
+            'produksi_approved_at' => now(),
         ]);
 
         $response = $this->actingAs($this->spvUser)->postJson(route('seasoning.approve', $seasoning->uuid), [

@@ -72,6 +72,25 @@
                                     </div>
                                 </div>
 
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="nama_produsen" class="font-weight-bold">Nama Produsen <span class="text-danger">*</span></label>
+                                            <select class="form-control @error('nama_produsen') is-invalid @enderror" id="nama_produsen" name="nama_produsen" required>
+                                                <option value="">Pilih Produsen</option>
+                                                @foreach($produsens as $produsen)
+                                                    <option value="{{ $produsen }}" {{ old('nama_produsen') === $produsen ? 'selected' : '' }}>
+                                                        {{ $produsen }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('nama_produsen')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
                                 @php
                                     $oldItems = old('items');
                                     if (!is_array($oldItems) || count($oldItems) < 1) {

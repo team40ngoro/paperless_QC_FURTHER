@@ -69,6 +69,14 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
+                                        <label>Nama Produsen</label>
+                                        <div class="form-control bg-light">
+                                            {{ $item->nama_produsen ?? '-' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
                                         <label>Nama Kemasan</label>
                                         <div class="form-control bg-light">
                                             {{ $item->nama_kemasan ?? '-' }}

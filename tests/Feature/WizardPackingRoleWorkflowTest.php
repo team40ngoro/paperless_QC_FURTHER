@@ -163,9 +163,9 @@ class WizardPackingRoleWorkflowTest extends TestCase
             'proses_penimbangan' => 'mhw',
             'proses_sealing' => 'bag-sealer',
             'kode_kemasan_plastik' => 'KEM-01',
-            'identitas_produk' => '✔', // QC field, should be nulled out
-            'kesesuaian_label_plastik' => 'OK', // QC field, should be nulled out
-            'kekuatan_seal' => '✔', // QC field, should be nulled out
+            'identitas_produk' => '✔',
+            'kesesuaian_label_plastik' => 'OK',
+            'kekuatan_seal' => '✔',
         ]);
         $res2->assertStatus(200)->assertJson(['success' => true]);
         $idPlastik = $res2->json('id');
@@ -173,8 +173,9 @@ class WizardPackingRoleWorkflowTest extends TestCase
         $plastik = PengemasanPlastik::find($idPlastik);
         $this->assertNotNull($plastik);
         $this->assertEquals('mhw', $plastik->proses_penimbangan);
-        $this->assertNull($plastik->identitas_produk, 'Produksi cannot set identitas_produk');
-        $this->assertNull($plastik->kesesuaian_label_plastik, 'Produksi cannot set kesesuaian_label_plastik');
+        $this->assertEquals('✔', $plastik->identitas_produk, 'Produksi mengisi identitas_produk');
+        $this->assertEquals('OK', $plastik->kesesuaian_label_plastik, 'Produksi mengisi kesesuaian_label_plastik');
+        $this->assertEquals('✔', $plastik->kekuatan_seal, 'Produksi mengisi kekuatan_seal');
 
         // 3. Step 6: storePengemasanKarton by Produksi
         $res3 = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-pengemasan-karton'), [
@@ -183,23 +184,54 @@ class WizardPackingRoleWorkflowTest extends TestCase
             'tanggal' => now()->format('Y-m-d'),
             'jam' => '08:30',
             'aktual_jumlah_karton' => '20 pack',
-            'identitas_produk_pada_karton' => '✔', // QC field, nulled
-            'kesesuaian_isi_pack' => ['✔'], // QC field, nulled
+            'identitas_produk_pada_karton' => '✔',
+            'kesesuaian_isi_pack' => ['✔'],
         ]);
         $res3->assertStatus(200)->assertJson(['success' => true]);
         $idKarton = $res3->json('id');
 
         $karton = PengemasanKarton::find($idKarton);
         $this->assertEquals('20 pack', $karton->aktual_jumlah_karton);
-        $this->assertNull($karton->identitas_produk_pada_karton, 'Produksi cannot set identitas_produk_pada_karton');
+        $this->assertEquals('✔', $karton->identitas_produk_pada_karton, 'Produksi mengisi identitas_produk_pada_karton');
 
-        // 4. Finalize Produksi via storeDokumentasi
+        // 4a. Produksi sampling berat bag & box
+        $resBag = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-berat-produk-bag'), [
+            'id_pengemasan_produk' => $idPengemasanProduk,
+            'id_pengemasan_plastik' => $idPlastik,
+            'id_data_bag' => [$data['dataBag']->id],
+            'line' => ['1'],
+            'tanggal' => now()->format('Y-m-d'),
+            'jam' => '08:30',
+            'berat_aktual' => [[500, 501, 502]],
+            'rata_rata_berat' => [501.0],
+        ]);
+        $resBag->assertStatus(200)->assertJson(['success' => true]);
+        $idBag = $resBag->json('id');
+        $this->assertNotNull($idBag);
+
+        $resBox = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-berat-produk-box'), [
+            'id_pengemasan_produk' => $idPengemasanProduk,
+            'id_pengemasan_plastik' => $idPlastik,
+            'id_berat_produk_bag' => $idBag,
+            'id_data_box' => $data['dataBox']->id,
+            'tanggal' => now()->format('Y-m-d'),
+            'jam' => '08:35',
+            'berat_aktual' => [10.05, 10.02],
+        ]);
+        $resBox->assertStatus(200)->assertJson(['success' => true]);
+        $idBox = $resBox->json('id');
+        $this->assertNotNull($idBox);
+
+        // 4b. Finalize Produksi via storeDokumentasi
         $resFinal = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-dokumentasi'), [
             'id_pengemasan_produk' => $idPengemasanProduk,
             'id_pengemasan_plastik' => $idPlastik,
+            'id_berat_produk_bag' => $idBag,
+            'id_berat_produk_box' => $idBox,
             'id_pengemasan_karton' => $idKarton,
             'tanggal' => now()->format('Y-m-d'),
-            'jam' => '08:35',
+            'jam' => '08:40',
+            'foto_kode_produksi_sekunder_status' => 'OK',
         ]);
         $resFinal->assertStatus(200)->assertJson(['success' => true]);
         $uuid = $resFinal->json('uuid');
@@ -220,25 +252,6 @@ class WizardPackingRoleWorkflowTest extends TestCase
 
         $updateResponse = $this->actingAs($data['qcUser'])->put(route('wizards.packing.qc-verification', $uuid), [
             'aktual_suhu_produk' => ['-18.4', '-18.7'],
-            'identitas_produk' => '✔',
-            'kesesuaian_label_plastik' => 'OK',
-            'kekuatan_seal' => '✔',
-            'step3' => [
-                $dokumentasi->id_berat_produk_bag => [
-                    'id_data_bag' => $data['dataBag']->id,
-                    'berat_aktual' => [501, 502, 500],
-                    'rata_rata_berat' => 501.0,
-                ],
-            ],
-            'step4' => [
-                'id_data_box' => $data['dataBox']->id,
-                'berat_aktual' => [10.05, 10.02],
-                'rata_rata_berat' => 10.03,
-            ],
-            'identitas_produk_pada_karton' => '✔',
-            'standar_jumlah_karton' => 20,
-            'kesesuaian_isi_pack' => ['✔'],
-            'foto_kode_produksi_sekunder_status' => 'OK',
             'status_release_produk' => 'ya',
             'tindakan_koreksi' => 'Tidak ada',
             'keterangan' => 'Sesuai standar mutu QC',
@@ -321,6 +334,9 @@ class WizardPackingRoleWorkflowTest extends TestCase
             'proses_penimbangan' => 'mhw',
             'proses_sealing' => 'bag-sealer',
             'kode_kemasan_plastik' => 'KEM-ORIGINAL',
+            'identitas_produk' => '✔',
+            'kesesuaian_label_plastik' => 'OK',
+            'kekuatan_seal' => '✔',
         ]);
         $idPlastik = $res2->json('id');
 
@@ -330,15 +346,40 @@ class WizardPackingRoleWorkflowTest extends TestCase
             'tanggal' => now()->format('Y-m-d'),
             'jam' => '08:30',
             'aktual_jumlah_karton' => '20 pack',
+            'identitas_produk_pada_karton' => '✔',
         ]);
         $idKarton = $res3->json('id');
+
+        $resBag = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-berat-produk-bag'), [
+            'id_pengemasan_produk' => $idPengemasanProduk,
+            'id_pengemasan_plastik' => $idPlastik,
+            'id_data_bag' => [$data['dataBag']->id],
+            'line' => ['1'],
+            'tanggal' => now()->format('Y-m-d'),
+            'jam' => '08:30',
+            'berat_aktual' => [[500, 501, 502]],
+        ]);
+        $idBag = $resBag->json('id');
+
+        $resBox = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-berat-produk-box'), [
+            'id_pengemasan_produk' => $idPengemasanProduk,
+            'id_pengemasan_plastik' => $idPlastik,
+            'id_berat_produk_bag' => $idBag,
+            'id_data_box' => $data['dataBox']->id,
+            'tanggal' => now()->format('Y-m-d'),
+            'jam' => '08:35',
+            'berat_aktual' => [10.05, 10.02],
+        ]);
+        $idBox = $resBox->json('id');
 
         $resFinal = $this->actingAs($data['produksiUser'])->postJson(route('wizards.packing.store-dokumentasi'), [
             'id_pengemasan_produk' => $idPengemasanProduk,
             'id_pengemasan_plastik' => $idPlastik,
+            'id_berat_produk_bag' => $idBag,
+            'id_berat_produk_box' => $idBox,
             'id_pengemasan_karton' => $idKarton,
             'tanggal' => now()->format('Y-m-d'),
-            'jam' => '08:35',
+            'jam' => '08:40',
         ]);
         $uuid = $resFinal->json('uuid');
 
@@ -349,8 +390,6 @@ class WizardPackingRoleWorkflowTest extends TestCase
         // First, QC sets verification fields
         $this->actingAs($data['qcUser'])->put(route('wizards.packing.update', $uuid), [
             'step1' => ['aktual_suhu_produk' => ['-18.5']],
-            'step2' => ['identitas_produk' => '✔', 'kesesuaian_label_plastik' => 'OK', 'kekuatan_seal' => '✔'],
-            'step5' => ['identitas_produk_pada_karton' => '✔', 'standar_jumlah_karton' => 20, 'kesesuaian_isi_pack' => ['✔']],
             'step6' => ['status_release_produk' => 'ya', 'tindakan_koreksi' => 'QC OK', 'keterangan' => 'QC verified'],
         ]);
 
@@ -366,7 +405,7 @@ class WizardPackingRoleWorkflowTest extends TestCase
             ],
             'step2' => [
                 'waktu_pengemasan' => '08:20 - 11:00', // Produksi field: allowed to change
-                'kesesuaian_label_plastik' => 'Not OK', // QC field: must NOT change
+                'kesesuaian_label_plastik' => 'Not OK', // Produksi field: allowed to change
             ],
             'step6' => [
                 'status_release_produk' => 'tidak', // QC field: must NOT change
@@ -381,7 +420,7 @@ class WizardPackingRoleWorkflowTest extends TestCase
 
         $plastik->refresh();
         $this->assertEquals('08:20 - 11:00', $plastik->waktu_pengemasan, 'Produksi can update its own waktu_pengemasan');
-        $this->assertEquals('OK', $plastik->kesesuaian_label_plastik, 'Produksi cannot tamper with kesesuaian_label_plastik');
+        $this->assertEquals('Not OK', $plastik->kesesuaian_label_plastik, 'Produksi can update its own kesesuaian_label_plastik');
 
         // Now QC tries to update, attempting to tamper with Produksi fields
         $this->actingAs($data['qcUser'])->put(route('wizards.packing.update', $uuid), [
@@ -390,8 +429,9 @@ class WizardPackingRoleWorkflowTest extends TestCase
                 'aktual_suhu_produk' => ['-19.0'],   // QC field: allowed to change
             ],
             'step2' => [
-                'waktu_pengemasan' => 'Tampered Time', // Produksi field: must NOT change
-                'kekuatan_seal' => '✔',                // QC field: allowed to change
+                'waktu_pengemasan' => 'Tampered Time',       // Produksi field: must NOT change
+                'kesesuaian_label_plastik' => 'OK',          // Produksi field: must NOT change
+                'kekuatan_seal' => '✘',                      // Produksi field: must NOT change
             ],
         ]);
 
@@ -401,5 +441,7 @@ class WizardPackingRoleWorkflowTest extends TestCase
 
         $plastik->refresh();
         $this->assertEquals('08:20 - 11:00', $plastik->waktu_pengemasan, 'QC cannot tamper with Produksi waktu_pengemasan');
+        $this->assertEquals('Not OK', $plastik->kesesuaian_label_plastik, 'QC cannot tamper with Produksi kesesuaian_label_plastik');
+        $this->assertEquals('✔', $plastik->kekuatan_seal, 'QC cannot tamper with Produksi kekuatan_seal');
     }
 }

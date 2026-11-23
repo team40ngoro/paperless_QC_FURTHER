@@ -420,44 +420,44 @@ class ChillroomQcRoleRestrictionTest extends TestCase
         $response->assertSee('Disetujui');
     }
 
-    public function test_index_page_does_not_render_approve_produksi_button(): void
+    public function test_index_page_renders_approve_produksi_button_for_admin(): void
     {
         $response = $this->actingAs($this->adminUser)->get(route('chillroom.index'));
 
         $response->assertStatus(200);
-        $response->assertDontSee('Approve Produksi');
+        $response->assertSee('Diketahui Produksi');
     }
 
-    public function test_single_approve_rejects_production_type(): void
+    public function test_single_approve_rejects_production_type_for_regular_produksi(): void
     {
         $item = $this->createChillroomRecord();
 
-        $response = $this->actingAs($this->adminUser)->postJson(route('chillroom.approve', $item->uuid), [
+        $response = $this->actingAs($this->produksiUser)->postJson(route('chillroom.approve', $item->uuid), [
             'type' => 'produksi',
         ]);
 
-        $response->assertStatus(422);
+        $response->assertForbidden();
     }
 
-    public function test_bulk_approve_rejects_production_type(): void
+    public function test_bulk_approve_rejects_production_type_for_regular_produksi(): void
     {
-        $response = $this->actingAs($this->adminUser)->postJson(route('chillroom.bulk-approve'), [
+        $response = $this->actingAs($this->produksiUser)->postJson(route('chillroom.bulk-approve'), [
             'type' => 'produksi',
             'tanggal' => now()->format('Y-m-d'),
             'shift_id' => $this->shift->id,
         ]);
 
-        $response->assertStatus(403);
+        $response->assertForbidden();
     }
 
-    public function test_bulk_approve_selected_rejects_production_type(): void
+    public function test_bulk_approve_selected_rejects_production_type_for_regular_produksi(): void
     {
-        $response = $this->actingAs($this->adminUser)->postJson(route('chillroom.bulk-approve-selected'), [
+        $response = $this->actingAs($this->produksiUser)->postJson(route('chillroom.bulk-approve-selected'), [
             'type' => 'produksi',
             'uuids' => [(string) Str::uuid()],
         ]);
 
-        $response->assertStatus(422);
+        $response->assertForbidden();
     }
 
     public function test_production_role_does_not_see_approval_checkboxes(): void

@@ -123,6 +123,7 @@
                                             <th class="py-3 text-center">Tanggal</th>
                                             <th class="py-3 text-center">Jam</th>
                                             <th class="py-3 text-left">Nama Kemasan</th>
+                                            <th class="py-3 text-left">Nama Produsen</th>
                                             <th class="py-3 text-center">Kode Produksi</th>
                                             <th class="py-3 text-center">Kondisi</th>
                                             <th class="py-3 text-center">Produksi</th>

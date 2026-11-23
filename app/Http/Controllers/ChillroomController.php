@@ -907,7 +907,7 @@ class ChillroomController extends Controller
     {
         try {
             $request->validate([
-                'type' => 'required|in:spv'
+                'type' => 'required|in:produksi,spv'
             ]);
 
             $user = auth()->user();
@@ -915,11 +915,11 @@ class ChillroomController extends Controller
             $type = $request->type;
 
             // Validasi role dan type yang diizinkan
-            $allowedRoles = [
-                'spv' => [4, 5] // Role 4 bisa approve SPV
-            ];
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, [1, 4, 5], true);
 
-            if (! in_array($userRole, $allowedRoles[$type] ?? [])) {
+            if (! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan persetujuan ini',
@@ -927,6 +927,27 @@ class ChillroomController extends Controller
             }
 
             $item = PenerimaanChillroom::where('uuid', $uuid)->firstOrFail();
+
+            if ($user->role !== 'superadmin' && (int) $item->id_plan !== (int) $user->id_plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke data ini',
+                ], 403);
+            }
+
+            if ($type === 'produksi' && ! $item->approved_by_qc) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus diverifikasi oleh QC terlebih dahulu sebelum dapat disetujui oleh Produksi',
+                ], 422);
+            }
+
+            if ($type === 'spv' && ! $item->approved_by_produksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu sebelum dapat disetujui oleh SPV',
+                ], 422);
+            }
 
             // Check if already approved
             $approvalField = 'approved_by_'.$type;
@@ -1149,11 +1170,11 @@ class ChillroomController extends Controller
 
             // Role check - verifikasi QC hanya melalui form verifikasi QC
             $userRole = $user->id_role;
-            $allowedRoles = [
-                'spv' => [1, 4, 5]
-            ];
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, [1, 4, 5], true);
 
-            if (! in_array($userRole, $allowedRoles[$type] ?? [])) {
+            if (! in_array($type, ['produksi', 'spv'], true) || ! $authorized) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'], 403);
             }
 
@@ -1170,9 +1191,13 @@ class ChillroomController extends Controller
             }
 
             // Check Sequential
-            if ($type === 'spv') {
+            if ($type === 'produksi') {
                 if ($items->contains(fn ($i) => ! $i->approved_by_qc)) {
                     return response()->json(['success' => false, 'message' => 'Verifikasi QC belum lengkap untuk shift ini.'], 422);
+                }
+            } elseif ($type === 'spv') {
+                if ($items->contains(fn ($i) => ! $i->approved_by_produksi)) {
+                    return response()->json(['success' => false, 'message' => 'Persetujuan Produksi belum lengkap untuk shift ini.'], 422);
                 }
             }
 
@@ -1226,18 +1251,18 @@ class ChillroomController extends Controller
 
             // Validate - verifikasi QC hanya melalui form verifikasi QC
             $request->validate([
-                'type' => 'required|in:spv',
+                'type' => 'required|in:produksi,spv',
                 'uuids' => 'required|array|min:1',
                 'uuids.*' => 'required|uuid',
             ]);
 
             // Role check
             $userRole = $user->id_role;
-            $allowedRoles = [
-                'spv' => [1, 4, 5]
-            ];
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, [1, 4, 5], true);
 
-            if (! in_array($userRole, $allowedRoles[$type] ?? [])) {
+            if (! $authorized) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'], 403);
             }
 
@@ -1253,6 +1278,14 @@ class ChillroomController extends Controller
 
             if ($count === 0) {
                 return response()->json(['success' => true, 'message' => 'Semua data sudah diverifikasi sebelumnya.']);
+            }
+
+            if ($type === 'produksi' && $itemsToUpdate->contains(fn ($i) => ! $i->approved_by_qc)) {
+                return response()->json(['success' => false, 'message' => 'Data harus diverifikasi oleh QC terlebih dahulu.'], 422);
+            }
+
+            if ($type === 'spv' && $itemsToUpdate->contains(fn ($i) => ! $i->approved_by_produksi)) {
+                return response()->json(['success' => false, 'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'], 422);
             }
 
             // Update

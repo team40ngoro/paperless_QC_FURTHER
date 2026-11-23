@@ -148,6 +148,7 @@
                     <th>No</th>
                     <th>Waktu</th>
                     <th>Nama Kemasan</th>
+                    <th>Nama Produsen</th>
                     <th>Kode Produksi</th>
                     <th>Kondisi</th>
                     <th>Keterangan</th>
@@ -159,6 +160,7 @@
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $item->jam ? \Carbon\Carbon::parse($item->jam)->format('H:i') : '-' }}</td>
                         <td>{{ $item->nama_kemasan ?? '-' }}</td>
+                        <td>{{ $item->nama_produsen ?? '-' }}</td>
                         <td>{{ $item->kode_produksi ?? '-' }}</td>
                         <td>{{ $item->kondisi_bahan_kemasan ?? '-' }}</td>
                         <td>{{ $item->keterangan ?? '-' }}</td>

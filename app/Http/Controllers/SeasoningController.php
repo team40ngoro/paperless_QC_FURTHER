@@ -661,19 +661,19 @@ class SeasoningController extends Controller
     {
         try {
             $request->validate([
-                'type' => 'required|in:spv'
+                'type' => 'required|in:produksi,spv'
             ]);
 
             $user = auth()->user();
             $userRole = $user->id_role;
             $type = $request->type;
 
-            // Approval SPV dilakukan di halaman detail (show).
-            $allowedRoles = [
-                'spv' => [4, 5]
-            ];
+            // Approval Produksi oleh SPV Produksi, approval akhir oleh SPV QC.
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, [1, 4, 5], true);
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            if (! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki akses untuk melakukan persetujuan ini'
@@ -689,11 +689,25 @@ class SeasoningController extends Controller
                 ], 403);
             }
 
-            // Sequential approval validation: QC harus verifikasi terlebih dahulu.
-            if (!$item->approved_by_qc) {
+            // Sequential approval validation: QC -> Produksi -> SPV.
+            if ($type === 'produksi' && ! $item->approved_by_qc) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus diverifikasi oleh QC terlebih dahulu sebelum dapat disetujui oleh Produksi'
+                ], 422);
+            }
+
+            if ($type === 'spv' && ! $item->approved_by_qc) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Data harus diverifikasi oleh QC terlebih dahulu sebelum dapat disetujui oleh SPV'
+                ], 422);
+            }
+
+            if ($type === 'spv' && ! $item->approved_by_produksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu sebelum dapat disetujui oleh SPV'
                 ], 422);
             }
 
@@ -803,11 +817,14 @@ class SeasoningController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json(['success' => false, 'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'], 403);
             }
 
@@ -898,11 +915,14 @@ class SeasoningController extends Controller
             $userRole = $user->id_role;
             $allowedRoles = [
                 'qc' => [1, 3, 5],
-                'produksi' => [1, 2, 5],
                 'spv' => [1, 4, 5]
             ];
 
-            if (!in_array($userRole, $allowedRoles[$type] ?? [])) {
+            $authorized = $type === 'produksi'
+                ? $user->canApproveAsProduksi()
+                : in_array($userRole, $allowedRoles[$type] ?? [], true);
+
+            if (!in_array($type, ['qc', 'produksi', 'spv'], true) || ! $authorized) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak memiliki otoritas untuk verifikasi ini.'
@@ -926,6 +946,20 @@ class SeasoningController extends Controller
                     'success' => true,
                     'message' => 'Semua data yang dipilih sudah diverifikasi sebelumnya.'
                 ]);
+            }
+
+            if ($type === 'produksi' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_qc)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus diverifikasi oleh QC terlebih dahulu.'
+                ], 422);
+            }
+
+            if ($type === 'spv' && $itemsToUpdate->contains(fn($i) => !$i->approved_by_produksi)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data harus disetujui oleh Produksi terlebih dahulu.'
+                ], 422);
             }
 
             // Update hanya data yang belum approved (approver lama tidak tertimpa

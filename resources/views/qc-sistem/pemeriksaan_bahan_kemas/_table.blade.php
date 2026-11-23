@@ -1,6 +1,6 @@
 @php
     // Kolom checkbox hanya tampil di halaman operasional, bukan di halaman audit.
-    $colspanTotal = (isset($isAuditPage) && $isAuditPage) ? 10 : 11;
+    $colspanTotal = (isset($isAuditPage) && $isAuditPage) ? 11 : 12;
     $rowNumber = $records->firstItem() ?? 1;
 @endphp
 @forelse($records as $groupKey => $groupItems)
@@ -20,6 +20,7 @@
             <td class="align-middle">
                 <div class="font-weight-bold">{{ $item->nama_kemasan ?? '-' }}</div>
             </td>
+            <td class="align-middle">{{ $item->nama_produsen ?? '-' }}</td>
             <td class="text-center align-middle"><code>{{ $item->kode_produksi ?? '-' }}</code></td>
             <td class="text-center align-middle">
                 <span class="badge {{ $item->kondisi_bahan_kemasan == 'OK' ? 'badge-success' : 'badge-danger' }}">
