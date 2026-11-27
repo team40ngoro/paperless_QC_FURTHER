@@ -608,7 +608,10 @@ class PembuatanEmulsiController extends Controller
                 'shift',
                 'nama_emulsi',
                 'nomor_emulsi',
-                'user'
+                'user',
+                'qcApprover',
+                'produksiApprover',
+                'spvApprover'
             ])
             ->firstOrFail();
 
@@ -996,6 +999,142 @@ class PembuatanEmulsiController extends Controller
         }
     }
 
+    /**
+     * Store QC Verification on Persiapan Bahan Emulsi
+     * Input: hasil_emulsi (dropdown Oke / Tidak Oke)
+     *        suhu_emulsi (number)
+     */
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+            }
+
+            $userRole = (int) ($user->id_role ?? 0);
+            $userRoleName = strtolower(optional($user->roleModel)->role ?? $user->role ?? '');
+            $isQc = in_array($userRole, [1, 3, 5], true)
+                || ($user->role === 'superadmin')
+                || (method_exists($user, 'isQcInspector') && $user->isQcInspector())
+                || (method_exists($user, 'isQc') && $user->isQc())
+                || str_contains($userRoleName, 'qc');
+
+            if (!$isQc) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya role QC yang dapat melakukan verifikasi ini.'
+                ], 403);
+            }
+
+            $request->validate([
+                'hasil_emulsi' => 'required|in:✔,✘,OK,NOT_OK',
+                'suhu_emulsi' => 'required|numeric',
+            ]);
+
+            $item = PembuatanEmulsi::where('uuid', $uuid)->firstOrFail();
+
+            if ($user->role !== 'superadmin' && $item->id_plan !== $user->id_plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk data plan ini.'
+                ], 403);
+            }
+
+            // Normalisasi pilihan Hasil Emulsi
+            $rawHasil = $request->hasil_emulsi;
+            $hasil = ($rawHasil === 'OK' || $rawHasil === '✔') ? '✔' : '✘';
+            $suhu = (float) $request->suhu_emulsi;
+
+            // Hitung jumlah proses dari suhuEmulsi
+            $processCount = $item->suhuEmulsi->groupBy('proses_ke')->count();
+            if ($processCount <= 0) {
+                $processCount = 1;
+            }
+
+            $existingKondisi = json_decode($item->kondisi, true);
+            $kondisiArray = is_array($existingKondisi) ? $existingKondisi : [];
+            for ($i = 0; $i < $processCount; $i++) {
+                $kondisiArray[$i] = $suhu;
+            }
+
+            $existingHasil = json_decode($item->hasil_emulsi, true);
+            $hasilArray = is_array($existingHasil) ? $existingHasil : [];
+            for ($i = 0; $i < $processCount; $i++) {
+                $hasilArray[$i] = $hasil;
+            }
+
+            $oldHasil = $item->hasil_emulsi;
+            $oldKondisi = $item->kondisi;
+            $oldApprovedQc = $item->approved_by_qc;
+
+            \DB::beginTransaction();
+
+            $item->update([
+                'kondisi' => json_encode($kondisiArray),
+                'hasil_emulsi' => json_encode($hasilArray),
+                'approved_by_qc' => true,
+                'qc_approved_by' => $user->id,
+                'qc_approved_at' => now(),
+            ]);
+
+            // Log activity
+            PembuatanEmulsiLog::create([
+                'pembuatan_emulsi_id' => $item->id,
+                'pembuatan_emulsi_uuid' => $item->uuid,
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_role' => optional($user->roleModel)->role ?? $user->role ?? 'QC Inspector',
+                'aksi' => 'qc_verification',
+                'field_yang_diubah' => ['hasil_emulsi', 'kondisi', 'approved_by_qc'],
+                'nilai_lama' => [
+                    'hasil_emulsi' => $oldHasil,
+                    'kondisi' => $oldKondisi,
+                    'approved_by_qc' => $oldApprovedQc,
+                ],
+                'nilai_baru' => [
+                    'hasil_emulsi' => json_encode($hasilArray),
+                    'kondisi' => json_encode($kondisiArray),
+                    'approved_by_qc' => true,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'keterangan' => 'Verifikasi QC berhasil disimpan oleh ' . $user->name,
+            ]);
+
+            \DB::commit();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verifikasi QC berhasil disimpan.',
+                ]);
+            }
+
+            return redirect()->route('persiapan-bahan-emulsi.show', $item->uuid)
+                ->with('success', 'Verifikasi QC berhasil disimpan.');
+
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal: ' . collect($ve->errors())->flatten()->implode(', ')
+                ], 422);
+            }
+            return redirect()->back()->withErrors($ve->errors())->withInput();
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Error storeQcVerification Emulsi: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan verifikasi QC: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Gagal menyimpan verifikasi QC: ' . $e->getMessage())->withInput();
+        }
+    }
+
     public function approve(Request $request, $uuid)
     {
         try {
@@ -1030,10 +1169,10 @@ class PembuatanEmulsiController extends Controller
                 ], 400);
             }
 
-            if ($type === 'spv' && !$pembuatanEmulsi->approved_by_produksi) {
+            if ($type === 'spv' && !$pembuatanEmulsi->approved_by_qc) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Menunggu verifikasi SPV Produksi terlebih dahulu'
+                    'message' => 'Menunggu verifikasi QC Inspektor terlebih dahulu'
                 ], 400);
             }
             
@@ -1145,9 +1284,9 @@ class PembuatanEmulsiController extends Controller
             }
 
             if ($type === 'spv') {
-                $anyMissingProduksi = $records->contains(fn($r) => !$r->approved_by_produksi);
-                if ($anyMissingProduksi) {
-                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diketahui oleh SPV Produksi'], 400);
+                $anyMissingQc = $records->contains(fn($r) => !$r->approved_by_qc);
+                if ($anyMissingQc) {
+                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diverifikasi oleh QC Inspektor'], 400);
                 }
             }
 
@@ -1265,7 +1404,7 @@ class PembuatanEmulsiController extends Controller
                     continue;
                 }
 
-                if ($type === 'spv' && !$record->approved_by_produksi) {
+                if ($type === 'spv' && !$record->approved_by_qc) {
                     $skippedCount++;
                     continue;
                 }

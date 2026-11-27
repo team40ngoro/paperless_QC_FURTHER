@@ -17,7 +17,7 @@ class PersiapanBahanForming extends Model
 
     protected $table = 'persiapan_bahan_forming';
     protected $fillable = [
-        'uuid', 'id_formula', 'berat_sampling', 'kode_produksi_emulsi', 'kode_produksi_emulsi_oil', 'kondisi', 'kondisi_hasil_pencampuran', 'suhu_rm', 'rework', 'produk_rework_id', 'catatan', 'plan_id', 'user_id', 'shift_id', 'tanggal', 'jam', 'kode_form',
+        'uuid', 'id_formula', 'berat_sampling', 'kode_produksi_emulsi', 'kode_produksi_emulsi_oil', 'kondisi', 'kondisi_hasil_pencampuran', 'rework', 'produk_rework_id', 'catatan', 'plan_id', 'user_id', 'shift_id', 'tanggal', 'jam', 'kode_form',
         // new fields merged from Cold Mixing
         'id_suhu_adonan', 'waktu_mulai_mixing', 'waktu_selesai_mixing',
         // Approval fields

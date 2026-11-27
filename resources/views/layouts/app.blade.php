@@ -691,204 +691,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-
-  // Script ini khusus untuk halaman Persiapan Bahan Forming.
-  // Banyak form lain (mis. Suhu Adonan) memakai id yang sama: #id_plan_select dan #id_produk_select.
-  // Jika tidak dibatasi, halaman lain bisa ikut ter-redirect ke persiapan bahan.
-  
-  var isPersiapanBahanFormingPage = path.indexOf('persiapan-bahan-forming') !== -1;
-  if (!isPersiapanBahanFormingPage) {
-    return;
-  }
-
-  var $produk = $('#id_produk_select');
-  var $formula = $('#id_formula_select');
-  var $suhu = $('#id_suhu_adonan_select');
-  var $tbody = $('#tabel-bahan-forming tbody');
-
-  // Helper URL via Blade (aman base path)
-  var URL_NOMOR_FORMULA_BY_PRODUK = '/paperless_futher/qc-sistem/get-formula-by-produk';
-  var URL_BAHAN_BY_FORMULA = '/paperless_futher/qc-sistem/ajax/bahan-forming-by-formula';
-  var URL_SUHU_BY_PRODUK = '/paperless_futher/qc-sistem/get-suhu-adonan-by-produk';
-  var URL_NON_FORMING_FORMULA_BY_PRODUK = '/paperless_futher/qc-sistem/ajax/nomor-formula-non-forming-by-produk';
-
-  // Debug: pastikan element ada
-  console.log('Produk select found:', $('#id_produk_select').length);
-  console.log('Formula select found:', $('#id_formula_select').length);
-  console.log('Suhu select found:', $('#id_suhu_adonan_select').length);
-
-  // Event delegation untuk produk dropdown
-  $(document).on('change', '#id_produk_select', function () {
-    var id_produk = $(this).val();
-    console.log('Produk changed to:', id_produk);
-
-    // Sinkronkan query string id_produk agar URL selalu sesuai pilihan produk
-    try {
-      var url = new URL(window.location.href);
-      if (id_produk) {
-        url.searchParams.set('id_produk', id_produk);
-      } else {
-        url.searchParams.delete('id_produk');
-      }
-      window.history.replaceState({}, '', url.toString());
-    } catch (e) {}
-
-    var selectedOption = this.selectedOptions ? this.selectedOptions[0] : this.options[this.selectedIndex];
-    var rawStatusBahan = (selectedOption && selectedOption.getAttribute('data-status-bahan')) ? String(selectedOption.getAttribute('data-status-bahan')).trim().toLowerCase() : '';
-    var normalizedStatus = rawStatusBahan.replace(/[\s_]+/g, '-');
-    var isNonForming = normalizedStatus === 'non-forming' || normalizedStatus.indexOf('non') === 0;
-
-    if (id_produk && isNonForming) {
-      window.location.href = "{{ route('persiapan-bahan-non-forming.create') }}" + '?id_produk=' + encodeURIComponent(id_produk);
-      return;
-    }
-    
-    var $formula = $('#id_formula_select');
-    var $suhu = $('#id_suhu_adonan_select');
-    var $tbody = $('#tabel-bahan-forming tbody');
-    
-    $formula.html('<option value="">Memuat...</option>');
-    $suhu.html('<option value="">Memuat...</option>');
-    $tbody.html('<tr><td colspan="9" class="text-center">Silakan pilih formula.</td></tr>');
-
-    if (!id_produk) {
-      $formula.html('<option value="">Pilih Nomor Formula</option>');
-      $suhu.html('<option value="">Pilih Suhu Adonan</option>');
-      return;
-    }
-
-    // Fallback: jika status_bahan tidak terisi benar, cek master non-forming berdasarkan id_produk
-    var nfUrl = URL_NON_FORMING_FORMULA_BY_PRODUK + '/' + id_produk;
-    $.get(nfUrl)
-      .done(function (items) {
-        if (Array.isArray(items) && items.length > 0) {
-          window.location.href = "{{ route('persiapan-bahan-non-forming.create') }}" + '?id_produk=' + encodeURIComponent(id_produk);
-        }
-      })
-      .fail(function () {});
-
-    // Load nomor formula berdasarkan produk
-    var formulaUrl = URL_NOMOR_FORMULA_BY_PRODUK + '/' + id_produk;
-    console.log('Loading formula from:', formulaUrl);
-    
-    $.get(formulaUrl)
-      .done(function (data) {
-        console.log('[PBF] formula by produk response:', data);
-        var opts = '<option value="">Pilih Nomor Formula</option>';
-        if (data && Array.isArray(data)) {
-          data.forEach(function (it) {
-            opts += '<option value="' + it.id + '">' + it.nomor_formula + '</option>';
-          });
-        }
-        $formula.html(opts);
-      })
-      .fail(function (xhr) {
-        console.error('[PBF] formula load failed:', xhr.status, xhr.responseText);
-        $formula.html('<option value="">Gagal memuat data</option>');
-      });
-
-    // Load suhu adonan berdasarkan produk (langsung setelah produk dipilih)
-    var suhuUrl = URL_SUHU_BY_PRODUK + '/' + id_produk;
-    console.log('Loading suhu from:', suhuUrl);
-    
-    $.get(suhuUrl)
-      .done(function (items) {
-        console.log('[PBF] suhu std by produk response:', items);
-        var opts = '<option value="">Pilih Suhu Adonan</option>';
-        if (Array.isArray(items) && items.length) {
-          items.forEach(function (sa) {
-            opts += '<option value="' + sa.id + '">STD: ' + sa.std_suhu + '</option>';
-          });
-        } else {
-          opts = '<option value="">Tidak ada data Suhu Adonan</option>';
-        }
-        $suhu.html(opts);
-      })
-      .fail(function (xhr) {
-        console.error('[PBF] suhu std load failed:', xhr.status, xhr.responseText);
-        $suhu.html('<option value="">Gagal memuat data</option>');
-      });
-  });
-
-  // Dynamic row deletion for forming ingredients table
-  $(document).on('click', '.hapus-baris-bahan', function () {
-    $(this).closest('tr').remove();
-    reindexBahanFormingTable();
-  });
-
-  function reindexBahanFormingTable() {
-    // Re-index for create.blade.php table
-    $('#tabel-bahan-forming tbody tr').each(function(index) {
-      $(this).find('td:first').text(index + 1);
-    });
-    // Re-index for edit.blade.php table
-    $('#tabel-bahan-forming-body tr').each(function(index) {
-      $(this).find('td:first .badge').text(index + 1);
-    });
-  }
-
-  // Event delegation untuk formula dropdown persiapan bahan forming
-  $(document).on('change', '#id_formula_select', function () {
-    var id_formula = $(this).val();
-    console.log('Formula changed to:', id_formula);
-    
-    var $tbody = $('#tabel-bahan-forming tbody');
-    
-    if (!id_formula) {
-      $tbody.html('<tr><td colspan="9" class="text-center">Silakan pilih formula.</td></tr>');
-      return;
-    }
-
-    // Load Bahan by Formula
-    $tbody.html('<tr><td colspan="9" class="text-center">Memuat data...</td></tr>');
-    var bahanUrl = URL_BAHAN_BY_FORMULA + '/' + id_formula;
-    console.log('Loading bahan from:', bahanUrl);
-    
-    $.get(bahanUrl)
-      .done(function (data) {
-        console.log('[PBF] bahan by formula response:', data);
-        if (Array.isArray(data) && data.length) {
-          var rows = '';
-          data.forEach(function (item, idx) {
-            rows += '<tr>'
-              + '<td>' + (idx + 1) + '</td>'
-              + '<td>' + (item.formula ? item.formula.nomor_formula : '-') + '</td>'
-              + '<td>' + item.nama_rm + '</td>'
-              + '<td>' + item.berat_rm + '</td>'
-              + '<td>'
-              + '<input type="text" name="kode_produksi_bahan[]" value="" class="form-control" placeholder="Kode Produksi Bahan">'
-              + '</td>'
-              + '<td>'
-                + '<input type="hidden" name="id_bahan_forming[]" value="' + item.id + '">'
-                + '<input type="text" name="suhu[]" value="" class="form-control" placeholder="Suhu">'
-              + '</td>'
-              + '<td>'
-                + '<select name="sensori[]" class="form-control">'
-                  + '<option value="OK">OK</option>'
-                  + '<option value="Tidak OK">Tidak OK</option>'
-                + '</select>'
-              + '</td>'
-              + '<td>'
-                + '<input type="text" name="keterangan_bahan[]" value="" class="form-control" placeholder="Keterangan">'
-              + '</td>'
-              + '<td class="text-center">'
-                + '<button type="button" class="btn btn-danger btn-sm hapus-baris-bahan" title="Hapus Bahan">'
-                  + '<i class="fas fa-trash"></i>'
-                + '</button>'
-              + '</td>'
-              + '</tr>';
-          });
-          $tbody.html(rows);
-        } else {
-          $tbody.html('<tr><td colspan="9" class="text-center">Tidak ada data bahan forming untuk formula ini.</td></tr>');
-        }
-      })
-      .fail(function (xhr) {
-        console.error('[PBF] bahan by formula failed:', xhr.status, xhr.responseText);
-        $tbody.html('<tr><td colspan="9" class="text-center">Gagal memuat data.</td></tr>');
-      });
-  });
-
 });
 // AJAX SEARCH untuk Persiapan Bahan Forming
 $(document).ready(function() {
@@ -1039,19 +841,19 @@ $(document).ready(function() {
                 let aksiHtml = '<span class="text-muted">-</span>';
                 if (item.jenis === 'Forming') {
                     aksiHtml = `
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-forming/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-forming') }}/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
                             <i class="fas fa-eye"></i>
                         </a>
                         @if(auth()->user()?->hasPermissionTo('edit-persiapan-bahan-forming'))
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-forming/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-forming') }}/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
                             <i class="fas fa-edit"></i>
                         </a>
                         @endif
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-forming-export-pdf/${item.uuid}" class="btn btn-danger btn-sm" title="Cetak PDF">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-forming-export-pdf') }}/${item.uuid}" class="btn btn-danger btn-sm" title="Cetak PDF">
                             <i class="fas fa-file-pdf"></i>
                         </a>
                         @if(auth()->user()?->hasPermissionTo('view-persiapan-bahan-forming'))
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-forming/${item.uuid}/logs" class="btn btn-info btn-sm" title="Lihat Riwayat Perubahan">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-forming') }}/${item.uuid}/logs" class="btn btn-info btn-sm" title="Lihat Riwayat Perubahan">
                             <i class="fas fa-history"></i>
                         </a>
                         @endif
@@ -1063,15 +865,15 @@ $(document).ready(function() {
                     `;
                 } else if (item.jenis === 'Non Forming') {
                     aksiHtml = `
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-non-forming/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-non-forming') }}/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
                             <i class="fas fa-eye"></i>
                         </a>
                         @if(auth()->user()?->hasPermissionTo('edit-persiapan-bahan-non-forming'))
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-non-forming/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-non-forming') }}/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
                             <i class="fas fa-edit"></i>
                         </a>
                         @endif
-                        <a href="/paperless_futher/qc-sistem/persiapan-bahan-non-forming-export-pdf/${item.uuid}" class="btn btn-danger btn-sm" title="Cetak PDF">
+                        <a href="{{ url('qc-sistem/persiapan-bahan-non-forming-export-pdf') }}/${item.uuid}" class="btn btn-danger btn-sm" title="Cetak PDF">
                             <i class="fas fa-file-pdf"></i>
                         </a>
                     `;
@@ -1297,7 +1099,7 @@ $(document).on('click', '.delete-btn', function(e) {
         // Create a temporary form for delete
         const form = $('<form>', {
             'method': 'POST',
-            'action': `/paperless_futher/qc-sistem/persiapan-bahan-forming/${uuid}`
+            'action': '{{ url("qc-sistem/persiapan-bahan-forming") }}/' + uuid
         });
         
         const csrfToken = $('meta[name="csrf-token"]').attr('content');
@@ -1343,45 +1145,43 @@ $(document).on('click', '.approve-btn', function(e) {
         // Determine the correct route based on current page
         let approveUrl;
         const currentPath = window.location.pathname;
+        const baseQcUrl = '{{ url("qc-sistem") }}';
         
         if (currentPath.includes('input-metal-detector')) {
-            approveUrl = `/paperless_futher/qc-sistem/input-metal-detector/${id}/approve`;
+            approveUrl = `${baseQcUrl}/input-metal-detector/${id}/approve`;
         } else if (currentPath.includes('persiapan-bahan-forming')) {
-            approveUrl = `/paperless_futher/qc-sistem/persiapan-bahan-forming/${id}/approve`;
+            approveUrl = `${baseQcUrl}/persiapan-bahan-forming/${id}/approve`;
         } else if (currentPath.includes('persiapan-bahan-emulsi')) {
-            approveUrl = `/paperless_futher/qc-sistem/persiapan-bahan-emulsi/${id}/approve`;
+            approveUrl = `${baseQcUrl}/persiapan-bahan-emulsi/${id}/approve`;
         } else if (currentPath.includes('persiapan-bahan-better')) {
-            approveUrl = `/paperless_futher/qc-sistem/persiapan-bahan-better/${id}/approve`;
+            approveUrl = `${baseQcUrl}/persiapan-bahan-better/${id}/approve`;
         } else if (currentPath.includes('ketidaksesuaian-plastik')) {
-            approveUrl = `/paperless_futher/qc-sistem/ketidaksesuaian-plastik/${id}/approve`;
+            approveUrl = `${baseQcUrl}/ketidaksesuaian-plastik/${id}/approve`;
         } else if (currentPath.includes('ketidaksesuaian-benda-asing')) {
-            approveUrl = `/paperless_futher/qc-sistem/ketidaksesuaian-benda-asing/${id}/approve`;
+            approveUrl = `${baseQcUrl}/ketidaksesuaian-benda-asing/${id}/approve`;
         } else if (currentPath.includes('dokumentasi')) {
-            approveUrl = `/paperless_futher/qc-sistem/dokumentasi/${id}/approve`;
+            approveUrl = `${baseQcUrl}/dokumentasi/${id}/approve`;
         } else if (currentPath.includes('chillroom')) {
-            approveUrl = `/paperless_futher/qc-sistem/chillroom/${id}/approve`;
+            approveUrl = `${baseQcUrl}/chillroom/${id}/approve`;
         } else if (currentPath.includes('seasoning')) {
-            approveUrl = `/paperless_futher/qc-sistem/seasoning/${id}/approve`;
+            approveUrl = `${baseQcUrl}/seasoning/${id}/approve`;
         } else if (currentPath.includes('shoestring')) {
-            approveUrl = `/paperless_futher/qc-sistem/shoestring/${id}/approve`;
+            approveUrl = `${baseQcUrl}/shoestring/${id}/approve`;
         } else if (currentPath.includes('rebox')) {
-            approveUrl = `/paperless_futher/qc-sistem/rebox/${id}/approve`;
+            approveUrl = `${baseQcUrl}/rebox/${id}/approve`;
         } else if (currentPath.includes('produk-forming')) {
-            approveUrl = `/paperless_futher/qc-sistem/produk-forming/${id}/approve`;
+            approveUrl = `${baseQcUrl}/produk-forming/${id}/approve`;
         } else if (currentPath.includes('produk-non-forming')) {
-            approveUrl = `/paperless_futher/qc-sistem/produk-non-forming/${id}/approve`;
-        }else if (currentPath.includes('produk-yum')) {
-            approveUrl = `/paperless_futher/qc-sistem/produk-yum/${id}/approve`;
-        } 
-        else if (currentPath.includes('timbangan')) {
-            approveUrl = `/paperless_futher/qc-sistem/timbangan/${id}/approve`;
-        } 
-          else if (currentPath.includes('thermometer')) {
-            approveUrl = `/paperless_futher/qc-sistem/thermometer/${id}/approve`;
-        } 
-        else {
+            approveUrl = `${baseQcUrl}/produk-non-forming/${id}/approve`;
+        } else if (currentPath.includes('produk-yum')) {
+            approveUrl = `${baseQcUrl}/produk-yum/${id}/approve`;
+        } else if (currentPath.includes('timbangan')) {
+            approveUrl = `${baseQcUrl}/timbangan/${id}/approve`;
+        } else if (currentPath.includes('thermometer')) {
+            approveUrl = `${baseQcUrl}/thermometer/${id}/approve`;
+        } else {
             // Default fallback
-            approveUrl = `/paperless_futher/qc-sistem/persiapan-bahan-forming/${id}/approve`;
+            approveUrl = `${baseQcUrl}/persiapan-bahan-forming/${id}/approve`;
         }
         
         $.ajax({
@@ -1653,17 +1453,17 @@ $(document).ready(function() {
                             <div class="btn-vertical">
                                 <!-- Tombol CRUD -->
                                 <div class="mb-1">
-                                    <a href="/paperless_futher/qc-sistem/persiapan-bahan-emulsi/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
+                                    <a href="{{ url('qc-sistem/persiapan-bahan-emulsi') }}/${item.uuid}" class="btn btn-primary btn-sm" title="Lihat Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @auth
                                     @if(auth()->user()->hasPermissionTo('edit-persiapan-bahan-emulsi'))
-                                    <a href="/paperless_futher/qc-sistem/persiapan-bahan-emulsi/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
+                                    <a href="{{ url('qc-sistem/persiapan-bahan-emulsi') }}/${item.uuid}/edit" class="btn btn-warning btn-sm" title="Edit Data">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @endif
                                     @if(auth()->user()->hasPermissionTo('view-persiapan-bahan-emulsi'))
-                                    <a href="/paperless_futher/qc-sistem/persiapan-bahan-emulsi/${item.uuid}/logs" class="btn btn-info btn-sm" title="History">
+                                    <a href="{{ url('qc-sistem/persiapan-bahan-emulsi') }}/${item.uuid}/logs" class="btn btn-info btn-sm" title="History">
                                         <i class="fas fa-history"></i>
                                     </a>
                                     @endif
@@ -1872,7 +1672,7 @@ $(document).ready(function() {
             
             // AJAX request untuk approval
             $.ajax({
-                url: `/paperless_futher/qc-sistem/persiapan-bahan-emulsi/${id}/approve`,
+                url: '{{ url("qc-sistem/persiapan-bahan-emulsi") }}/' + id + '/approve',
                 method: 'POST',
                 data: {
                     _token: $('meta[name="csrf-token"]').attr('content'),
