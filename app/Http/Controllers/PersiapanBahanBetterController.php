@@ -229,6 +229,12 @@ class PersiapanBahanBetterController extends Controller
             return $redirect;
         }
 
+        if ($user->isQcInspector() || (int) ($user->id_role ?? 0) === 3) {
+            return redirect()
+                ->route('persiapan-bahan-better.show', $item->uuid)
+                ->with('info', 'Verifikasi QC dilakukan pada halaman detail.');
+        }
+
         // Cek batas waktu edit untuk role yang dibatasi (global config)
         $restrictedRoles = config('edit_limit.restricted_role_ids', []);
         if (in_array($user->id_role, $restrictedRoles)) {
@@ -401,6 +407,87 @@ class PersiapanBahanBetterController extends Controller
         }
 
         return redirect()->route('persiapan-bahan-better.index')->with('success', 'Data Persiapan Bahan Better berhasil diupdate');
+    }
+
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        $user = auth()->user();
+
+        if (!($user->isQcInspector() || (int) ($user->id_role ?? 0) === 3)) {
+            abort(403, 'Hanya QC Inspector yang dapat melakukan verifikasi ini.');
+        }
+
+        $persiapan = PersiapanBahanBetter::where('uuid', $uuid)->firstOrFail();
+
+        if ((int) $persiapan->id_plan !== (int) $user->id_plan && !$user->isSuperAdmin()) {
+            abort(403, 'Anda tidak memiliki akses ke data ini.');
+        }
+
+        $validated = $request->validate([
+            'global_sensori' => 'required|in:✔,✘',
+            'id_std_salinitas_viskositas' => 'nullable|array',
+            'aktual_vis' => 'nullable|array',
+            'aktual_sal' => 'nullable|array',
+            'aktual_suhu_air' => 'nullable|array',
+        ], [
+            'global_sensori.required' => 'Sensori harus dipilih (OK / Tidak OK)',
+            'global_sensori.in' => 'Sensori harus berupa ✔ atau ✘',
+        ]);
+
+        $sensoriVal = $validated['global_sensori'];
+        $oldSensori = $persiapan->sensori;
+
+        $rows = $persiapan->better_rows ?? [];
+        if (is_array($rows)) {
+            foreach ($rows as $idx => $r) {
+                $rows[$idx]['sensori'] = $sensoriVal;
+            }
+        }
+
+        $persiapan->update([
+            'sensori' => $sensoriVal,
+            'better_rows' => $rows,
+            'approved_by_qc' => true,
+            'qc_approved_by' => $user->id,
+            'qc_approved_at' => now(),
+        ]);
+
+        if (is_array($validated['id_std_salinitas_viskositas'] ?? null)) {
+            AktualBetter::where('id_persiapan_bahan_better', $persiapan->id)->delete();
+
+            foreach ($validated['id_std_salinitas_viskositas'] as $i => $idStd) {
+                if (empty($idStd)) {
+                    continue;
+                }
+
+                AktualBetter::create([
+                    'id_std_salinitas_viskositas' => $idStd,
+                    'id_persiapan_bahan_better' => $persiapan->id,
+                    'aktual_vis' => (string) ($validated['aktual_vis'][$i] ?? ''),
+                    'aktual_sal' => (string) ($validated['aktual_sal'][$i] ?? ''),
+                    'aktual_suhu_air' => (string) ($validated['aktual_suhu_air'][$i] ?? ''),
+                ]);
+            }
+        }
+
+        PersiapanBahanBetterLog::create([
+            'persiapan_bahan_better_id' => $persiapan->id,
+            'persiapan_bahan_better_uuid' => $persiapan->uuid,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->id_role,
+            'aksi' => 'qc_verification',
+            'field_yang_diubah' => ['sensori', 'aktual_vis', 'aktual_sal', 'aktual_suhu_air', 'approved_by_qc'],
+            'nilai_lama' => ['sensori' => $oldSensori ?? '-', 'approved_by_qc' => false],
+            'nilai_baru' => ['sensori' => $sensoriVal, 'approved_by_qc' => true],
+            'keterangan' => "Verifikasi dan persetujuan QC oleh {$user->name}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return redirect()
+            ->route('persiapan-bahan-better.show', $persiapan->uuid)
+            ->with('success', 'Verifikasi QC Bahan Better berhasil disimpan');
     }
 
     public function destroy($uuid)

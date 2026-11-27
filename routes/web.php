@@ -731,6 +731,10 @@ Route::middleware('auth')->group(function () {
         Route::post('persiapan-bahan-better/{uuid}/approve', [PersiapanBahanBetterController::class, 'approve'])
             ->name('persiapan-bahan-better.approve');
 
+        // untuk verifikasi QC persiapan bahan better
+        Route::post('persiapan-bahan-better/{uuid}/qc-verification', [PersiapanBahanBetterController::class, 'storeQcVerification'])
+            ->name('persiapan-bahan-better.qc-verification.store');
+
         // untuk approval produk forming
         Route::post('produk-forming/bulk-approve', [ProdukFormingController::class, 'bulkApprove'])->name('produk-forming.bulk-approve');
         Route::post('produk-forming/bulk-approve-selected', [ProdukFormingController::class, 'bulkApproveSelected'])->name('produk-forming.bulk-approve-selected');

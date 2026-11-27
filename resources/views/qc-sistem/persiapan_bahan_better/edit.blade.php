@@ -5,7 +5,7 @@
     $currentUser = auth()->user();
     $isSuperadmin = $currentUser->isSuperAdmin() || $currentUser->role === 'superadmin' || (int)($currentUser->id_role ?? 0) === 5;
     $isQcInspector = !$isSuperadmin && ($currentUser->isQcInspector() || (int)($currentUser->id_role ?? 0) === 3 || strtolower(trim($currentUser->role ?? '')) === 'qc inspector' || $currentUser->isQc());
-    $canEditQc = ($isQcInspector || $isSuperadmin);
+    $canEditQc = false;
     $isProduksi = !$isSuperadmin && !$isQcInspector;
 @endphp
 <div class="content-wrapper">
