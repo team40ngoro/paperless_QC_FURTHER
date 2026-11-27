@@ -507,14 +507,21 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
             $produkReworkIds = [(int) $produkReworkIdInput];
         }
 
+        // Tentukan plan_id. Superadmin bisa saja tidak punya id_plan,
+        // sehingga gunakan plan dari formula yang dipilih.
+        $formula = \App\Models\NomorFormula::find($data['id_formula']);
+        $planId = $user->id_plan ?: $formula?->id_plan;
+        if (!$planId) {
+            return back()->withInput()->withErrors([
+                'id_formula' => 'Plan tidak dapat ditentukan dari formula yang dipilih.',
+            ]);
+        }
+
         // Cari default id_suhu_adonan jika tidak dipilih
         $idSuhuAdonan = $data['id_suhu_adonan'] ?? null;
-        if (!$idSuhuAdonan) {
-            $formula = \App\Models\NomorFormula::find($data['id_formula']);
-            if ($formula) {
-                $suhuStd = \App\Models\SuhuAdonan::where('id_produk', $formula->id_produk)->first();
-                $idSuhuAdonan = $suhuStd?->id;
-            }
+        if (!$idSuhuAdonan && $formula) {
+            $suhuStd = \App\Models\SuhuAdonan::where('id_produk', $formula->id_produk)->first();
+            $idSuhuAdonan = $suhuStd?->id;
         }
         if (!$idSuhuAdonan) {
             $idSuhuAdonan = \App\Models\SuhuAdonan::value('id');
@@ -522,7 +529,7 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
 
         $persiapan = PersiapanBahanForming::create([
             'uuid' => \Illuminate\Support\Str::uuid(),
-            'plan_id' => $user->id_plan,
+            'plan_id' => $planId,
             'user_id' => $user->id,
             'id_formula' => $data['id_formula'],
             'berat_sampling' => $data['berat_sampling'] ?? null,
@@ -959,7 +966,10 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
                 'shift',
                 'aktualSuhuAdonan',
                 'suhuAdonan',
-                'user'
+                'user',
+                'qcApprover',
+                'produksiApprover',
+                'spvApprover'
             ])
             ->firstOrFail();
 
@@ -997,6 +1007,146 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
             return redirect()->route('persiapan-bahan-forming.index')->with('success', 'Data berhasil dihapus');
         } catch (\Exception $e) {
             return redirect()->route('persiapan-bahan-forming.index')->with('error', 'Gagal menghapus data');
+        }
+    }
+
+    /**
+     * Store QC Verification on Persiapan Bahan Forming
+     * Input: kondisi_hasil_pencampuran (dropdown Oke / Tidak Oke)
+     *        suhu_actual (number)
+     */
+    public function storeQcVerification(Request $request, $uuid)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+            }
+
+            $userRole = (int) ($user->id_role ?? 0);
+            $userRoleName = strtolower(optional($user->roleModel)->role ?? $user->role ?? '');
+            $isQc = in_array($userRole, [1, 3, 5], true)
+                || ($user->role === 'superadmin')
+                || (method_exists($user, 'isQcInspector') && $user->isQcInspector())
+                || (method_exists($user, 'isQc') && $user->isQc())
+                || str_contains($userRoleName, 'qc');
+
+            if (!$isQc) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya role QC yang dapat melakukan verifikasi ini.'
+                ], 403);
+            }
+
+            $request->validate([
+                'kondisi_hasil_pencampuran' => 'required|in:✔,✘,OK,NOT_OK',
+                'suhu_actual' => 'required|numeric',
+            ]);
+
+            $item = PersiapanBahanForming::where('uuid', $uuid)->firstOrFail();
+
+            if ($user->role !== 'superadmin' && $item->plan_id !== $user->id_plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk data plan ini.'
+                ], 403);
+            }
+
+            // Normalisasi pilihan Hasil Pencampuran
+            $rawKondisi = $request->kondisi_hasil_pencampuran;
+            $kondisi = ($rawKondisi === 'OK' || $rawKondisi === '✔') ? '✔' : '✘';
+            $suhuActual = (float) $request->suhu_actual;
+
+            $oldKondisi = $item->kondisi_hasil_pencampuran;
+            $oldApprovedQc = $item->approved_by_qc;
+
+            \DB::beginTransaction();
+
+            $item->update([
+                'kondisi_hasil_pencampuran' => $kondisi,
+                'approved_by_qc' => true,
+                'qc_approved_by' => $user->id,
+                'qc_approved_at' => now(),
+            ]);
+
+            // Update or Create AktualSuhuAdonan
+            $aktual = $item->aktualSuhuAdonan;
+            if (!$aktual) {
+                $aktual = $item->aktuals()->first();
+            }
+
+            if ($aktual) {
+                $aktual->update([
+                    'aktual_suhu_1' => $suhuActual,
+                    'total_aktual_suhu' => $suhuActual,
+                ]);
+            } else {
+                $idSuhuAdonan = $item->id_suhu_adonan ?? \App\Models\SuhuAdonan::value('id');
+                AktualSuhuAdonan::create([
+                    'uuid' => (string) Str::uuid(),
+                    'owner_type' => 'App\\Models\\PersiapanBahanForming',
+                    'owner_id' => $item->id,
+                    'id_persiapan_bahan_forming' => $item->id,
+                    'id_persiapan_cold_mixing' => $item->id,
+                    'id_suhu_adonan' => $idSuhuAdonan,
+                    'aktual_suhu_1' => $suhuActual,
+                    'total_aktual_suhu' => $suhuActual,
+                ]);
+            }
+
+            // Log activity
+            PersiapanBahanFormingLog::create([
+                'persiapan_bahan_forming_id' => $item->id,
+                'persiapan_bahan_forming_uuid' => $item->uuid,
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_role' => optional($user->roleModel)->role ?? $user->role ?? 'QC Inspector',
+                'aksi' => 'qc_verification',
+                'field_yang_diubah' => ['kondisi_hasil_pencampuran', 'approved_by_qc', 'total_aktual_suhu'],
+                'nilai_lama' => [
+                    'kondisi_hasil_pencampuran' => $oldKondisi,
+                    'approved_by_qc' => $oldApprovedQc,
+                ],
+                'nilai_baru' => [
+                    'kondisi_hasil_pencampuran' => $kondisi,
+                    'approved_by_qc' => true,
+                    'total_aktual_suhu' => $suhuActual,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'keterangan' => 'Verifikasi QC berhasil disimpan oleh ' . $user->name,
+            ]);
+
+            \DB::commit();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verifikasi QC berhasil disimpan.',
+                ]);
+            }
+
+            return redirect()->route('persiapan-bahan-forming.show', $item->uuid)
+                ->with('success', 'Verifikasi QC berhasil disimpan.');
+
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal: ' . collect($ve->errors())->flatten()->implode(', ')
+                ], 422);
+            }
+            return redirect()->back()->withErrors($ve->errors())->withInput();
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            Log::error('Error storeQcVerification: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan verifikasi QC: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Gagal menyimpan verifikasi QC: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -1085,10 +1235,10 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
                 ], 400);
             }
 
-            if ($type === 'spv' && !$persiapanBahan->approved_by_produksi) {
+            if ($type === 'spv' && !$persiapanBahan->approved_by_qc) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Menunggu diketahui SPV Produksi terlebih dahulu'
+                    'message' => 'Menunggu verifikasi QC Inspektor terlebih dahulu'
                 ], 400);
             }
 
@@ -1205,9 +1355,9 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
             }
 
             if ($type === 'spv') {
-                $anyMissingProduksi = $allRecords->contains(fn($r) => !$r->approved_by_produksi);
-                if ($anyMissingProduksi) {
-                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diketahui oleh SPV Produksi'], 400);
+                $anyMissingQc = $allRecords->contains(fn($r) => !$r->approved_by_qc);
+                if ($anyMissingQc) {
+                    return response()->json(['success' => false, 'message' => 'Beberapa data belum diverifikasi oleh QC Inspektor'], 400);
                 }
             }
 
@@ -1326,12 +1476,12 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
             }
 
             if ($type === 'spv') {
-                $formingMissing = !empty($formingUuids) && PersiapanBahanForming::whereIn('uuid', $formingUuids)->where('approved_by_produksi', false)->exists();
-                $nonFormingMissing = !empty($nonFormingUuids) && PersiapanBahanNonForming::whereIn('uuid', $nonFormingUuids)->where('approved_by_produksi', false)->exists();
+                $formingMissing = !empty($formingUuids) && PersiapanBahanForming::whereIn('uuid', $formingUuids)->where('approved_by_qc', false)->exists();
+                $nonFormingMissing = !empty($nonFormingUuids) && PersiapanBahanNonForming::whereIn('uuid', $nonFormingUuids)->where('approved_by_qc', false)->exists();
                 if ($formingMissing || $nonFormingMissing) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Beberapa data yang dipilih belum diketahui oleh SPV Produksi.'
+                        'message' => 'Beberapa data yang dipilih belum diverifikasi oleh QC Inspektor.'
                     ], 400);
                 }
             }
@@ -2024,11 +2174,16 @@ $query = PersiapanBahanForming::with(['plan', 'formula.produk', 'suhuForming.bah
     {
         $user = auth()->user();
         
-        if ($user->role === 'superadmin') {
+        if ($user && $user->role === 'superadmin') {
             $formulas = \App\Models\NomorFormula::where('id_produk', $id_produk)->get();
         } else {
+            $planId = $user?->id_plan;
+            $hasPlanFormulas = $planId ? \App\Models\NomorFormula::where('id_produk', $id_produk)->where('id_plan', $planId)->exists() : false;
+
             $formulas = \App\Models\NomorFormula::where('id_produk', $id_produk)
-                        ->where('id_plan', $user->id_plan)
+                        ->when($hasPlanFormulas, function ($q) use ($planId) {
+                            $q->where('id_plan', $planId);
+                        })
                         ->get();
         }
         

@@ -505,19 +505,42 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadFormulaFormingByProduk(idProduk) {
         if (!formulaSelect) return;
         formulaSelect.innerHTML = '<option value="">Pilih Nomor Formula</option>';
-        if (!idProduk) return;
+        if (!idProduk) {
+            if (window.jQuery) {
+                window.jQuery(formulaSelect).trigger('change.select2');
+            }
+            return;
+        }
 
-        const res = await fetch("{{ url('/qc-sistem/ajax/nomor-formula-by-produk') }}/" + encodeURIComponent(idProduk), {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const data = await res.json();
+        try {
+            const res = await fetch("{{ url('/qc-sistem/ajax/nomor-formula-by-produk') }}/" + encodeURIComponent(idProduk), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) {
+                console.error('[PBF] Failed to load formula, HTTP:', res.status);
+                formulaSelect.innerHTML = '<option value="">Gagal memuat formula</option>';
+                return;
+            }
+            const data = await res.json();
 
-        (data || []).forEach(function(item) {
-            const opt = document.createElement('option');
-            opt.value = item.id;
-            opt.textContent = item.nomor_formula;
-            formulaSelect.appendChild(opt);
-        });
+            if (Array.isArray(data) && data.length > 0) {
+                data.forEach(function(item) {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.nomor_formula;
+                    formulaSelect.appendChild(opt);
+                });
+            } else {
+                formulaSelect.innerHTML = '<option value="">Tidak ada formula untuk produk ini</option>';
+            }
+        } catch (e) {
+            console.error('[PBF] Error in loadFormulaFormingByProduk:', e);
+            formulaSelect.innerHTML = '<option value="">Gagal memuat formula</option>';
+        } finally {
+            if (window.jQuery) {
+                window.jQuery(formulaSelect).trigger('change.select2');
+            }
+        }
     }
 
     async function loadSuhuAdonanByProduk(idProduk) {
@@ -525,17 +548,22 @@ document.addEventListener('DOMContentLoaded', function() {
         suhuSelect.innerHTML = '<option value="">Pilih Suhu Adonan</option>';
         if (!idProduk) return;
 
-        const res = await fetch("{{ url('/qc-sistem/get-suhu-adonan-by-produk') }}/" + encodeURIComponent(idProduk), {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const data = await res.json();
+        try {
+            const res = await fetch("{{ url('/qc-sistem/get-suhu-adonan-by-produk') }}/" + encodeURIComponent(idProduk), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
 
-        (data || []).forEach(function(item) {
-            const opt = document.createElement('option');
-            opt.value = item.id;
-            opt.textContent = item.std_suhu ?? item.suhu ?? item.id;
-            suhuSelect.appendChild(opt);
-        });
+            (data || []).forEach(function(item) {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.std_suhu ?? item.suhu ?? item.id;
+                suhuSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('[PBF] Error in loadSuhuAdonanByProduk:', e);
+        }
     }
 
     // Inisialisasi Select2 rework — harus dilakukan SEBELUM handleProdukChange dipanggil

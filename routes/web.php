@@ -514,7 +514,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/ajax/bahan-non-forming-by-formula/{id_no_formula_non_forming}', [PersiapanBahanNonFormingController::class, 'getBahanByFormula']);
         Route::get('/persiapan-bahan/redirect-by-produk/{id_produk}', [PersiapanBahanNonFormingController::class, 'redirectByProduk']);
         Route::get('/ajax/nomor-formula-by-produk/{id_produk}', function ($id_produk) {
-            return NomorFormula::where('id_produk', $id_produk)->get(['id', 'nomor_formula']);
+            $user = auth()->user();
+            $query = NomorFormula::where('id_produk', $id_produk);
+            if ($user && $user->role !== 'superadmin' && $user->id_plan) {
+                if (NomorFormula::where('id_produk', $id_produk)->where('id_plan', $user->id_plan)->exists()) {
+                    $query->where('id_plan', $user->id_plan);
+                }
+            }
+            return $query->get(['id', 'nomor_formula']);
         });
 
         Route::get('/ajax/area-by-plan/{plan_id}', function ($plan_id) {
@@ -711,6 +718,8 @@ Route::middleware('auth')->group(function () {
         Route::post('persiapan-bahan-forming/bulk-approve-selected', [PersiapanBahanFormingController::class, 'bulkApproveSelected'])->name('persiapan-bahan-forming.bulk-approve-selected');
         Route::post('persiapan-bahan-forming/{uuid}/approve', [PersiapanBahanFormingController::class, 'approve'])
             ->name('persiapan-bahan-forming.approve');
+        Route::post('persiapan-bahan-forming/{uuid}/qc-verification', [PersiapanBahanFormingController::class, 'storeQcVerification'])
+            ->name('persiapan-bahan-forming.qc-verification');
 
         // Untuk approval metal detector
         Route::post('input-metal-detector/bulk-approve', [MetalDetectorController::class, 'bulkApprove'])->name('input-metal-detector.bulk-approve');
@@ -723,6 +732,8 @@ Route::middleware('auth')->group(function () {
         Route::post('persiapan-bahan-emulsi/bulk-approve-selected', [PembuatanEmulsiController::class, 'bulkApproveSelected'])->name('persiapan-bahan-emulsi.bulk-approve-selected');
         Route::post('persiapan-bahan-emulsi/{uuid}/approve', [PembuatanEmulsiController::class, 'approve'])
             ->name('persiapan-bahan-emulsi.approve');
+        Route::post('persiapan-bahan-emulsi/{uuid}/qc-verification', [PembuatanEmulsiController::class, 'storeQcVerification'])
+            ->name('persiapan-bahan-emulsi.qc-verification');
 
         // untuk approval persiapan bahan better
         Route::get('persiapan-bahan-better/search', [PersiapanBahanBetterController::class, 'searchAjax'])->name('persiapan-bahan-better.search');
@@ -730,6 +741,10 @@ Route::middleware('auth')->group(function () {
         Route::post('persiapan-bahan-better/bulk-approve-selected', [PersiapanBahanBetterController::class, 'bulkApproveSelected'])->name('persiapan-bahan-better.bulk-approve-selected');
         Route::post('persiapan-bahan-better/{uuid}/approve', [PersiapanBahanBetterController::class, 'approve'])
             ->name('persiapan-bahan-better.approve');
+
+        // untuk verifikasi QC persiapan bahan better
+        Route::post('persiapan-bahan-better/{uuid}/qc-verification', [PersiapanBahanBetterController::class, 'storeQcVerification'])
+            ->name('persiapan-bahan-better.qc-verification.store');
 
         // untuk approval produk forming
         Route::post('produk-forming/bulk-approve', [ProdukFormingController::class, 'bulkApprove'])->name('produk-forming.bulk-approve');

@@ -235,6 +235,83 @@
                 </div>
             </div>
 
+            @php
+                $currentUser = auth()->user();
+                $isQcInspector = $currentUser && ($currentUser->isQcInspector() || (int) ($currentUser->id_role ?? 0) === 3);
+            @endphp
+            @if($isQcInspector && !$item->approved_by_qc)
+                <div class="card card-info card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-clipboard-check"></i>
+                            Verifikasi QC
+                        </h3>
+                    </div>
+                    <form action="{{ route('persiapan-bahan-better.qc-verification.store', $item->uuid) }}" method="POST">
+                        @csrf
+                        <div class="card-body">
+                            <div class="form-group row align-items-center">
+                                <label class="col-md-3 mb-0 font-weight-bold">Sensori <span class="text-danger">*</span></label>
+                                <div class="col-md-9">
+                                    <select name="global_sensori" class="form-control form-control-sm font-weight-bold" required>
+                                        <option value="✔" {{ $item->sensori === '✔' ? 'selected' : '' }}>✔ OK</option>
+                                        <option value="✘" {{ $item->sensori === '✘' ? 'selected' : '' }}>✘ Tidak OK</option>
+                                    </select>
+                                    @error('global_sensori')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            @foreach($aktualsList as $aktual)
+                                <input type="hidden" name="id_std_salinitas_viskositas[]" value="{{ $aktual->id_std_salinitas_viskositas ?? '' }}">
+                                <div class="form-group row align-items-center">
+                                    <label class="col-md-3 mb-0">Aktual Viscositas (s)</label>
+                                    <div class="col-md-3">
+                                        <span class="text-muted small">Std: {{ $aktual->std->std_viskositas ?? '-' }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="number" step="0.01" name="aktual_vis[]" class="form-control form-control-sm font-weight-bold"
+                                            value="{{ ($aktual->aktual_vis && $aktual->aktual_vis !== '-') ? $aktual->aktual_vis : '' }}"
+                                            placeholder="Masukkan Aktual Viscositas" required>
+                                    </div>
+                                </div>
+                                <div class="form-group row align-items-center">
+                                    <label class="col-md-3 mb-0">Aktual Salinity (%)</label>
+                                    <div class="col-md-3">
+                                        <span class="text-muted small">Std: {{ $aktual->std->std_salinitas ?? '-' }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="number" step="0.01" name="aktual_sal[]" class="form-control form-control-sm font-weight-bold"
+                                            value="{{ ($aktual->aktual_sal && $aktual->aktual_sal !== '-') ? $aktual->aktual_sal : '' }}"
+                                            placeholder="Masukkan Aktual Salinity" required>
+                                    </div>
+                                </div>
+                                <div class="form-group row align-items-center">
+                                    <label class="col-md-3 mb-0">Suhu Akhir (°C)</label>
+                                    <div class="col-md-3">
+                                        <span class="text-muted small">Std: {{ $aktual->std->std_suhu_akhir ?? '-' }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="number" step="0.01" name="aktual_suhu_air[]" class="form-control form-control-sm font-weight-bold"
+                                            value="{{ ($aktual->aktual_suhu_air && $aktual->aktual_suhu_air !== '-') ? $aktual->aktual_suhu_air : '' }}"
+                                            placeholder="Masukkan Suhu Akhir" required>
+                                    </div>
+                                </div>
+                                @if(!$loop->last)
+                                    <hr>
+                                @endif
+                            @endforeach
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Simpan Verifikasi QC
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            @endif
+
             <!-- 4-Stage Verification & Approval Status -->
             <div class="row mt-4">
                 <div class="col-md-12">

@@ -43,7 +43,11 @@
                                     <label for="id_produk_select">Nama Produk</label>
                                     <select name="id_produk" id="id_produk_select" class="form-control" required>
                                         <option value="">Pilih Produk</option>
-                                        {{-- Akan diisi AJAX --}}
+                                        @if(isset($produks) && count($produks))
+                                            @foreach($produks as $produk)
+                                                <option value="{{ $produk->id }}" data-plan="{{ $produk->id_plan }}">{{ $produk->nama_produk }}</option>
+                                            @endforeach
+                                        @endif
                                     </select>
                                 </div>
                                 <!-- Dynamic Form untuk Nomor Formula -->
@@ -130,6 +134,55 @@ document.addEventListener('DOMContentLoaded', function() {
         removeButtons.forEach(button => {
             button.disabled = formulaItems.length <= 1;
         });
+    }
+
+    // Dynamic Produk by Plan
+    const planSelect = document.getElementById('id_plan_select');
+    const produkSelect = document.getElementById('id_produk_select');
+
+    function loadProdukByPlan(planId) {
+        if (!produkSelect) return;
+        produkSelect.innerHTML = '<option value="">Memuat produk...</option>';
+        if (!planId) {
+            produkSelect.innerHTML = '<option value="">Pilih Produk</option>';
+            return;
+        }
+
+        fetch("{{ url('/qc-sistem/ajax/produk-by-plan') }}/" + encodeURIComponent(planId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            produkSelect.innerHTML = '<option value="">Pilih Produk</option>';
+            (data || []).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.nama_produk;
+                produkSelect.appendChild(opt);
+            });
+            if (window.jQuery) {
+                window.jQuery(produkSelect).trigger('change.select2');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading produk by plan:', err);
+            produkSelect.innerHTML = '<option value="">Gagal memuat produk</option>';
+        });
+    }
+
+    if (planSelect) {
+        if (window.jQuery) {
+            window.jQuery(planSelect).on('change', function() {
+                loadProdukByPlan(this.value);
+            });
+        } else {
+            planSelect.addEventListener('change', function() {
+                loadProdukByPlan(this.value);
+            });
+        }
+        if (planSelect.value) {
+            loadProdukByPlan(planSelect.value);
+        }
     }
 });
 </script>
