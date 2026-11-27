@@ -129,7 +129,7 @@
 
                         <div class="footer-text">
                             <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 8px;">
-                                <span class="version-pill">Paperless Further v2.0.3</span>
+                                <span class="version-pill">Paperless Further Ngoro 1.1</span>
                                 <span class="copyright-text">Tim Industry 4.0 &bull; CPI Ngoro</span>
                             </div>
                         </div>
